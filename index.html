@@ -10,6 +10,7 @@
   <style>
     :root {
       --bg-dark: #0B0C10;
+      --bg-darker: #050608;
       --card-bg: #1F2833;
       --text-main: #FFFFFF;
       --text-muted: #C5C6C7;
@@ -25,159 +26,267 @@
 
     body {
       background-color: var(--bg-dark);
+      background-image: radial-gradient(circle at 50% 0%, #1f2833 0%, #0b0c10 70%);
       font-family: 'Plus Jakarta Sans', sans-serif;
       color: var(--text-main);
       min-height: 100vh;
-      padding: 40px 20px;
+      padding-top: 100px;
+      /* Space for fixed header */
+      display: flex;
+      flex-direction: column;
     }
 
+    /* Elegant Fixed Header */
     .header {
-      text-align: center;
-      margin-bottom: 60px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid #333;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 40px;
+      background: rgba(5, 6, 8, 0.85);
+      /* Darker, distinct background */
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
     .header h1 {
-      font-size: 2.5rem;
+      font-size: 1.5rem;
       font-weight: 600;
-      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      margin: 0;
+      background: linear-gradient(90deg, #fff, #c5c6c7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
-    .header p {
+    .header-icon {
       color: var(--text-muted);
-      font-size: 1.1rem;
+      cursor: pointer;
+      transition: color 0.2s;
     }
 
+    .header-icon:hover {
+      color: var(--accent);
+    }
+
+    /* Grid Layout */
     .grid-container {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 30px;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 40px;
       max-width: 1200px;
       margin: 0 auto;
+      flex: 1;
+      /* Push footer down */
+      width: 100%;
+      padding: 20px 40px;
     }
 
+    /* Elegant Card Styling */
     .tool-card {
-      background: var(--card-bg);
-      border-radius: 12px;
+      background: rgba(31, 40, 51, 0.6);
+      /* Slightly transparent */
+      border-radius: 20px;
       overflow: hidden;
-      transition: transform 0.2s, box-shadow 0.2s;
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       display: flex;
       flex-direction: column;
       height: 100%;
+      position: relative;
+      background-clip: padding-box;
+      backdrop-filter: blur(10px);
     }
 
     .tool-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 10px 20px rgba(102, 252, 241, 0.1);
-      border-color: var(--accent);
+      transform: translateY(-8px);
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+      border-color: rgba(102, 252, 241, 0.2);
     }
 
     .card-img {
       width: 100%;
-      aspect-ratio: 1 / 1;
-      /* Força o formato Quadrado perfeito */
+      aspect-ratio: 4 / 3;
       object-fit: cover;
-      /* A "tesoura": corta o excesso sem distorcer */
+      object-position: top center;
+      /* Focus on top of the app/screenshot */
       background: #0a0a0b;
-      /* Cor de fundo caso a imagem demore a carregar */
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      /* Uma linha sutil para separar do texto */
+      transition: transform 0.6s ease;
+    }
+
+    .tool-card:hover .card-img {
+      transform: scale(1.03);
     }
 
     .card-content {
-      padding: 24px;
+      padding: 32px;
       flex-grow: 1;
       display: flex;
       flex-direction: column;
     }
 
     .tool-title {
-      font-size: 1.25rem;
-      font-weight: 600;
+      font-size: 1.5rem;
+      font-weight: 700;
       margin-bottom: 12px;
       color: var(--text-main);
+      letter-spacing: -0.02em;
     }
 
     .tool-desc {
-      font-size: 0.95rem;
+      font-size: 1rem;
       color: var(--text-muted);
-      line-height: 1.5;
-      margin-bottom: 24px;
+      line-height: 1.6;
+      margin-bottom: 32px;
       flex-grow: 1;
+      font-weight: 300;
     }
 
+    /* Modern Elegant Button */
     .tool-link {
-      display: inline-block;
-      text-align: center;
-      background-color: transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(102, 252, 241, 0.08);
+      /* More subtle */
       color: var(--accent);
-      border: 1px solid var(--accent);
-      padding: 10px 20px;
-      border-radius: 6px;
+      border: 1px solid rgba(102, 252, 241, 0.15);
+      padding: 14px 28px;
+      border-radius: 100px;
       text-decoration: none;
       font-weight: 500;
-      transition: all 0.2s;
+      font-size: 0.95rem;
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
       margin-top: auto;
-      /* Empurra o botão para baixo */
+      letter-spacing: 0.02em;
     }
 
     .tool-link:hover {
-      background-color: var(--accent);
+      background: var(--accent);
       color: var(--bg-dark);
+      border-color: var(--accent);
+      box-shadow: 0 0 20px rgba(102, 252, 241, 0.4);
+      transform: translateY(-2px);
     }
 
-    /* Badge opcional para status */
-    .badge {
-      display: inline-block;
-      padding: 4px 8px;
-      font-size: 0.75rem;
-      background: rgba(102, 252, 241, 0.1);
+    .tool-link svg {
+      margin-left: 8px;
+      transition: transform 0.3s ease;
+    }
+
+    .tool-link:hover svg {
+      transform: translateX(4px);
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      margin-top: 60px;
+      padding: 40px 20px;
+      background: rgba(5, 6, 8, 0.8);
+      /* Distinct footer bg */
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(197, 198, 199, 0.3);
+      transition: all 0.2s;
+      padding-bottom: 2px;
+    }
+
+    .footer a:hover {
       color: var(--accent);
-      border-radius: 4px;
-      margin-bottom: 12px;
+      border-color: var(--accent);
+    }
+
+    /* Responsiveness */
+    @media (max-width: 768px) {
+      .header {
+        padding: 15px 20px;
+      }
+
+      .grid-container {
+        padding: 20px;
+        gap: 30px;
+        grid-template-columns: 1fr;
+      }
+
+      .card-content {
+        padding: 24px;
+      }
+
+      .tool-title {
+        font-size: 1.35rem;
+      }
     }
   </style>
 </head>
 
 <body>
 
+  <!-- Fixed Header -->
   <div class="header">
-    <h1>Hylix Tool Hub</h1>
-    <p>Centralized access to our precision medicine & bioinformatics tools.</p>
+    <div class="header-left">
+      <h1>Tool Hub</h1>
+    </div>
+    <div class="header-icon">
+      <!-- Search Icon SVG -->
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M21 21L15.0001 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </div>
   </div>
 
   <div class="grid-container">
 
-    <div class="card">
+    <!-- Card 1 -->
+    <div class="tool-card">
       <img src="assets/pubmed-timeline-cover.png" class="card-img" alt="PubMed Timeline Preview">
-      <div class="card-body">
-        <div style="margin-bottom: 10px;">
-          <span
-            style="background: rgba(56, 189, 248, 0.1); color: #38BDF8; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">LIVE</span>
-        </div>
-        <h3 class="card-title">PubMed Timeline</h3>
-        <p class="card-desc">
+      <div class="card-content">
+        <!-- Badge removed -->
+        <h3 class="tool-title">PubMed Timeline</h3>
+        <p class="tool-desc">
           Interactive visualization of scientific publication history. Analyze journals, publication dates, and research
           impact over time using standard PubMed export files.
         </p>
-        <a href="/pubmed-timeline/" class="btn">Access Tool &rarr;</a>
-      </div>
-    </div>
-    <div class="tool-card">
-      <img src="https://via.placeholder.com/600x320/1a1a1a/888?text=Future+Tool" alt="Tool Image" class="card-image"
-        style="opacity: 0.5">
-      <div class="card-content">
-        <span class="badge" style="color: #888; background: rgba(255,255,255,0.1)">Coming Soon</span>
-        <h3 class="tool-title" style="color: #888">Single Cell Viewer</h3>
-        <p class="tool-desc">
-          Interactive visualization for large-scale single-cell RNA sequencing datasets. Currently under development.
-        </p>
-        <a href="#" class="tool-link" style="border-color: #555; color: #555; pointer-events: none;">Coming Soon</a>
+        <a href="/pubmed-timeline/" class="tool-link">
+          Access Tool
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
+        </a>
       </div>
     </div>
 
+    <!-- Second card removed as requested -->
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    Powered by <a href="https://hylix.app" target="_blank">Hylix Insights</a>
   </div>
 
 </body>
