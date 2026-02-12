@@ -74,12 +74,16 @@
       border-color: var(--accent);
     }
 
-    .card-image {
+    .card-img {
       width: 100%;
-      height: 160px;
+      aspect-ratio: 1 / 1;
+      /* Força o formato Quadrado perfeito */
       object-fit: cover;
-      background-color: #2b3642;
-      /* Placeholder color */
+      /* A "tesoura": corta o excesso sem distorcer */
+      background: #0a0a0b;
+      /* Cor de fundo caso a imagem demore a carregar */
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      /* Uma linha sutil para separar do texto */
     }
 
     .card-content {
