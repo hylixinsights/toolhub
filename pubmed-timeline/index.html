@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PubMed Timeline Visualizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0b;
+            --bg-secondary: #111113;
+            --bg-card: #18181b;
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            --text-muted: #52525b;
+            --accent: #e4c9a3;
+            --accent-glow: rgba(228, 201, 163, 0.15);
+            --line-color: #27272a;
+            --border-subtle: #27272a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 80px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 4rem;
+            font-weight: 300;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: var(--text-muted);
+            font-weight: 300;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        .upload-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 60px;
+            animation: fadeIn 0.8s ease-out 0.2s both;
+        }
+
+        .upload-section.hidden {
+            display: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .upload-zone {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            padding: 60px 40px;
+            border: 1px dashed var(--border-subtle);
+            border-radius: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: var(--bg-secondary);
+            margin-bottom: 30px;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent);
+            background: var(--accent-glow);
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--accent);
+            background: var(--accent-glow);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 20px;
+            stroke: var(--accent);
+            opacity: 0.7;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Estilos para o botão de exemplo */
+        .example-block {
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        .example-label {
+            display: block;
+            margin-bottom: 12px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+        }
+
+        .stats-bar {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 40px;
+            padding: 30px;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .stats-bar.show {
+            display: flex;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: center;
+            gap: 80px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2.5rem;
+            font-weight: 400;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 4px;
+        }
+
+        .export-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: transparent;
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            color: var(--accent);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .export-btn:hover {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .export-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .slider-section {
+            display: none;
+            margin-bottom: 20px;
+            padding: 40px;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .slider-section.show {
+            display: block;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .current-date {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .current-date-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 8px;
+        }
+
+        .current-date-value {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2rem;
+            font-weight: 400;
+            color: var(--text-primary);
+        }
+
+        .slider-container {
+            position: relative;
+            padding: 0 20px;
+        }
+
+        .time-slider {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: var(--line-color);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .time-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 20px var(--accent-glow), 0 0 40px var(--accent-glow);
+            transition: transform 0.2s ease;
+        }
+
+        .time-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .time-slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 20px var(--accent-glow), 0 0 40px var(--accent-glow);
+        }
+
+        .date-range {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .timeline-section {
+            display: none;
+            position: relative;
+        }
+
+        .timeline-section.show {
+            display: block;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .timeline-container {
+            position: relative;
+            min-height: 280px;
+            padding: 30px 0;
+        }
+
+        .timeline-base {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--line-color) 10%, var(--line-color) 90%, transparent);
+        }
+
+        .article-marker {
+            position: absolute;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .article-marker.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .article-line {
+            width: 1px;
+            background: linear-gradient(to top, var(--accent), transparent);
+            transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .article-dot {
+            width: 14px;
+            height: 14px;
+            background: var(--accent);
+            border-radius: 50%;
+            margin-top: -7px;
+            box-shadow: 0 0 15px var(--accent-glow);
+            transition: all 0.3s ease;
+        }
+
+        .article-marker:hover .article-dot {
+            transform: scale(1.5);
+            box-shadow: 0 0 25px var(--accent), 0 0 50px var(--accent-glow);
+        }
+
+        .tooltip {
+            position: fixed;
+            max-width: 480px;
+            padding: 28px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+        }
+
+        .tooltip.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .tooltip-journal {
+            font-size: 0.75rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 12px;
+        }
+
+        .tooltip-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.4rem;
+            font-weight: 500;
+            line-height: 1.4;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        .tooltip-meta {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .tooltip-meta-item {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .tooltip-meta-item strong {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .tooltip-abstract {
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .tooltip-abstract::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .tooltip-abstract::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        .tooltip-abstract::-webkit-scrollbar-thumb {
+            background: var(--border-subtle);
+            border-radius: 2px;
+        }
+
+        .tooltip-reference {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-subtle);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .tooltip-hint {
+            margin-top: 12px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-align: center;
+            opacity: 0.7;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 0 20px;
+            margin-top: 60px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        footer a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.3s ease;
+        }
+
+        footer a:hover {
+            color: var(--accent);
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 40px 20px; }
+            h1 { font-size: 2.5rem; }
+            .stats-row {
+                flex-direction: column;
+                gap: 30px;
+            }
+            .tooltip {
+                max-width: calc(100vw - 40px);
+                left: 20px !important;
+                right: 20px !important;
+            }
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px var(--accent-glow); }
+            50% { box-shadow: 0 0 25px var(--accent), 0 0 40px var(--accent-glow); }
+        }
+
+        .article-marker.visible .article-dot {
+            animation: pulseGlow 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>PubMed Timeline</h1>
+            <p class="subtitle">Visualize your publication history</p>
+        </header>
+
+        <section class="upload-section" id="uploadSection">
+            <div class="upload-zone" id="uploadZone">
+                <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <p class="upload-text">Drop your PubMed file here</p>
+                <p class="upload-hint">or click to browse (.txt or .nbib format)</p>
+                <input type="file" id="fileInput" accept=".txt,.nbib">
+            </div>
+
+            <div class="example-block">
+                <span class="example-label">OR VIEW DEMO</span>
+                <button id="loadExampleBtn" class="export-btn">
+                    Load Example (Helder Nakaya 2025)
+                </button>
+            </div>
+        </section>
+
+        <div class="stats-bar" id="statsBar">
+            <div class="stats-row">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalArticles">0</div>
+                    <div class="stat-label">Publications</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="journalCount">0</div>
+                    <div class="stat-label">Journals</div>
+                </div>
+            </div>
+            <button class="export-btn" id="exportBtn" onclick="exportToExcel()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Export Excel
+            </button>
+        </div>
+
+        <section class="slider-section" id="sliderSection">
+            <div class="current-date">
+                <div class="current-date-label">Current Window</div>
+                <div class="current-date-value" id="currentDateValue">—</div>
+            </div>
+            <div class="slider-container">
+                <input type="range" class="time-slider" id="timeSlider" min="0" max="100" value="0">
+                <div class="date-range">
+                    <span id="minDate">—</span>
+                    <span id="maxDate">—</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="timeline-section" id="timelineSection">
+            <div class="timeline-container" id="timelineContainer">
+                <div class="timeline-base"></div>
+            </div>
+        </section>
+
+        <footer>
+            <a href="https://hylix.app/" target="_blank" rel="noopener noreferrer">Developed by Hylix Insights</a>
+        </footer>
+    </div>
+
+    <div class="tooltip" id="tooltip">
+        <div class="tooltip-journal" id="tooltipJournal"></div>
+        <div class="tooltip-title" id="tooltipTitle"></div>
+        <div class="tooltip-meta">
+            <div class="tooltip-meta-item"><strong>Date:</strong> <span id="tooltipDate"></span></div>
+            <div class="tooltip-meta-item"><strong>PMID:</strong> <span id="tooltipPmid"></span></div>
+        </div>
+        <div class="tooltip-abstract" id="tooltipAbstract"></div>
+        <div class="tooltip-reference" id="tooltipReference"></div>
+        <div class="tooltip-hint">Click to open in PubMed</div>
+    </div>
+
+    <script>
+        let articles = [];
+        let minTimestamp = 0;
+        let maxTimestamp = 0;
+
+        const uploadSection = document.getElementById('uploadSection');
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const statsBar = document.getElementById('statsBar');
+        const sliderSection = document.getElementById('sliderSection');
+        const timelineSection = document.getElementById('timelineSection');
+        const timelineContainer = document.getElementById('timelineContainer');
+        const timeSlider = document.getElementById('timeSlider');
+        const tooltip = document.getElementById('tooltip');
+        const loadExampleBtn = document.getElementById('loadExampleBtn');
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+        
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) processFile(file);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) processFile(file);
+        });
+
+        // Event listener para o botão de carregar exemplo
+        loadExampleBtn.addEventListener('click', () => {
+            // Tenta carregar o arquivo que deve estar no mesmo diretório
+            fetch('pubmed-heldernaka-2025.txt')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Erro HTTP: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(content => {
+                    articles = parsePubMed(content);
+                    if (articles.length > 0) {
+                        uploadSection.classList.add('hidden');
+                        displayTimeline();
+                    } else {
+                        alert('O arquivo de exemplo está vazio ou fora do formato PubMed.');
+                    }
+                })
+                .catch(err => {
+                    console.error('Erro ao carregar exemplo:', err);
+                    alert('Erro ao carregar o arquivo de exemplo. Certifique-se de que "pubmed-heldernaka-2025.txt" está na mesma pasta do repositório. Nota: Esta função pode não funcionar se você estiver apenas abrindo o arquivo localmente sem um servidor web, mas funcionará no GitHub Pages.');
+                });
+        });
+
+        function processFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const content = e.target.result;
+                    articles = parsePubMed(content);
+                    if (articles.length > 0) {
+                        uploadSection.classList.add('hidden');
+                        displayTimeline();
+                    } else {
+                        alert('No articles found. Please ensure the file is in PubMed format.');
+                    }
+                } catch (err) {
+                    console.error('Parse error:', err);
+                    alert('Error parsing file: ' + err.message);
+                }
+            };
+            reader.onerror = () => alert('Error reading file');
+            reader.readAsText(file);
+        }
+
+        function parsePubMed(content) {
+            const results = [];
+            
+            content = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            
+            const lines = content.split('\n');
+            const processedLines = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if (/^[A-Z]{2,4}\s*-\s/.test(line)) {
+                    processedLines.push(line);
+                } else if (/^\s+/.test(line) && processedLines.length > 0) {
+                    processedLines[processedLines.length - 1] += ' ' + line.trim();
+                } else if (line.trim() === '') {
+                    processedLines.push('');
+                }
+            }
+            
+            const recordText = processedLines.join('\n');
+            const records = recordText.split(/\n(?=PMID- )/);
+            
+            for (const record of records) {
+                if (!record.trim()) continue;
+                
+                const article = {
+                    pmid: '',
+                    title: '',
+                    abstract: '',
+                    journal: '',
+                    journalFull: '',
+                    date: '',
+                    edat: '',
+                    timestamp: 0,
+                    authors: [],
+                    reference: ''
+                };
+                
+                const recordLines = record.split('\n');
+                
+                for (const line of recordLines) {
+                    const match = line.match(/^([A-Z]{2,4})\s*-\s*(.*)$/);
+                    if (match) {
+                        const field = match[1];
+                        const value = match[2].trim();
+                        
+                        switch (field) {
+                            case 'PMID': article.pmid = value; break;
+                            case 'TI': article.title = value; break;
+                            case 'AB': article.abstract = value; break;
+                            case 'TA': article.journal = value; break;
+                            case 'JT': article.journalFull = value; break;
+                            case 'DP': article.date = value; break;
+                            case 'EDAT': article.edat = value; break;
+                            case 'FAU': article.authors.push(value); break;
+                            case 'SO': article.reference = value; break;
+                        }
+                    }
+                }
+                
+                if (article.edat) {
+                    article.timestamp = parseEDAT(article.edat);
+                } else if (article.date) {
+                    article.timestamp = parseDate(article.date);
+                }
+                
+                if (article.edat) {
+                    article.displayDate = formatEDATDisplay(article.edat);
+                } else {
+                    article.displayDate = article.date;
+                }
+                
+                article.journalDisplay = article.journalFull || article.journal || 'Unknown Journal';
+                article.pubmedUrl = `https://pubmed.ncbi.nlm.nih.gov/${article.pmid}/`;
+                
+                if (article.pmid && article.timestamp > 0) {
+                    results.push(article);
+                }
+            }
+            
+            return results.sort((a, b) => a.timestamp - b.timestamp);
+        }
+
+        function parseEDAT(edatStr) {
+            const match = edatStr.match(/(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})/);
+            if (match) {
+                const year = parseInt(match[1]);
+                const month = parseInt(match[2]) - 1;
+                const day = parseInt(match[3]);
+                const hour = parseInt(match[4]);
+                const minute = parseInt(match[5]);
+                return new Date(year, month, day, hour, minute).getTime();
+            }
+            return parseDate(edatStr);
+        }
+
+        function formatEDATDisplay(edatStr) {
+            const match = edatStr.match(/(\d{4})\/(\d{2})\/(\d{2})/);
+            if (match) {
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const year = parseInt(match[1]);
+                const month = parseInt(match[2]) - 1;
+                const day = parseInt(match[3]);
+                return `${months[month]} ${day}, ${year}`;
+            }
+            return edatStr;
+        }
+
+        function parseDate(dateStr) {
+            const months = {
+                'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+                'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+            };
+
+            const yearMatch = dateStr.match(/\b(19|20)\d{2}\b/);
+            const year = yearMatch ? parseInt(yearMatch[0]) : new Date().getFullYear();
+
+            let month = 5;
+            for (const [name, num] of Object.entries(months)) {
+                if (dateStr.includes(name)) {
+                    month = num;
+                    break;
+                }
+            }
+
+            let day = 15;
+            const dayMatch = dateStr.match(/[A-Za-z]{3}\s+(\d{1,2})\b/);
+            if (dayMatch) {
+                const d = parseInt(dayMatch[1]);
+                if (d >= 1 && d <= 31) day = d;
+            }
+
+            return new Date(year, month, day).getTime();
+        }
+
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return `${months[date.getMonth()]} ${date.getFullYear()}`;
+        }
+
+        function formatFullDate(timestamp) {
+            const date = new Date(timestamp);
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+        }
+
+        function displayTimeline() {
+            minTimestamp = articles[0].timestamp;
+            maxTimestamp = articles[articles.length - 1].timestamp;
+            
+            const range = maxTimestamp - minTimestamp;
+            const padding = Math.max(range * 0.05, 30 * 24 * 60 * 60 * 1000);
+            minTimestamp -= padding;
+            maxTimestamp += padding;
+
+            document.getElementById('totalArticles').textContent = articles.length;
+            
+            const journals = new Set(articles.map(a => a.journal).filter(j => j));
+            document.getElementById('journalCount').textContent = journals.size;
+
+            document.getElementById('minDate').textContent = formatDate(articles[0].timestamp);
+            document.getElementById('maxDate').textContent = formatDate(articles[articles.length - 1].timestamp);
+
+            statsBar.classList.add('show');
+            sliderSection.classList.add('show');
+            timelineSection.classList.add('show');
+
+            createMarkers();
+
+            timeSlider.oninput = updateTimeline;
+            timeSlider.value = 100;
+            updateTimeline();
+        }
+
+        function createMarkers() {
+            const existingMarkers = timelineContainer.querySelectorAll('.article-marker');
+            existingMarkers.forEach(m => m.remove());
+
+            const totalRange = maxTimestamp - minTimestamp;
+
+            articles.forEach((article, index) => {
+                const marker = document.createElement('div');
+                marker.className = 'article-marker';
+                marker.dataset.index = index;
+
+                const position = ((article.timestamp - minTimestamp) / totalRange) * 100;
+                marker.style.left = `${position}%`;
+
+                const height = 60 + Math.random() * 100;
+
+                marker.innerHTML = `
+                    <div class="article-dot"></div>
+                    <div class="article-line" style="height: ${height}px"></div>
+                `;
+
+                marker.onmouseenter = (e) => showTooltip(e, article);
+                marker.onmouseleave = hideTooltip;
+                marker.onmousemove = moveTooltip;
+                marker.onclick = () => window.open(article.pubmedUrl, '_blank');
+
+                timelineContainer.appendChild(marker);
+            });
+        }
+
+        function updateTimeline() {
+            const sliderValue = parseInt(timeSlider.value);
+            const totalRange = maxTimestamp - minTimestamp;
+            const currentTimestamp = minTimestamp + (totalRange * sliderValue / 100);
+
+            document.getElementById('currentDateValue').textContent = formatFullDate(currentTimestamp);
+
+            const markers = timelineContainer.querySelectorAll('.article-marker');
+            markers.forEach(marker => {
+                const index = parseInt(marker.dataset.index);
+                const article = articles[index];
+                
+                if (article.timestamp <= currentTimestamp) {
+                    marker.classList.add('visible');
+                } else {
+                    marker.classList.remove('visible');
+                }
+            });
+        }
+
+        function showTooltip(e, article) {
+            document.getElementById('tooltipJournal').textContent = article.journalDisplay;
+            document.getElementById('tooltipTitle').textContent = article.title || 'No title available';
+            document.getElementById('tooltipDate').textContent = article.displayDate;
+            document.getElementById('tooltipPmid').textContent = article.pmid;
+            document.getElementById('tooltipAbstract').textContent = article.abstract || 'No abstract available.';
+            document.getElementById('tooltipReference').textContent = article.reference || '';
+
+            tooltip.classList.add('show');
+            moveTooltip(e);
+        }
+
+        function hideTooltip() {
+            tooltip.classList.remove('show');
+        }
+
+        function moveTooltip(e) {
+            const padding = 20;
+            const rect = tooltip.getBoundingClientRect();
+            
+            let x = e.clientX + padding;
+            let y = e.clientY + padding;
+
+            if (x + rect.width > window.innerWidth - padding) {
+                x = e.clientX - rect.width - padding;
+            }
+            if (y + rect.height > window.innerHeight - padding) {
+                y = e.clientY - rect.height - padding;
+            }
+            if (x < padding) x = padding;
+            if (y < padding) y = padding;
+
+            tooltip.style.left = `${x}px`;
+            tooltip.style.top = `${y}px`;
+        }
+
+        function exportToExcel() {
+            if (articles.length === 0) {
+                alert('No data to export. Please load a PubMed file first.');
+                return;
+            }
+
+            const data = articles.map((article, index) => ({
+                '#': index + 1,
+                'PMID': article.pmid,
+                'Date': article.displayDate,
+                'Title': article.title,
+                'Journal': article.journalDisplay,
+                'Authors': article.authors.join('; '),
+                'Abstract': article.abstract,
+                'Reference': article.reference,
+                'PubMed URL': article.pubmedUrl
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            
+            ws['!cols'] = [
+                { wch: 5 },
+                { wch: 12 },
+                { wch: 15 },
+                { wch: 60 },
+                { wch: 40 },
+                { wch: 50 },
+                { wch: 80 },
+                { wch: 60 },
+                { wch: 45 }
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Publications');
+            
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0];
+            const filename = `pubmed_publications_${dateStr}.xlsx`;
+            
+            XLSX.writeFile(wb, filename);
+        }
+
+        window.addEventListener('resize', () => {
+            if (articles.length > 0) {
+                createMarkers();
+                updateTimeline();
+            }
+        });
+    </script>
+</body>
+</html>
