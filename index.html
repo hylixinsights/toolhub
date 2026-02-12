@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hylix Insights | Tool Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0B0C10;
+            --card-bg: #1F2833;
+            --text-main: #FFFFFF;
+            --text-muted: #C5C6C7;
+            --accent: #66FCF1;
+            --accent-hover: #45A29E;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-dark);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #333;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .tool-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(102, 252, 241, 0.1);
+            border-color: var(--accent);
+        }
+
+        .card-image {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            background-color: #2b3642; /* Placeholder color */
+        }
+
+        .card-content {
+            padding: 24px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tool-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-main);
+        }
+
+        .tool-desc {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 24px;
+            flex-grow: 1;
+        }
+
+        .tool-link {
+            display: inline-block;
+            text-align: center;
+            background-color: transparent;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+            margin-top: auto; /* Empurra o botão para baixo */
+        }
+
+        .tool-link:hover {
+            background-color: var(--accent);
+            color: var(--bg-dark);
+        }
+
+        /* Badge opcional para status */
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            background: rgba(102, 252, 241, 0.1);
+            color: var(--accent);
+            border-radius: 4px;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Hylix Tool Hub</h1>
+        <p>Centralized access to our precision medicine & bioinformatics tools.</p>
+    </div>
+
+    <div class="grid-container">
+
+        <div class="tool-card">
+            <img src="https://via.placeholder.com/600x320/1a1a1a/66FCF1?text=PubMed+Timeline" alt="Tool Image" class="card-image">
+            <div class="card-content">
+                <span class="badge">Live</span>
+                <h3 class="tool-title">PubMed Timeline</h3>
+                <p class="tool-desc">
+                    Visualize publication history instantly. Analyze journals, dates, and research impact over time using simple PubMed exports.
+                </p>
+                <a href="https://hylixinsights.github.io/PubMed_timeline/" class="tool-link" target="_blank">Access Tool</a>
+            </div>
+        </div>
+        <div class="tool-card">
+            <img src="https://via.placeholder.com/600x320/1a1a1a/888?text=Future+Tool" alt="Tool Image" class="card-image" style="opacity: 0.5">
+            <div class="card-content">
+                <span class="badge" style="color: #888; background: rgba(255,255,255,0.1)">Coming Soon</span>
+                <h3 class="tool-title" style="color: #888">Single Cell Viewer</h3>
+                <p class="tool-desc">
+                    Interactive visualization for large-scale single-cell RNA sequencing datasets. Currently under development.
+                </p>
+                <a href="#" class="tool-link" style="border-color: #555; color: #555; pointer-events: none;">Coming Soon</a>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
