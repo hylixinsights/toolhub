@@ -763,30 +763,39 @@
                 loader.style.display = 'none';
                 predictWebcam();
 
+                console.log("Shapes generated: Heart=" + shapes.heart.length + ", Spiked=" + shapes.spiked.length);
+
                 const clock = new THREE.Clock();
                 function animate() {
                     requestAnimationFrame(animate);
 
-                    // Atualizar posição 3D do mouse via raycaster
-                    if (mouseState.active && camera) {
-                        raycaster.setFromCamera(mouseNDC, camera);
-                        // Intersectar com plano z=0
-                        const planeZ = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-                        const intersection = new THREE.Vector3();
-                        raycaster.ray.intersectPlane(planeZ, intersection);
-                        if (intersection) {
-                            mouseState.position.copy(intersection);
+                    try {
+                        // Atualizar posição 3D do mouse via raycaster
+                        if (mouseState.active && camera) {
+                            raycaster.setFromCamera(mouseNDC, camera);
+                            // Intersectar com plano z=0
+                            const planeZ = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+                            const target = new THREE.Vector3();
+                            const intersection = raycaster.ray.intersectPlane(planeZ, target);
+                            if (intersection) {
+                                mouseState.position.copy(intersection);
+                            }
                         }
-                    }
 
-                    updateParticles(clock.getElapsedTime());
-                    renderer.render(scene, camera);
+                        updateParticles(clock.getElapsedTime());
+                        renderer.render(scene, camera);
+                    } catch (e) {
+                        console.error("Animation loop error:", e);
+                        uiState.innerText = "ERRO: " + e.message;
+                        uiState.style.color = "red";
+                    }
                 }
                 animate();
 
             } catch (error) {
                 console.error(error);
-                loader.innerText = "Erro ao carregar: " + error.message;
+                loader.style.display = 'block';
+                loader.innerText = "Erro fatal: " + error.message;
             }
         }
 
