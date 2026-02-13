@@ -475,12 +475,7 @@
             }
 
             // Gerenciar click timer (idle)
-            if (mouseState.clicked) {
-                mouseState.clicked = false;
-            }
-            if (mouseState.clickTimer > 0) {
-                mouseState.clickTimer--;
-            }
+
 
             geometry.attributes.position.needsUpdate = true;
             geometry.attributes.color.needsUpdate = true;
@@ -771,16 +766,7 @@
 
                     try {
                         // Atualizar posição 3D do mouse via raycaster
-                        if (mouseState.active && camera) {
-                            raycaster.setFromCamera(mouseNDC, camera);
-                            // Intersectar com plano z=0
-                            const planeZ = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-                            const target = new THREE.Vector3();
-                            const intersection = raycaster.ray.intersectPlane(planeZ, target);
-                            if (intersection) {
-                                mouseState.position.copy(intersection);
-                            }
-                        }
+
 
                         updateParticles(clock.getElapsedTime());
                         renderer.render(scene, camera);
