@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morphing Facial 3D</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: sans-serif;
+        }
+
+        canvas#three-canvas {
+            display: block;
+        }
+
+        #debug-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #00ff88;
+            padding: 10px;
+            border-radius: 4px;
+            pointer-events: none;
+            font-family: monospace;
+            font-size: 14px;
+            z-index: 50;
+        }
+
+        #loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            text-align: center;
+            z-index: 200;
+        }
+
+        video {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 160px;
+            height: 120px;
+            object-fit: cover;
+            opacity: 0.5;
+            transform: scaleX(-1);
+            border-radius: 4px;
+            z-index: 10;
+        }
+
+        #controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+        }
+
+        select {
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            border: 1px solid #00ff88;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            cursor: pointer;
+            outline: none;
+        }
+
+        option {
+            background: #000;
+            color: #fff;
+        }
+
+        /* Debug canvas overlay to show hand tracking dots */
+        #hand-overlay {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 160px;
+            height: 120px;
+            pointer-events: none;
+            z-index: 20;
+            transform: scaleX(-1);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="controls">
+        <select id="mode-selector">
+            <option value="emotions">Emotions (Face)</option>
+            <option value="carnival">Carnival (Hand)</option>
+        </select>
+        <select id="camera-selector">
+            <option value="">Loading cameras...</option>
+        </select>
+    </div>
+
+    <div id="debug-panel">
+        <div>Estado: <span id="state-display">INICIALIZANDO...</span></div>
+        <div>Info: <span id="score-display">0%</span></div>
+    </div>
+    <div id="loader">Carregando IA e Modelos...</div>
+    <video id="webcam" autoplay playsinline></video>
+    <canvas id="hand-overlay"></canvas>
+
+    <script type="module">
+        import * as THREE from 'https://esm.sh/three@0.160.0';
+        import { FilesetResolver, FaceLandmarker, HandLandmarker } from 'https://esm.sh/@mediapipe/tasks-vision@0.10.9';
+
+        // --- Configurações ---
+        const CONFIG = {
+            particleCount: 15000,
+            lerpSpeed: 0.08,
+            colors: {
+                neutral: new THREE.Color(0xaaaaaa),
+                happy: new THREE.Color(0xff0055),
+                angry: new THREE.Color(0xff2200),
+                surprise: new THREE.Color(0xffff00),
+                surprise: new THREE.Color(0xffff00),
+                carnival: [
+                    new THREE.Color(0xff0000), new THREE.Color(0x00ff00),
+                    new THREE.Color(0x0000ff), new THREE.Color(0xffff00),
+                    new THREE.Color(0xff00ff), new THREE.Color(0x00ffff),
+                    new THREE.Color(0xff8800), new THREE.Color(0x88ff00)
+                ]
+            }
+        };
+
+        let scene, camera, renderer, particles, geometry;
+        let faceLandmarker, handLandmarker, video;
+        let lastVideoTime = -1;
+        let currentState = 'NEUTRAL';
+        let currentMode = 'emotions';
+
+        // Debug overlay canvas
+        const overlayCanvas = document.getElementById('hand-overlay');
+        const overlayCtx = overlayCanvas.getContext('2d');
+
+        // Estado da Mão
+        let handState = {
+            detected: false,
+            open: false,
+            justThrown: false,    // true no frame em que a mão abre (gesto de jogar)
+            throwTimer: 0,        // conta frames desde o throw
+            fingerTips: [
+                new THREE.Vector3(), new THREE.Vector3(),
+                new THREE.Vector3(), new THREE.Vector3(),
+                new THREE.Vector3()
+            ],
+            palmCenter: new THREE.Vector3()
+        };
+
+        const shapes = { heart: [], spiked: [] };
+
+        const physicsState = {
+            velocities: new Float32Array(CONFIG.particleCount * 3)
+        };
+
+        // Mouse interaction removed (was for Idle mode)
+        const particleColors = new Float32Array(CONFIG.particleCount * 3);
+
+        // Cada partícula pertence a um dedo (0-4)
+        const particleFingerAssignment = new Uint8Array(CONFIG.particleCount);
+        for (let i = 0; i < CONFIG.particleCount; i++) {
+            particleFingerAssignment[i] = i % 5;
+        }
+
+        const uiState = document.getElementById('state-display');
+        const uiScore = document.getElementById('score-display');
+        const loader = document.getElementById('loader');
+        const modeSelector = document.getElementById('mode-selector');
+
+        modeSelector.addEventListener('change', (e) => {
+            currentMode = e.target.value;
+            if (currentMode === 'carnival') {
+                for (let i = 0; i < CONFIG.particleCount; i++) {
+                    const c = CONFIG.colors.carnival[Math.floor(Math.random() * CONFIG.colors.carnival.length)];
+                    particleColors[i * 3] = c.r;
+                    particleColors[i * 3 + 1] = c.g;
+                    particleColors[i * 3 + 2] = c.b;
+                }
+            }
+        });
+
+        // --- Helper: Convert normalized [0,1] to Three.js world coordinates ---
+        function normalizedToWorld(nx, ny) {
+            const halfH = Math.tan((75 / 2) * Math.PI / 180) * 50;
+            const halfW = halfH * (window.innerWidth / window.innerHeight);
+            // Mirror X (webcam is mirrored), flip Y (Three.js Y-up)
+            const x = (1.0 - nx) * 2 * halfW - halfW;
+            const y = (1.0 - ny) * 2 * halfH - halfH;
+            return { x, y, z: 0 };
+        }
+
+        // --- 1. Geração de Formas Matemáticas ---
+
+        function generateShapes() {
+            const addPoint = (arr, x, y, z) => arr.push(x, y, z);
+
+            for (let i = 0; i < CONFIG.particleCount; i++) {
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos((Math.random() * 2) - 1);
+                const r = 10 + Math.random() * 0.5;
+                const sx = r * Math.sin(phi) * Math.cos(theta);
+                const sy = r * Math.sin(phi) * Math.sin(theta);
+                const sz = r * Math.cos(phi);
+                // Sphere storage removed
+
+                const tHeart = Math.random() * Math.PI * 2;
+                const scale = 0.8;
+                const hx = scale * 16 * Math.pow(Math.sin(tHeart), 3);
+                const hy = scale * (13 * Math.cos(tHeart) - 5 * Math.cos(2 * tHeart) - 2 * Math.cos(3 * tHeart) - Math.cos(4 * tHeart));
+                const hz = (Math.random() - 0.5) * 10 * scale;
+                const lerpHeart = 0.2;
+                addPoint(shapes.heart, hx * (1 - lerpHeart) + sx * lerpHeart, hy * (1 - lerpHeart) + sy * lerpHeart, hz);
+
+                const spikeFactor = 1 + Math.pow(Math.random(), 5) * 3;
+                addPoint(shapes.spiked, sx * spikeFactor, sy * spikeFactor, sz * spikeFactor);
+
+                // Spiral generation removed
+
+                physicsState.velocities[i * 3] = 0;
+                physicsState.velocities[i * 3 + 1] = 0;
+                physicsState.velocities[i * 3 + 2] = 0;
+                particleColors[i * 3] = 1; particleColors[i * 3 + 1] = 1; particleColors[i * 3 + 2] = 1;
+            }
+        }
+
+        // --- 2. Inicialização Three.js ---
+
+        function initThree() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 50;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(CONFIG.particleCount * 3);
+            const colors = new Float32Array(CONFIG.particleCount * 3);
+
+            for (let i = 0; i < CONFIG.particleCount; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 100;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 100;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 50;
+                colors[i * 3] = 1; colors[i * 3 + 1] = 1; colors[i * 3 + 2] = 1;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 0.3,
+                vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            particles = new THREE.Points(geometry, material);
+            scene.add(particles);
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        // --- 3. Lógica de Atualização de Partículas ---
+
+        function updateParticles(time) {
+            if (currentMode === 'carnival') {
+                particles.material.size = 1.0;
+            } else {
+                particles.material.size = 0.3;
+            }
+
+            const positions = geometry.attributes.position.array;
+            const colors = geometry.attributes.color.array;
+            let targetShape = null;
+            let targetColor = null;
+            let mode = 'MORPH';
+
+            if (currentMode === 'emotions') {
+                switch (currentState) {
+                    case 'HAPPY': targetShape = shapes.heart; targetColor = CONFIG.colors.happy; break;
+                    case 'ANGRY': targetShape = shapes.spiked; targetColor = CONFIG.colors.angry; break;
+                    case 'SURPRISE': mode = 'EXPLODE'; targetColor = CONFIG.colors.surprise; break;
+                    case 'NEUTRAL': default: mode = 'RAIN'; targetColor = CONFIG.colors.neutral; break;
+                }
+            } else if (currentMode === 'carnival') {
+                if (handState.justThrown || handState.throwTimer > 0) {
+                    mode = 'CARNIVAL_BURST'; // Confete explodindo dos dedos!
+                } else if (handState.detected && !handState.open) {
+                    mode = 'CARNIVAL_GATHER'; // Punho: partículas se juntam na palma
+                } else if (handState.detected && handState.open) {
+                    mode = 'CARNIVAL_FALL'; // Mão aberta parada: confete cai
+                } else {
+                    mode = 'CARNIVAL_IDLE'; // Sem mão
+                }
+            }
+
+            let pulse = 1;
+            if (currentMode === 'emotions' && currentState === 'ANGRY') {
+                pulse = 1 + Math.sin(time * 10) * 0.1;
+            }
+
+            for (let i = 0; i < CONFIG.particleCount; i++) {
+                const px = i * 3;
+                const py = px + 1;
+                const pz = px + 2;
+
+                // Cor
+                if (currentMode === 'carnival') {
+                    colors[px] += (particleColors[px] - colors[px]) * 0.1;
+                    colors[py] += (particleColors[py] - colors[py]) * 0.1;
+                    colors[pz] += (particleColors[pz] - colors[pz]) * 0.1;
+                } else if (targetColor) {
+                    colors[px] += (targetColor.r - colors[px]) * 0.05;
+                    colors[py] += (targetColor.g - colors[py]) * 0.05;
+                    colors[pz] += (targetColor.b - colors[pz]) * 0.05;
+                }
+
+                if (mode === 'MORPH' && targetShape) {
+                    physicsState.velocities[px] = 0;
+                    physicsState.velocities[py] = 0;
+                    physicsState.velocities[pz] = 0;
+
+                    const tx = targetShape[px] * pulse;
+                    const ty = targetShape[py] * pulse;
+                    const tz = targetShape[pz] * pulse;
+
+                    const finalTx = tx;
+                    const finalTz = tz;
+                    // Spiral rotation removed
+
+                    // Mouse repulsion removed
+
+                    positions[px] += (finalTx - positions[px]) * CONFIG.lerpSpeed;
+                    positions[py] += (ty - positions[py]) * CONFIG.lerpSpeed;
+                    positions[pz] += (finalTz - positions[pz]) * CONFIG.lerpSpeed;
+
+                } else if (mode === 'RAIN') {
+                    positions[py] -= 0.5 + Math.random() * 0.5;
+                    positions[px] += Math.sin(time + positions[py] * 0.05) * 0.05;
+                    if (positions[py] < -40) {
+                        positions[py] = 40;
+                        positions[px] = (Math.random() - 0.5) * 80;
+                        positions[pz] = (Math.random() - 0.5) * 40;
+                    }
+
+                } else if (mode === 'EXPLODE') {
+                    if (physicsState.velocities[px] === 0 && physicsState.velocities[py] === 0) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const zAngle = Math.random() * Math.PI;
+                        const speed = 0.5 + Math.random();
+                        physicsState.velocities[px] = Math.sin(zAngle) * Math.cos(angle) * speed;
+                        physicsState.velocities[py] = Math.sin(zAngle) * Math.sin(angle) * speed;
+                        physicsState.velocities[pz] = Math.cos(zAngle) * speed;
+                    }
+                    positions[px] += physicsState.velocities[px];
+                    positions[py] += physicsState.velocities[py];
+                    positions[pz] += physicsState.velocities[pz];
+
+                } else if (mode === 'CARNIVAL_GATHER') {
+                    // PUNHO FECHADO: partículas se juntam na palma
+                    const tx = handState.palmCenter.x;
+                    const ty = handState.palmCenter.y;
+                    const tz = handState.palmCenter.z;
+
+                    const dx = tx - positions[px];
+                    const dy = ty - positions[py];
+                    const dz = tz - positions[pz];
+
+                    // Atração forte para a palma + orbita suave
+                    const attractStrength = 0.06 + (i % 5) * 0.004;
+                    physicsState.velocities[px] += dx * attractStrength;
+                    physicsState.velocities[py] += dy * attractStrength;
+                    physicsState.velocities[pz] += dz * attractStrength;
+
+                    // Leve turbulência orbital
+                    physicsState.velocities[px] += (Math.random() - 0.5) * 0.15;
+                    physicsState.velocities[py] += (Math.random() - 0.5) * 0.15;
+
+                    // Damping forte para manter compacto
+                    physicsState.velocities[px] *= 0.82;
+                    physicsState.velocities[py] *= 0.82;
+                    physicsState.velocities[pz] *= 0.82;
+
+                    positions[px] += physicsState.velocities[px];
+                    positions[py] += physicsState.velocities[py];
+                    positions[pz] += physicsState.velocities[pz];
+
+                } else if (mode === 'CARNIVAL_BURST') {
+                    // 🎊 JOGOU O CONFETE! Explosão a partir dos dedos!
+                    if (handState.justThrown) {
+                        // Teleportar para perto do dedo atribuído e dar impulso
+                        const fingerIdx = particleFingerAssignment[i];
+                        const fp = handState.fingerTips[fingerIdx];
+
+                        // Posicionar perto do dedo (com variação)
+                        positions[px] = fp.x + (Math.random() - 0.5) * 5;
+                        positions[py] = fp.y + (Math.random() - 0.5) * 5;
+                        positions[pz] = fp.z + (Math.random() - 0.5) * 5;
+
+                        // Impulso radial para fora do centro da palma
+                        const ejX = positions[px] - handState.palmCenter.x;
+                        const ejY = positions[py] - handState.palmCenter.y;
+                        const ejZ = positions[pz] - handState.palmCenter.z;
+                        const ejLen = Math.sqrt(ejX * ejX + ejY * ejY + ejZ * ejZ) || 1;
+                        const burstSpeed = 0.6 + Math.random() * 1.0;
+
+                        physicsState.velocities[px] = (ejX / ejLen) * burstSpeed + (Math.random() - 0.5) * 0.5;
+                        physicsState.velocities[py] = (ejY / ejLen) * burstSpeed + Math.random() * 0.4;
+                        physicsState.velocities[pz] = (ejZ / ejLen) * burstSpeed + (Math.random() - 0.5) * 0.5;
+                    }
+
+                    // Após burst: gravidade + queda suave
+                    physicsState.velocities[py] -= 0.04; // Gravidade
+                    physicsState.velocities[px] += (Math.random() - 0.5) * 0.05; // Turbulência
+                    physicsState.velocities[pz] += (Math.random() - 0.5) * 0.05;
+                    physicsState.velocities[py] = Math.max(physicsState.velocities[py], -1.2); // Terminal velocity
+
+                    // Damping leve (confete cai devagar)
+                    physicsState.velocities[px] *= 0.97;
+                    physicsState.velocities[pz] *= 0.97;
+
+                    positions[px] += physicsState.velocities[px];
+                    positions[py] += physicsState.velocities[py];
+                    positions[pz] += physicsState.velocities[pz];
+
+                } else if (mode === 'CARNIVAL_FALL' || mode === 'CARNIVAL_IDLE') {
+                    // Confete caindo lentamente
+                    physicsState.velocities[py] -= 0.02;
+                    physicsState.velocities[px] += (Math.random() - 0.5) * 0.04;
+                    physicsState.velocities[pz] += (Math.random() - 0.5) * 0.04;
+                    physicsState.velocities[py] = Math.max(physicsState.velocities[py], -0.8);
+
+                    physicsState.velocities[px] *= 0.98;
+                    physicsState.velocities[pz] *= 0.98;
+
+                    positions[px] += physicsState.velocities[px];
+                    positions[py] += physicsState.velocities[py];
+                    positions[pz] += physicsState.velocities[pz];
+
+                    // Reciclar partículas que caíram
+                    if (positions[py] < -50) {
+                        positions[py] = 40 + Math.random() * 10;
+                        positions[px] = (Math.random() - 0.5) * 60;
+                        positions[pz] = (Math.random() - 0.5) * 30;
+                        physicsState.velocities[py] = 0;
+                    }
+                }
+            }
+
+            // Gerenciar throw timer (carnival)
+            if (handState.justThrown) {
+                handState.justThrown = false;
+                handState.throwTimer = 60;
+            }
+            if (handState.throwTimer > 0) {
+                handState.throwTimer--;
+            }
+
+            // Gerenciar click timer (idle)
+            if (mouseState.clicked) {
+                mouseState.clicked = false;
+            }
+            if (mouseState.clickTimer > 0) {
+                mouseState.clickTimer--;
+            }
+
+            geometry.attributes.position.needsUpdate = true;
+            geometry.attributes.color.needsUpdate = true;
+
+            if (currentMode !== 'carnival') {
+                scene.rotation.y = Math.sin(time * 0.1) * 0.1;
+            } else {
+                scene.rotation.y = 0;
+            }
+        }
+
+        // --- 4. Integração MediaPipe ---
+
+        async function initMediaPipe() {
+            const vision = await FilesetResolver.forVisionTasks(
+                "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.9/wasm"
+            );
+
+            faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+                    delegate: "GPU"
+                },
+                outputFaceBlendshapes: true,
+                runningMode: "VIDEO",
+                numFaces: 1
+            });
+
+            handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+                    delegate: "GPU"
+                },
+                runningMode: "VIDEO",
+                numHands: 1
+            });
+
+            video = document.getElementById("webcam");
+            const cameraSelector = document.getElementById('camera-selector');
+            let currentDeviceId = '';
+
+            // Enumerate cameras and populate dropdown
+            async function populateCameras() {
+                try {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const videoDevices = devices.filter(d => d.kind === 'videoinput');
+                    cameraSelector.innerHTML = '';
+
+                    if (videoDevices.length === 0) {
+                        const opt = document.createElement('option');
+                        opt.text = 'No cameras found';
+                        cameraSelector.appendChild(opt);
+                        return [];
+                    }
+
+                    videoDevices.forEach((device, idx) => {
+                        console.log(`Camera ${idx}: ${device.label} (ID: ${device.deviceId})`);
+                        const option = document.createElement('option');
+                        option.value = device.deviceId;
+                        option.text = device.label || `Camera ${idx + 1}`;
+                        // Highlight the currently active camera
+                        if (device.deviceId && device.deviceId === currentDeviceId) {
+                            option.selected = true;
+                        }
+                        cameraSelector.appendChild(option);
+                    });
+
+                    console.log(`Found ${videoDevices.length} camera(s):`, videoDevices.map(d => d.label));
+                    return videoDevices;
+                } catch (e) {
+                    console.error('Error enumerating cameras:', e);
+                    return [];
+                }
+            }
+
+            // Start camera with optional deviceId
+            async function startCamera(deviceId) {
+                try {
+                    // Stop existing stream
+                    if (video.srcObject) {
+                        video.srcObject.getTracks().forEach(t => t.stop());
+                    }
+                    const constraints = {
+                        video: {
+                            width: { ideal: 640 },
+                            height: { ideal: 480 },
+                            ...(deviceId ? { deviceId: { exact: deviceId } } : {})
+                        }
+                    };
+                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    video.srcObject = stream;
+
+                    // Track the current device ID
+                    const track = stream.getVideoTracks()[0];
+                    if (track) {
+                        const settings = track.getSettings();
+                        currentDeviceId = settings.deviceId || deviceId || '';
+                        console.log('Active camera:', track.label, 'deviceId:', currentDeviceId);
+                    }
+
+                    await new Promise(r => video.addEventListener('loadeddata', r, { once: true }));
+                } catch (e) {
+                    console.error('Error starting camera:', e);
+                    // If exact deviceId fails, try without constraint
+                    if (deviceId) {
+                        console.log('Retrying without exact deviceId...');
+                        await startCamera();
+                    }
+                }
+            }
+
+            // Initial camera start (default)
+            await startCamera();
+            await populateCameras();
+
+            // Camera switch handler
+            cameraSelector.addEventListener('change', async (e) => {
+                if (e.target.value) {
+                    console.log('Switching to camera:', e.target.options[e.target.selectedIndex].text);
+                    await startCamera(e.target.value);
+                }
+            });
+
+            // Auto-detect when USB cameras are plugged/unplugged
+            navigator.mediaDevices.addEventListener('devicechange', async () => {
+                console.log('Device change detected! Re-enumerating cameras...');
+                await populateCameras();
+            });
+            // Set overlay canvas to match video dimensions
+            overlayCanvas.width = 160;
+            overlayCanvas.height = 120;
+        }
+
+        function analyzeExpression(blendshapes) {
+            if (!blendshapes || blendshapes.length === 0) return;
+
+            const shapes = blendshapes[0].categories;
+            const getScore = (name) => shapes.find(s => s.categoryName === name)?.score || 0;
+
+            const smile = (getScore('mouthSmileLeft') + getScore('mouthSmileRight')) / 2;
+            const browDown = (getScore('browDownLeft') + getScore('browDownRight')) / 2;
+            const jawOpen = getScore('jawOpen');
+
+            let newState = 'NEUTRAL';
+            let score = 0;
+
+            if (jawOpen > 0.4) { newState = 'SURPRISE'; score = jawOpen; }
+            else if (smile > 0.5) { newState = 'HAPPY'; score = smile; }
+            else if (browDown > 0.5) { newState = 'ANGRY'; score = browDown; }
+            else { newState = 'NEUTRAL'; }
+
+            currentState = newState;
+            uiState.innerText = currentState;
+            uiScore.innerText = Math.round(score * 100) + '%';
+
+            if (newState === 'HAPPY') uiState.style.color = '#ff0055';
+            else if (newState === 'ANGRY') uiState.style.color = '#ff2200';
+            else if (newState === 'SURPRISE') uiState.style.color = '#ffff00';
+            else uiState.style.color = '#00ff88';
+        }
+
+        function analyzeHand(results) {
+            if (results.landmarks && results.landmarks.length > 0) {
+                handState.detected = true;
+                const landmarks = results.landmarks[0];
+
+                // Pontas dos dedos: Polegar=4, Indicador=8, Médio=12, Anelar=16, Mindinho=20
+                const tipIndices = [4, 8, 12, 16, 20];
+
+                // Draw debug overlay on the small video preview
+                overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+                const tipColors = ['#ff0000', '#00ff00', '#0088ff', '#ffff00', '#ff00ff'];
+
+                for (let f = 0; f < 5; f++) {
+                    const lm = landmarks[tipIndices[f]];
+                    const world = normalizedToWorld(lm.x, lm.y);
+                    handState.fingerTips[f].set(world.x, world.y, world.z);
+
+                    // Draw colored dot on overlay for each fingertip
+                    const dotX = lm.x * overlayCanvas.width;
+                    const dotY = lm.y * overlayCanvas.height;
+                    overlayCtx.fillStyle = tipColors[f];
+                    overlayCtx.beginPath();
+                    overlayCtx.arc(dotX, dotY, 5, 0, Math.PI * 2);
+                    overlayCtx.fill();
+                }
+
+                // Draw all 21 landmarks as small white dots
+                for (let j = 0; j < landmarks.length; j++) {
+                    const lm = landmarks[j];
+                    overlayCtx.fillStyle = 'rgba(255,255,255,0.5)';
+                    overlayCtx.beginPath();
+                    overlayCtx.arc(lm.x * overlayCanvas.width, lm.y * overlayCanvas.height, 2, 0, Math.PI * 2);
+                    overlayCtx.fill();
+                }
+
+                // Centro da palma
+                const palmLm = landmarks[9];
+                const palmWorld = normalizedToWorld(palmLm.x, palmLm.y);
+                handState.palmCenter.set(palmWorld.x, palmWorld.y, palmWorld.z);
+
+                // Detectar mão aberta/fechada
+                const wrist = landmarks[0];
+                const fingerTipIdx = [8, 12, 16, 20];
+                let avgDist = 0;
+                for (let idx of fingerTipIdx) {
+                    const ft = landmarks[idx];
+                    avgDist += Math.sqrt((ft.x - wrist.x) ** 2 + (ft.y - wrist.y) ** 2);
+                }
+                avgDist /= fingerTipIdx.length;
+
+                const wasOpen = handState.open;
+                handState.open = avgDist > 0.25; // Threshold alto: dedos precisam abrir BEM para contar como "aberta"
+
+                // Detectar gesto de "jogar" = transição fechado → aberto
+                if (!wasOpen && handState.open) {
+                    handState.justThrown = true;
+                }
+
+                // Debug UI
+                const gestureLabel = handState.open ? '🖐️ ABERTA' : '✊ FECHADA';
+                uiState.innerText = `${gestureLabel} | dist: ${avgDist.toFixed(2)}`;
+                uiState.style.color = handState.open ? '#ffff00' : '#ff00ff';
+                uiScore.innerText = handState.throwTimer > 0 ? '🎊 CONFETE LANÇADO!' : `Palm: (${handState.palmCenter.x.toFixed(0)}, ${handState.palmCenter.y.toFixed(0)})`;
+
+            } else {
+                handState.detected = false;
+                overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+                uiState.innerText = "👋 Mostre a mão!";
+                uiState.style.color = "#aaaaaa";
+                uiScore.innerText = "";
+            }
+        }
+
+        // --- Prediction Loop ---
+
+        let handTimestamp = 0;
+        let faceTimestamp = 0;
+
+        async function predictWebcam() {
+            if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
+                lastVideoTime = video.currentTime;
+                const now = performance.now();
+
+                try {
+                    if (currentMode === 'emotions' && faceLandmarker) {
+                        // Use separate timestamp tracking to avoid conflicts
+                        if (now > faceTimestamp) {
+                            faceTimestamp = now;
+                            const results = faceLandmarker.detectForVideo(video, now);
+                            if (results.faceBlendshapes && results.faceBlendshapes.length > 0) {
+                                analyzeExpression(results.faceBlendshapes);
+                            } else {
+                                currentState = 'NEUTRAL';
+                            }
+                        }
+                    } else if (currentMode === 'carnival' && handLandmarker) {
+                        if (now > handTimestamp) {
+                            handTimestamp = now;
+                            const results = handLandmarker.detectForVideo(video, now);
+                            analyzeHand(results);
+                        }
+                    }
+                } catch (e) {
+                    console.warn('MediaPipe frame error:', e.message);
+                }
+            }
+            requestAnimationFrame(predictWebcam);
+        }
+
+        // --- 5. Main Execution ---
+
+        async function main() {
+            generateShapes();
+            initThree();
+
+            try {
+                await initMediaPipe();
+                loader.style.display = 'none';
+                predictWebcam();
+
+                const clock = new THREE.Clock();
+                function animate() {
+                    requestAnimationFrame(animate);
+
+                    // Atualizar posição 3D do mouse via raycaster
+                    if (mouseState.active && camera) {
+                        raycaster.setFromCamera(mouseNDC, camera);
+                        // Intersectar com plano z=0
+                        const planeZ = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+                        const intersection = new THREE.Vector3();
+                        raycaster.ray.intersectPlane(planeZ, intersection);
+                        if (intersection) {
+                            mouseState.position.copy(intersection);
+                        }
+                    }
+
+                    updateParticles(clock.getElapsedTime());
+                    renderer.render(scene, camera);
+                }
+                animate();
+
+            } catch (error) {
+                console.error(error);
+                loader.innerText = "Erro ao carregar: " + error.message;
+            }
+        }
+
+        main();
+
+    </script>
+</body>
+
+</html>
