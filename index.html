@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hylix Insights | Tool Hub</title>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap"
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
     rel="stylesheet">
   <style>
     :root {
@@ -16,6 +16,8 @@
       --text-muted: #C5C6C7;
       --accent: #66FCF1;
       --accent-hover: #45A29E;
+      --like-color: #FF6B8A;
+      --like-glow: rgba(255, 107, 138, 0.4);
     }
 
     * {
@@ -31,12 +33,11 @@
       color: var(--text-main);
       min-height: 100vh;
       padding-top: 100px;
-      /* Space for fixed header */
       display: flex;
       flex-direction: column;
     }
 
-    /* Elegant Fixed Header */
+    /* ─── Fixed Header ─── */
     .header {
       position: fixed;
       top: 0;
@@ -48,7 +49,6 @@
       align-items: center;
       padding: 20px 40px;
       background: rgba(5, 6, 8, 0.85);
-      /* Darker, distinct background */
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -67,8 +67,13 @@
       object-fit: contain;
     }
 
-    .header h1 {
-      font-size: 1.5rem;
+    .header-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header-tagline {
+      font-size: 1.25rem;
       font-weight: 600;
       letter-spacing: -0.02em;
       color: var(--text-main);
@@ -77,19 +82,288 @@
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
+      line-height: 1.3;
     }
 
-    .header-icon {
+    .header-subtitle {
+      font-size: 0.8rem;
+      font-weight: 400;
+      color: var(--text-muted);
+      opacity: 0.6;
+      margin-top: 2px;
+      letter-spacing: 0.01em;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* ─── Search Bar ─── */
+    .search-container {
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+
+    .search-input {
+      width: 0;
+      opacity: 0;
+      padding: 0;
+      border: none;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 100px;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.9rem;
+      outline: none;
+      transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    .search-input.active {
+      width: 260px;
+      opacity: 1;
+      padding: 10px 20px;
+      margin-right: 8px;
+    }
+
+    .search-input::placeholder {
+      color: rgba(197, 198, 199, 0.5);
+    }
+
+    .search-input:focus {
+      border-color: rgba(102, 252, 241, 0.3);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .search-btn {
+      background: none;
+      border: none;
       color: var(--text-muted);
       cursor: pointer;
       transition: color 0.2s;
+      display: flex;
+      align-items: center;
+      padding: 8px;
+      border-radius: 50%;
     }
 
-    .header-icon:hover {
+    .search-btn:hover {
       color: var(--accent);
     }
 
-    /* Grid Layout */
+    /* ─── Toolbar ─── */
+    .toolbar {
+      max-width: 1200px;
+      margin: 0 auto 20px;
+      width: 100%;
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 100px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      user-select: none;
+    }
+
+    .toolbar-btn:hover {
+      border-color: rgba(102, 252, 241, 0.25);
+      color: var(--accent);
+      background: rgba(102, 252, 241, 0.06);
+    }
+
+    .toolbar-btn.active {
+      border-color: rgba(102, 252, 241, 0.3);
+      color: var(--accent);
+      background: rgba(102, 252, 241, 0.08);
+    }
+
+    .toolbar-btn svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    /* ─── Sort Dropdown ─── */
+    .sort-dropdown {
+      position: relative;
+    }
+
+    .sort-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      background: rgba(31, 40, 51, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      min-width: 200px;
+      padding: 8px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-8px);
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      z-index: 500;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+    }
+
+    .sort-menu.open {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .sort-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      background: none;
+      width: 100%;
+      font-family: inherit;
+      text-align: left;
+    }
+
+    .sort-option:hover {
+      background: rgba(102, 252, 241, 0.06);
+      color: var(--text-main);
+    }
+
+    .sort-option.selected {
+      color: var(--accent);
+    }
+
+    .sort-option .check-mark {
+      margin-left: auto;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .sort-option.selected .check-mark {
+      opacity: 1;
+    }
+
+    /* ─── Category Filter Dropdown ─── */
+    .filter-dropdown {
+      position: relative;
+    }
+
+    .filter-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      background: rgba(31, 40, 51, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      min-width: 220px;
+      max-height: 280px;
+      overflow-y: auto;
+      padding: 8px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-8px);
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      z-index: 500;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+    }
+
+    .filter-menu.open {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .filter-menu::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .filter-menu::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .filter-menu::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+    }
+
+    .filter-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-option:hover {
+      background: rgba(102, 252, 241, 0.06);
+      color: var(--text-main);
+    }
+
+    .filter-checkbox {
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .filter-option.checked .filter-checkbox {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .filter-checkbox svg {
+      width: 12px;
+      height: 12px;
+      opacity: 0;
+      transition: opacity 0.2s;
+      color: var(--bg-dark);
+    }
+
+    .filter-option.checked .filter-checkbox svg {
+      opacity: 1;
+    }
+
+    .filter-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.06);
+      margin: 4px 8px;
+    }
+
+    /* ─── Grid Layout ─── */
     .grid-container {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -97,15 +371,13 @@
       max-width: 1200px;
       margin: 0 auto;
       flex: 1;
-      /* Push footer down */
       width: 100%;
       padding: 20px 40px;
     }
 
-    /* Elegant Card Styling */
+    /* ─── Card Styling ─── */
     .tool-card {
       background: rgba(31, 40, 51, 0.6);
-      /* Slightly transparent */
       border-radius: 20px;
       overflow: hidden;
       transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -118,10 +390,19 @@
       backdrop-filter: blur(10px);
     }
 
+    .tool-card.hidden {
+      display: none;
+    }
+
     .tool-card:hover {
       transform: translateY(-8px);
       box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
       border-color: rgba(102, 252, 241, 0.2);
+    }
+
+    .card-img-wrapper {
+      position: relative;
+      overflow: hidden;
     }
 
     .card-img {
@@ -129,14 +410,50 @@
       aspect-ratio: 4 / 3;
       object-fit: cover;
       object-position: top center;
-      /* Focus on top of the app/screenshot */
       background: #0a0a0b;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       transition: transform 0.6s ease;
+      display: block;
     }
 
     .tool-card:hover .card-img {
       transform: scale(1.03);
+    }
+
+    /* ─── Category Badge ─── */
+    .category-badge {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      padding: 6px 14px;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      z-index: 2;
+    }
+
+    .badge-visualization {
+      background: rgba(102, 126, 234, 0.25);
+      color: #a5b4fc;
+    }
+
+    .badge-interactive {
+      background: rgba(102, 252, 241, 0.2);
+      color: var(--accent);
+    }
+
+    .badge-analysis {
+      background: rgba(251, 191, 36, 0.2);
+      color: #fbbf24;
+    }
+
+    .badge-utility {
+      background: rgba(167, 139, 250, 0.2);
+      color: #a78bfa;
     }
 
     .card-content {
@@ -158,18 +475,51 @@
       font-size: 1rem;
       color: var(--text-muted);
       line-height: 1.6;
-      margin-bottom: 32px;
+      margin-bottom: 16px;
       flex-grow: 1;
       font-weight: 300;
     }
 
-    /* Modern Elegant Button */
+    /* ─── Hashtag Keywords ─── */
+    .keywords-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .keyword-tag {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: rgba(197, 198, 199, 0.7);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      transition: all 0.2s;
+    }
+
+    .keyword-tag:hover {
+      color: var(--accent);
+      border-color: rgba(102, 252, 241, 0.2);
+      background: rgba(102, 252, 241, 0.05);
+    }
+
+    /* ─── Card Footer (Link + Like) ─── */
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: auto;
+      gap: 16px;
+    }
+
     .tool-link {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       background: rgba(102, 252, 241, 0.08);
-      /* More subtle */
       color: var(--accent);
       border: 1px solid rgba(102, 252, 241, 0.15);
       padding: 14px 28px;
@@ -178,8 +528,8 @@
       font-weight: 500;
       font-size: 0.95rem;
       transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-      margin-top: auto;
       letter-spacing: 0.02em;
+      flex: 1;
     }
 
     .tool-link:hover {
@@ -199,16 +549,79 @@
       transform: translateX(4px);
     }
 
-    /* Footer */
+    /* ─── Like Button ─── */
+    .like-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 12px 18px;
+      border-radius: 100px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 500;
+      flex-shrink: 0;
+    }
+
+    .like-btn:hover {
+      border-color: rgba(255, 107, 138, 0.3);
+      background: rgba(255, 107, 138, 0.06);
+      color: var(--like-color);
+      transform: translateY(-2px);
+    }
+
+    .like-btn.liked {
+      color: var(--like-color);
+      border-color: rgba(255, 107, 138, 0.3);
+      background: rgba(255, 107, 138, 0.1);
+    }
+
+    .like-btn svg {
+      width: 18px;
+      height: 18px;
+      transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .like-btn:hover svg,
+    .like-btn.liked svg {
+      transform: scale(1.15);
+    }
+
+    @keyframes likePopIn {
+      0% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.35);
+      }
+
+      100% {
+        transform: scale(1.15);
+      }
+    }
+
+    .like-btn.pop svg {
+      animation: likePopIn 0.4s ease;
+    }
+
+    /* ─── Footer ─── */
     .footer {
       text-align: center;
       margin-top: 60px;
       padding: 40px 20px;
       background: rgba(5, 6, 8, 0.8);
-      /* Distinct footer bg */
       border-top: 1px solid rgba(255, 255, 255, 0.04);
       color: var(--text-muted);
       font-size: 0.9rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
     }
 
     .footer a {
@@ -224,10 +637,247 @@
       border-color: var(--accent);
     }
 
-    /* Responsiveness */
+    .subscribe-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 32px;
+      border-radius: 100px;
+      background: rgba(102, 252, 241, 0.08);
+      border: 1px solid rgba(102, 252, 241, 0.2);
+      color: var(--accent);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      letter-spacing: 0.02em;
+    }
+
+    .subscribe-btn:hover {
+      background: var(--accent);
+      color: var(--bg-dark);
+      border-color: var(--accent);
+      box-shadow: 0 0 24px rgba(102, 252, 241, 0.35);
+      transform: translateY(-2px);
+    }
+
+    .subscribe-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* ─── Subscribe Modal ─── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+      opacity: 1;
+    }
+
+    .modal-box {
+      background: rgba(31, 40, 51, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 48px 40px;
+      max-width: 440px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 32px 64px rgba(0, 0, 0, 0.5);
+      transform: translateY(20px);
+      transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    .modal-overlay.open .modal-box {
+      transform: translateY(0);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 8px;
+      transition: color 0.2s;
+    }
+
+    .modal-close:hover {
+      color: var(--text-main);
+    }
+
+    .modal-box h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      background: linear-gradient(90deg, #fff, var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .modal-box p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 28px;
+      line-height: 1.6;
+    }
+
+    .modal-form {
+      display: flex;
+      gap: 10px;
+    }
+
+    .modal-input {
+      flex: 1;
+      padding: 14px 20px;
+      border-radius: 100px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.9rem;
+      outline: none;
+      transition: all 0.3s;
+    }
+
+    .modal-input::placeholder {
+      color: rgba(197, 198, 199, 0.4);
+    }
+
+    .modal-input:focus {
+      border-color: rgba(102, 252, 241, 0.3);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .modal-submit {
+      padding: 14px 28px;
+      border-radius: 100px;
+      border: none;
+      background: var(--accent);
+      color: var(--bg-dark);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      white-space: nowrap;
+    }
+
+    .modal-submit:hover {
+      box-shadow: 0 0 24px rgba(102, 252, 241, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .modal-success {
+      display: none;
+      color: var(--accent);
+      font-weight: 500;
+      margin-top: 16px;
+      font-size: 0.9rem;
+    }
+
+    .modal-success.show {
+      display: block;
+    }
+
+    /* ─── Scroll to Top ─── */
+    .scroll-top-btn {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      z-index: 900;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: rgba(31, 40, 51, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--accent);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(12px);
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .scroll-top-btn.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .scroll-top-btn:hover {
+      background: var(--accent);
+      color: var(--bg-dark);
+      border-color: var(--accent);
+      box-shadow: 0 0 24px rgba(102, 252, 241, 0.35);
+      transform: translateY(-3px);
+    }
+
+    .scroll-top-btn svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    /* ─── No Results ─── */
+    .no-results {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--text-muted);
+      display: none;
+    }
+
+    .no-results.show {
+      display: block;
+    }
+
+    .no-results svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 16px;
+      opacity: 0.4;
+    }
+
+    .no-results p {
+      font-size: 1.1rem;
+      font-weight: 300;
+    }
+
+    /* ─── Responsiveness ─── */
     @media (max-width: 768px) {
       .header {
         padding: 15px 20px;
+      }
+
+      .header-logo {
+        height: 50px;
+      }
+
+      .search-input.active {
+        width: 160px;
+      }
+
+      .toolbar {
+        padding: 0 20px;
       }
 
       .grid-container {
@@ -243,6 +893,30 @@
       .tool-title {
         font-size: 1.35rem;
       }
+
+      .card-footer {
+        flex-direction: column;
+      }
+
+      .tool-link {
+        width: 100%;
+      }
+
+      .like-btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .modal-form {
+        flex-direction: column;
+      }
+
+      .scroll-top-btn {
+        bottom: 20px;
+        right: 20px;
+        width: 44px;
+        height: 44px;
+      }
     }
   </style>
 </head>
@@ -253,66 +927,525 @@
   <div class="header">
     <div class="header-left">
       <img src="assets/toolhub_logo.png" alt="Tool Hub Logo" class="header-logo">
-      <h1>Tool Hub</h1>
+      <div class="header-text">
+        <span class="header-tagline">User-friendly Tools for Science</span>
+        <span class="header-subtitle">by Hylix Insights</span>
+      </div>
     </div>
-    <div class="header-icon">
-      <!-- Search Icon SVG -->
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path
-          d="M21 21L15.0001 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z"
-          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-      </svg>
+    <div class="header-actions">
+      <div class="search-container">
+        <input type="text" class="search-input" id="searchInput" placeholder="Search tools...">
+        <button class="search-btn" id="searchBtn" aria-label="Search">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M21 21L15.0001 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 
-  <div class="grid-container">
+  <!-- Toolbar: Sort + Filter -->
+  <div class="toolbar">
+    <!-- Sort -->
+    <div class="sort-dropdown">
+      <button class="toolbar-btn" id="sortBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M3 6h18M3 12h12M3 18h6" />
+        </svg>
+        Sort
+      </button>
+      <div class="sort-menu" id="sortMenu">
+        <button class="sort-option selected" data-sort="newest">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          Newest First
+          <span class="check-mark">✓</span>
+        </button>
+        <button class="sort-option" data-sort="likes">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+          </svg>
+          Most Liked
+          <span class="check-mark">✓</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter -->
+    <div class="filter-dropdown">
+      <button class="toolbar-btn" id="filterBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+        </svg>
+        Category
+      </button>
+      <div class="filter-menu" id="filterMenu">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Cards Grid -->
+  <div class="grid-container" id="cardsGrid">
 
     <!-- Card 1 -->
-    <div class="tool-card">
-      <img src="assets/pubmed-timeline-cover.png" class="card-img" alt="PubMed Timeline Preview">
+    <div class="tool-card" data-id="pubmed-timeline" data-category="Visualization"
+      data-keywords="pubmed,timeline,journals,publications,bibliometrics" data-created="2025-11-15">
+      <div class="card-img-wrapper">
+        <span class="category-badge badge-visualization">Visualization</span>
+        <img src="assets/pubmed-timeline-cover.png" class="card-img" alt="PubMed Timeline Preview">
+      </div>
       <div class="card-content">
-        <!-- Badge removed -->
         <h3 class="tool-title">PubMed Timeline</h3>
         <p class="tool-desc">
           Interactive visualization of scientific publication history. Analyze journals, publication dates, and research
           impact over time using standard PubMed export files.
         </p>
-        <a href="/pubmed-timeline/" class="tool-link">
-          Access Tool
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round" />
-          </svg>
-        </a>
+        <div class="keywords-container">
+          <!-- Populated by JS -->
+        </div>
+        <div class="card-footer">
+          <a href="/pubmed-timeline/" class="tool-link">
+            Access Tool
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </a>
+          <button class="like-btn" data-id="pubmed-timeline">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            <span class="like-count">0</span>
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- Card 2 -->
-    <div class="tool-card">
-      <img src="particles3d-interactive/assets/particles-cover.png" class="card-img" alt="3D Face Morphing Preview">
+    <div class="tool-card" data-id="3d-face-morphing" data-category="Interactive"
+      data-keywords="3d,particles,face,morphing,gestures,webcam" data-created="2026-01-20">
+      <div class="card-img-wrapper">
+        <span class="category-badge badge-interactive">Interactive</span>
+        <img src="particles3d-interactive/assets/particles-cover.png" class="card-img" alt="3D Face Morphing Preview">
+      </div>
       <div class="card-content">
         <h3 class="tool-title">3D Face Morphing</h3>
         <p class="tool-desc">
           Real-time 3D particle visualization driven by facial expressions and hand gestures. Explore emotional states
-          and
-          interactive particle systems.
+          and interactive particle systems.
         </p>
-        <a href="/particles3d-interactive/" class="tool-link">
-          Launch Demo
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-              stroke-linejoin="round" />
-          </svg>
-        </a>
+        <div class="keywords-container">
+          <!-- Populated by JS -->
+        </div>
+        <div class="card-footer">
+          <a href="/particles3d-interactive/" class="tool-link">
+            Launch Demo
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </a>
+          <button class="like-btn" data-id="3d-face-morphing">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            <span class="like-count">0</span>
+          </button>
+        </div>
       </div>
+    </div>
+
+    <!-- No Results Message -->
+    <div class="no-results" id="noResults">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path
+          d="M21 21L15.0001 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z"
+          stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <p>No tools match your search or filters.</p>
     </div>
 
   </div>
 
   <!-- Footer -->
   <div class="footer">
-    Powered by <a href="https://hylix.app" target="_blank">Hylix Insights</a>
+    <button class="subscribe-btn" id="subscribeBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+        <polyline points="22,6 12,13 2,6" />
+      </svg>
+      Subscribe for Updates
+    </button>
+    <span>Powered by <a href="https://hylix.app" target="_blank">Hylix Insights</a></span>
   </div>
+
+  <!-- Subscribe Modal -->
+  <div class="modal-overlay" id="subscribeModal">
+    <div class="modal-box" style="position: relative;">
+      <button class="modal-close" id="modalClose">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+      <h2>Stay Updated</h2>
+      <p>Get notified when new tools and features are released.</p>
+      <div class="modal-form" id="subscribeForm">
+        <input type="email" class="modal-input" id="emailInput" placeholder="Enter your email">
+        <button class="modal-submit" id="submitEmail">Subscribe</button>
+      </div>
+      <div class="modal-success" id="modalSuccess">✓ You're subscribed! We'll keep you posted.</div>
+    </div>
+  </div>
+
+  <!-- Scroll to Top Button -->
+  <button class="scroll-top-btn" id="scrollTopBtn" aria-label="Scroll to top">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+      stroke-linejoin="round">
+      <polyline points="18 15 12 9 6 15" />
+    </svg>
+  </button>
+
+  <script>
+    // ─── Initialize ───
+    (function () {
+      const cards = document.querySelectorAll('.tool-card[data-id]');
+      const grid = document.getElementById('cardsGrid');
+      const noResults = document.getElementById('noResults');
+
+      // ─── 1. Like Buttons ───
+      function getLikes() {
+        try { return JSON.parse(localStorage.getItem('toolhub_likes') || '{}'); }
+        catch { return {}; }
+      }
+
+      function saveLikes(likes) {
+        localStorage.setItem('toolhub_likes', JSON.stringify(likes));
+      }
+
+      function initLikes() {
+        const likes = getLikes();
+        document.querySelectorAll('.like-btn').forEach(btn => {
+          const id = btn.dataset.id;
+          const count = likes[id]?.count || 0;
+          const liked = likes[id]?.liked || false;
+          btn.querySelector('.like-count').textContent = count;
+          if (liked) btn.classList.add('liked');
+          btn.querySelector('svg').setAttribute('fill', liked ? 'currentColor' : 'none');
+        });
+      }
+
+      document.querySelectorAll('.like-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          const likes = getLikes();
+          if (!likes[id]) likes[id] = { count: 0, liked: false };
+
+          if (likes[id].liked) {
+            likes[id].count = Math.max(0, likes[id].count - 1);
+            likes[id].liked = false;
+            btn.classList.remove('liked');
+            btn.querySelector('svg').setAttribute('fill', 'none');
+          } else {
+            likes[id].count += 1;
+            likes[id].liked = true;
+            btn.classList.add('liked');
+            btn.querySelector('svg').setAttribute('fill', 'currentColor');
+            btn.classList.remove('pop');
+            void btn.offsetWidth; // Force reflow
+            btn.classList.add('pop');
+          }
+
+          btn.querySelector('.like-count').textContent = likes[id].count;
+          saveLikes(likes);
+        });
+      });
+
+      initLikes();
+
+      // ─── 2. Hashtag Keywords ───
+      cards.forEach(card => {
+        const keywords = (card.dataset.keywords || '').split(',').filter(k => k.trim());
+        const container = card.querySelector('.keywords-container');
+        keywords.forEach(kw => {
+          const tag = document.createElement('span');
+          tag.className = 'keyword-tag';
+          tag.textContent = '#' + kw.trim();
+          container.appendChild(tag);
+        });
+      });
+
+      // ─── 4. Search ───
+      const searchBtn = document.getElementById('searchBtn');
+      const searchInput = document.getElementById('searchInput');
+
+      searchBtn.addEventListener('click', () => {
+        searchInput.classList.toggle('active');
+        if (searchInput.classList.contains('active')) {
+          searchInput.focus();
+        } else {
+          searchInput.value = '';
+          applyFilters();
+        }
+      });
+
+      searchInput.addEventListener('input', () => applyFilters());
+
+      // Close search on Escape
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          searchInput.classList.remove('active');
+          searchInput.value = '';
+          applyFilters();
+        }
+      });
+
+      // ─── 5. Sort ───
+      const sortBtn = document.getElementById('sortBtn');
+      const sortMenu = document.getElementById('sortMenu');
+      let currentSort = 'newest';
+
+      sortBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sortMenu.classList.toggle('open');
+        filterMenu.classList.remove('open');
+      });
+
+      document.querySelectorAll('.sort-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+          currentSort = opt.dataset.sort;
+          document.querySelectorAll('.sort-option').forEach(o => o.classList.remove('selected'));
+          opt.classList.add('selected');
+          sortMenu.classList.remove('open');
+          sortCards();
+        });
+      });
+
+      function sortCards() {
+        const cardsArr = Array.from(cards);
+        const likes = getLikes();
+
+        cardsArr.sort((a, b) => {
+          if (currentSort === 'likes') {
+            const aLikes = likes[a.dataset.id]?.count || 0;
+            const bLikes = likes[b.dataset.id]?.count || 0;
+            return bLikes - aLikes;
+          } else {
+            return new Date(b.dataset.created) - new Date(a.dataset.created);
+          }
+        });
+
+        cardsArr.forEach(card => grid.appendChild(card));
+        // Keep noResults at the end
+        grid.appendChild(noResults);
+      }
+
+      // ─── 6. Category Filter ───
+      const filterBtn = document.getElementById('filterBtn');
+      const filterMenu = document.getElementById('filterMenu');
+      const categories = new Set();
+      let activeCategories = new Set();
+
+      cards.forEach(card => {
+        const cat = card.dataset.category;
+        if (cat) categories.add(cat);
+      });
+
+      // Build filter menu
+      function buildFilterMenu() {
+        filterMenu.innerHTML = '';
+
+        // "All" option
+        const allOpt = document.createElement('div');
+        allOpt.className = 'filter-option checked';
+        allOpt.dataset.category = 'all';
+        allOpt.innerHTML = `
+          <div class="filter-checkbox">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          All
+        `;
+        filterMenu.appendChild(allOpt);
+
+        // Divider
+        const divider = document.createElement('div');
+        divider.className = 'filter-divider';
+        filterMenu.appendChild(divider);
+
+        categories.forEach(cat => {
+          const opt = document.createElement('div');
+          opt.className = 'filter-option checked';
+          opt.dataset.category = cat;
+          opt.innerHTML = `
+            <div class="filter-checkbox">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            ${cat}
+          `;
+          filterMenu.appendChild(opt);
+          activeCategories.add(cat);
+        });
+      }
+
+      buildFilterMenu();
+
+      filterBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        filterMenu.classList.toggle('open');
+        sortMenu.classList.remove('open');
+      });
+
+      filterMenu.addEventListener('click', (e) => {
+        const opt = e.target.closest('.filter-option');
+        if (!opt) return;
+
+        const cat = opt.dataset.category;
+
+        if (cat === 'all') {
+          const allChecked = opt.classList.contains('checked');
+          filterMenu.querySelectorAll('.filter-option').forEach(o => {
+            if (allChecked) {
+              o.classList.remove('checked');
+              activeCategories.clear();
+            } else {
+              o.classList.add('checked');
+              if (o.dataset.category !== 'all') activeCategories.add(o.dataset.category);
+            }
+          });
+        } else {
+          opt.classList.toggle('checked');
+          if (opt.classList.contains('checked')) {
+            activeCategories.add(cat);
+          } else {
+            activeCategories.delete(cat);
+          }
+
+          // Update "All" checkbox
+          const allOpt = filterMenu.querySelector('[data-category="all"]');
+          if (activeCategories.size === categories.size) {
+            allOpt.classList.add('checked');
+          } else {
+            allOpt.classList.remove('checked');
+          }
+        }
+
+        applyFilters();
+      });
+
+      // ─── Filter + Search Logic ───
+      function applyFilters() {
+        const query = searchInput.value.toLowerCase().trim();
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+          const title = card.querySelector('.tool-title').textContent.toLowerCase();
+          const desc = card.querySelector('.tool-desc').textContent.toLowerCase();
+          const keywords = (card.dataset.keywords || '').toLowerCase();
+          const category = card.dataset.category;
+
+          const matchesSearch = !query || title.includes(query) || desc.includes(query) || keywords.includes(query);
+          const matchesCategory = activeCategories.size === 0 || activeCategories.has(category);
+
+          if (matchesSearch && matchesCategory) {
+            card.classList.remove('hidden');
+            visibleCount++;
+          } else {
+            card.classList.add('hidden');
+          }
+        });
+
+        noResults.classList.toggle('show', visibleCount === 0);
+      }
+
+      // ─── Close dropdowns on outside click ───
+      document.addEventListener('click', () => {
+        sortMenu.classList.remove('open');
+        filterMenu.classList.remove('open');
+      });
+
+      // Prevent dropdown closing when clicking inside
+      sortMenu.addEventListener('click', e => e.stopPropagation());
+      filterMenu.addEventListener('click', e => e.stopPropagation());
+
+      // ─── 7. Email Subscription ───
+      const subscribeBtn = document.getElementById('subscribeBtn');
+      const subscribeModal = document.getElementById('subscribeModal');
+      const modalClose = document.getElementById('modalClose');
+      const emailInput = document.getElementById('emailInput');
+      const submitEmail = document.getElementById('submitEmail');
+      const modalSuccess = document.getElementById('modalSuccess');
+
+      subscribeBtn.addEventListener('click', () => {
+        subscribeModal.classList.add('open');
+        // Check if already subscribed
+        const saved = localStorage.getItem('toolhub_email');
+        if (saved) {
+          emailInput.value = saved;
+          modalSuccess.classList.add('show');
+          submitEmail.style.display = 'none';
+        }
+      });
+
+      function closeModal() {
+        subscribeModal.classList.remove('open');
+        modalSuccess.classList.remove('show');
+        submitEmail.style.display = '';
+      }
+
+      modalClose.addEventListener('click', closeModal);
+      subscribeModal.addEventListener('click', (e) => {
+        if (e.target === subscribeModal) closeModal();
+      });
+
+      submitEmail.addEventListener('click', () => {
+        const email = emailInput.value.trim();
+        if (email && email.includes('@')) {
+          localStorage.setItem('toolhub_email', email);
+          modalSuccess.classList.add('show');
+          submitEmail.style.display = 'none';
+        } else {
+          emailInput.style.borderColor = 'rgba(255, 107, 138, 0.5)';
+          setTimeout(() => emailInput.style.borderColor = '', 1500);
+        }
+      });
+
+      emailInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') submitEmail.click();
+      });
+
+      // ─── 8. Scroll to Top ───
+      const scrollTopBtn = document.getElementById('scrollTopBtn');
+
+      window.addEventListener('scroll', () => {
+        scrollTopBtn.classList.toggle('visible', window.scrollY > 300);
+      });
+
+      scrollTopBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      // Initial sort
+      sortCards();
+    })();
+  </script>
 
 </body>
 
