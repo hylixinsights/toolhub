@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PathwayLens — Enrichr Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<style>
+/* ═══════════════════ CSS Variables ═══════════════════ */
+:root {
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-base: 0.35s var(--ease-out);
+}
+
+[data-theme="dark"] {
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --bg-tertiary: #1a1a26;
+  --bg-elevated: #1e1e2e;
+  --bg-input: #16161f;
+  --border-subtle: rgba(255,255,255,0.06);
+  --border-medium: rgba(255,255,255,0.1);
+  --border-accent: rgba(139,92,246,0.3);
+  --text-primary: #e8e6f0;
+  --text-secondary: #9895a8;
+  --text-tertiary: #6b677a;
+  --text-inverse: #0a0a0f;
+  --accent-primary: #8b5cf6;
+  --accent-secondary: #6d28d9;
+  --accent-glow: rgba(139,92,246,0.15);
+  --accent-warm: #f59e0b;
+  --accent-teal: #14b8a6;
+  --accent-rose: #f43f5e;
+  --accent-sky: #38bdf8;
+  --surface-glass: rgba(255,255,255,0.03);
+  --shadow-soft: 0 4px 24px rgba(0,0,0,0.4);
+  --shadow-glow: 0 0 40px rgba(139,92,246,0.08);
+  --drop-zone-bg: rgba(139,92,246,0.04);
+  --drop-zone-border: rgba(139,92,246,0.2);
+  --chart-palette: #8b5cf6,#38bdf8,#14b8a6,#f59e0b,#f43f5e,#a78bfa,#22d3ee,#34d399,#fbbf24,#fb7185;
+  --scrollbar-thumb: rgba(255,255,255,0.1);
+  --scrollbar-track: transparent;
+  --overlay: rgba(0,0,0,0.6);
+  --tag-bg: rgba(139,92,246,0.12);
+  --tag-text: #a78bfa;
+}
+
+[data-theme="light"] {
+  --bg-primary: #f8f7fc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f0eef6;
+  --bg-elevated: #ffffff;
+  --bg-input: #f4f2fa;
+  --border-subtle: rgba(0,0,0,0.06);
+  --border-medium: rgba(0,0,0,0.1);
+  --border-accent: rgba(109,40,217,0.25);
+  --text-primary: #1a1525;
+  --text-secondary: #6b6280;
+  --text-tertiary: #9890a8;
+  --text-inverse: #ffffff;
+  --accent-primary: #7c3aed;
+  --accent-secondary: #6d28d9;
+  --accent-glow: rgba(124,58,237,0.08);
+  --accent-warm: #d97706;
+  --accent-teal: #0d9488;
+  --accent-rose: #e11d48;
+  --accent-sky: #0284c7;
+  --surface-glass: rgba(255,255,255,0.7);
+  --shadow-soft: 0 4px 24px rgba(0,0,0,0.08);
+  --shadow-glow: 0 0 40px rgba(124,58,237,0.06);
+  --drop-zone-bg: rgba(124,58,237,0.03);
+  --drop-zone-border: rgba(124,58,237,0.2);
+  --chart-palette: #7c3aed,#0284c7,#0d9488,#d97706,#e11d48,#8b5cf6,#0891b2,#059669,#ca8a04,#be123c;
+  --scrollbar-thumb: rgba(0,0,0,0.12);
+  --scrollbar-track: transparent;
+  --overlay: rgba(0,0,0,0.3);
+  --tag-bg: rgba(124,58,237,0.08);
+  --tag-text: #7c3aed;
+}
+
+/* ═══════════════════ Reset & Base ═══════════════════ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  transition: background var(--transition-base), color var(--transition-base);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+
+/* ═══════════════════ Noise Texture ═══════════════════ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ═══════════════════ Top Bar ═══════════════════ */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  height: 56px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  backdrop-filter: blur(16px);
+  transition: background var(--transition-base), border-color var(--transition-base);
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+.topbar-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-teal));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #fff;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.topbar-name {
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Theme Toggle */
+.theme-toggle {
+  position: relative;
+  width: 48px;
+  height: 26px;
+  border-radius: 13px;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-tertiary);
+  cursor: pointer;
+  transition: background var(--transition-base), border-color var(--transition-base);
+}
+
+.theme-toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  transition: transform var(--transition-base);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+[data-theme="light"] .theme-toggle::after {
+  transform: translateX(22px);
+  background: var(--accent-warm);
+}
+
+.theme-icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  transition: opacity 0.2s;
+}
+
+.theme-icon--moon { left: 6px; opacity: 1; }
+.theme-icon--sun { right: 6px; opacity: 0.4; }
+[data-theme="light"] .theme-icon--moon { opacity: 0.4; }
+[data-theme="light"] .theme-icon--sun { opacity: 1; }
+
+/* Settings Button */
+.btn-settings {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all var(--transition-base);
+}
+
+.btn-settings:hover {
+  background: var(--accent-glow);
+  border-color: var(--border-accent);
+  color: var(--accent-primary);
+}
+
+/* ═══════════════════ Main Container ═══════════════════ */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ═══════════════════ Hero Section ═══════════════════ */
+.hero {
+  text-align: center;
+  padding: 72px 0 48px;
+  position: relative;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 400px;
+  background: radial-gradient(ellipse, var(--accent-glow) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 5vw, 3.6rem);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin-bottom: 16px;
+  transition: color var(--transition-base);
+}
+
+.hero h1 em {
+  font-style: italic;
+  color: var(--accent-primary);
+}
+
+.hero-sub {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  max-width: 560px;
+  margin: 0 auto 12px;
+  line-height: 1.65;
+  transition: color var(--transition-base);
+}
+
+.hero-desc {
+  font-size: 0.88rem;
+  color: var(--text-tertiary);
+  max-width: 620px;
+  margin: 0 auto 32px;
+  line-height: 1.7;
+  transition: color var(--transition-base);
+}
+
+.hero-tags {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 36px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  letter-spacing: 0.02em;
+  transition: background var(--transition-base), color var(--transition-base);
+}
+
+/* ═══════════════════ Upload Zone ═══════════════════ */
+.upload-section {
+  max-width: 640px;
+  margin: 0 auto 24px;
+}
+
+.drop-zone {
+  position: relative;
+  border: 2px dashed var(--drop-zone-border);
+  border-radius: var(--radius-lg);
+  background: var(--drop-zone-bg);
+  padding: 40px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--accent-primary);
+  background: var(--accent-glow);
+  transform: translateY(-1px);
+}
+
+.drop-zone-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  opacity: 0.6;
+}
+
+.drop-zone-title {
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.drop-zone-hint {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.drop-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Gene Textarea */
+.gene-input-section {
+  max-width: 640px;
+  margin: 0 auto 16px;
+}
+
+.divider-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.divider-label::before, .divider-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+.gene-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.7;
+  resize: vertical;
+  transition: border-color var(--transition-base), background var(--transition-base);
+}
+
+.gene-textarea::placeholder { color: var(--text-tertiary); }
+.gene-textarea:focus { outline: none; border-color: var(--accent-primary); }
+
+/* Buttons */
+.btn-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 24px auto 0;
+  max-width: 640px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 24px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  letter-spacing: 0.01em;
+}
+
+.btn-primary {
+  background: var(--accent-primary);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(139,92,246,0.25);
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(139,92,246,0.35); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.btn-ghost {
+  background: var(--surface-glass);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-medium);
+}
+.btn-ghost:hover { background: var(--accent-glow); color: var(--accent-primary); border-color: var(--border-accent); }
+
+/* ═══════════════════ Status & File Info ═══════════════════ */
+.file-info {
+  display: none;
+  max-width: 640px;
+  margin: 16px auto 0;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  transition: background var(--transition-base), border-color var(--transition-base);
+}
+
+.file-info.visible { display: flex; align-items: center; gap: 10px; }
+.file-info .fi-icon { font-size: 16px; }
+.file-info .fi-name { font-weight: 500; color: var(--text-primary); }
+.file-info .fi-genes { color: var(--text-tertiary); margin-left: auto; font-family: var(--font-mono); font-size: 0.78rem; }
+
+.status-bar {
+  display: none;
+  max-width: 640px;
+  margin: 16px auto 0;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.84rem;
+  align-items: center;
+  gap: 12px;
+  transition: background var(--transition-base), border-color var(--transition-base);
+}
+
+.status-bar.visible { display: flex; }
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-medium);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.status-text { color: var(--text-secondary); }
+.status-text strong { color: var(--text-primary); font-weight: 500; }
+
+/* ═══════════════════ Results Section ═══════════════════ */
+.results {
+  display: none;
+  margin: 48px 0 80px;
+}
+
+.results.visible { display: block; }
+
+.results-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.results-title {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  letter-spacing: -0.02em;
+}
+
+.results-meta {
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 900px) {
+  .chart-grid { grid-template-columns: 1fr 1fr; }
+  .chart-card.full-width { grid-column: 1 / -1; }
+}
+
+.chart-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  transition: background var(--transition-base), border-color var(--transition-base), box-shadow var(--transition-base);
+  box-shadow: var(--shadow-soft);
+}
+
+.chart-card:hover { box-shadow: var(--shadow-glow); }
+
+.chart-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.chart-card-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.chart-card-badge {
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--tag-bg);
+  color: var(--tag-text);
+}
+
+.chart-container {
+  width: 100%;
+  height: 420px;
+}
+
+/* Table Card */
+.table-wrapper {
+  overflow-x: auto;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.results-table thead { position: sticky; top: 0; z-index: 2; }
+
+.results-table th {
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-medium);
+  white-space: nowrap;
+}
+
+.results-table td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  transition: color var(--transition-base);
+}
+
+.results-table tbody tr:hover td {
+  background: var(--accent-glow);
+  color: var(--text-primary);
+}
+
+.td-term { font-weight: 500; color: var(--text-primary) !important; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.td-pval { font-family: var(--font-mono); font-size: 0.76rem; }
+.td-genes { font-size: 0.74rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ═══════════════════ Settings Panel ═══════════════════ */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  z-index: 200;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+}
+
+.settings-overlay.open { opacity: 1; visibility: visible; }
+
+.settings-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 380px;
+  max-width: 92vw;
+  height: 100%;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border-subtle);
+  z-index: 201;
+  transform: translateX(100%);
+  transition: transform 0.4s var(--ease-out), background var(--transition-base);
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-panel.open { transform: translateX(0); }
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.settings-header h3 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+}
+
+.settings-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-base);
+}
+
+.settings-close:hover { background: var(--accent-glow); color: var(--accent-primary); }
+
+.settings-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.setting-group { margin-bottom: 24px; }
+
+.setting-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+
+.setting-select, .setting-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  transition: border-color var(--transition-base), background var(--transition-base);
+  appearance: none;
+}
+
+.setting-select:focus, .setting-input:focus { outline: none; border-color: var(--accent-primary); }
+
+.setting-hint {
+  font-size: 0.74rem;
+  color: var(--text-tertiary);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+.setting-select-wrapper {
+  position: relative;
+}
+
+.setting-select-wrapper::after {
+  content: '▾';
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+  pointer-events: none;
+  font-size: 12px;
+}
+
+/* ═══════════════════ Animations ═══════════════════ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in { animation: fadeUp 0.6s var(--ease-out) both; }
+.delay-1 { animation-delay: 0.08s; }
+.delay-2 { animation-delay: 0.16s; }
+.delay-3 { animation-delay: 0.24s; }
+.delay-4 { animation-delay: 0.32s; }
+
+/* ═══════════════════ Responsive ═══════════════════ */
+@media (max-width: 640px) {
+  .topbar { padding: 0 16px; }
+  .container { padding: 0 16px; }
+  .hero { padding: 48px 0 32px; }
+  .chart-container { height: 320px; }
+  .drop-zone { padding: 28px 16px; }
+}
+
+/* Footer */
+.footer {
+  text-align: center;
+  padding: 32px 0;
+  font-size: 0.76rem;
+  color: var(--text-tertiary);
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 48px;
+}
+
+.footer a { color: var(--accent-primary); text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ Top Bar ═══════════════════ -->
+<header class="topbar">
+  <a href="#" class="topbar-brand">
+    <div class="topbar-logo">PL</div>
+    <span class="topbar-name">PathwayLens</span>
+  </a>
+  <div class="topbar-actions">
+    <div class="theme-toggle" id="themeToggle" title="Toggle theme">
+      <span class="theme-icon theme-icon--moon">🌙</span>
+      <span class="theme-icon theme-icon--sun">☀️</span>
+    </div>
+    <button class="btn-settings" id="openSettings" title="Advanced settings">+</button>
+  </div>
+</header>
+
+<!-- ═══════════════════ Hero ═══════════════════ -->
+<main class="container">
+  <section class="hero">
+    <h1 class="animate-in">Decode Your DEG Tables <em>Instantly.</em></h1>
+    <p class="hero-sub animate-in delay-1">Client-side functional enrichment analysis powered by Enrichr. No server uploads, total data privacy.</p>
+    <p class="hero-desc animate-in delay-2">PathwayLens translates raw differential expression data into biological insight. Upload your gene list to automatically query hundreds of libraries and visualize pathways through interactive, publication-ready charts.</p>
+    <div class="hero-tags animate-in delay-3">
+      <span class="tag">⚡ Client-side</span>
+      <span class="tag">🔒 Private</span>
+      <span class="tag">📊 Enrichr API</span>
+      <span class="tag">🎨 ECharts</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ Upload ═══════════════════ -->
+  <section class="upload-section animate-in delay-3">
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-zone-icon">📂</div>
+      <div class="drop-zone-title">Drop your DEG file here</div>
+      <div class="drop-zone-hint">CSV or TSV with a gene symbol column · or click to browse</div>
+      <input type="file" id="fileInput" accept=".csv,.tsv,.txt">
+    </div>
+  </section>
+
+  <div class="divider-label">or paste gene symbols</div>
+
+  <section class="gene-input-section">
+    <textarea class="gene-textarea" id="geneTextarea" rows="4" placeholder="TP53&#10;BRCA1&#10;EGFR&#10;MYC&#10;...one gene per line"></textarea>
+  </section>
+
+  <div class="btn-row animate-in delay-4">
+    <button class="btn btn-primary" id="runBtn" disabled>
+      <span id="runBtnText">Run Enrichment</span>
+    </button>
+    <button class="btn btn-ghost" id="demoBtn">Load Demo Data</button>
+    <button class="btn btn-ghost" id="clearBtn" style="display:none;">Clear</button>
+  </div>
+
+  <div class="file-info" id="fileInfo">
+    <span class="fi-icon">📄</span>
+    <span class="fi-name" id="fileName"></span>
+    <span class="fi-genes" id="geneCount"></span>
+  </div>
+
+  <div class="status-bar" id="statusBar">
+    <div class="spinner"></div>
+    <span class="status-text" id="statusText">Preparing...</span>
+  </div>
+
+  <!-- ═══════════════════ Results ═══════════════════ -->
+  <section class="results" id="results">
+    <div class="results-header">
+      <h2 class="results-title">Results</h2>
+      <span class="results-meta" id="resultsMeta"></span>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card full-width">
+        <div class="chart-card-header">
+          <span class="chart-card-title">Top Enriched Terms — Bar Chart</span>
+          <span class="chart-card-badge" id="barLibBadge">Library</span>
+        </div>
+        <div class="chart-container" id="barChart"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <span class="chart-card-title">Bubble Plot</span>
+          <span class="chart-card-badge">Enrichment · Significance</span>
+        </div>
+        <div class="chart-container" id="bubbleChart"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <span class="chart-card-title">Results Table</span>
+          <span class="chart-card-badge" id="tableCountBadge">0 terms</span>
+        </div>
+        <div class="table-wrapper">
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Term</th>
+                <th>P-value</th>
+                <th>Adj. P-value</th>
+                <th>Combined Score</th>
+                <th>Genes</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    PathwayLens · Powered by <a href="https://maayanlab.cloud/Enrichr/" target="_blank" rel="noopener">Enrichr</a> &amp; <a href="https://echarts.apache.org" target="_blank" rel="noopener">Apache ECharts</a> · Client-side only
+  </footer>
+</main>
+
+<!-- ═══════════════════ Settings Panel ═══════════════════ -->
+<div class="settings-overlay" id="settingsOverlay"></div>
+<aside class="settings-panel" id="settingsPanel">
+  <div class="settings-header">
+    <h3>Advanced Settings</h3>
+    <button class="settings-close" id="closeSettings">✕</button>
+  </div>
+  <div class="settings-body">
+    <div class="setting-group">
+      <label class="setting-label">Enrichr Library</label>
+      <div class="setting-select-wrapper">
+        <select class="setting-select" id="librarySelect">
+          <option value="GO_Biological_Process_2023">GO Biological Process 2023</option>
+          <option value="GO_Molecular_Function_2023">GO Molecular Function 2023</option>
+          <option value="GO_Cellular_Component_2023">GO Cellular Component 2023</option>
+          <option value="KEGG_2021_Human">KEGG 2021 Human</option>
+          <option value="Reactome_2022">Reactome 2022</option>
+          <option value="WikiPathway_2023_Human">WikiPathway 2023 Human</option>
+          <option value="MSigDB_Hallmark_2020">MSigDB Hallmark 2020</option>
+          <option value="BioPlanet_2019">BioPlanet 2019</option>
+          <option value="Jensen_DISEASES">Jensen DISEASES</option>
+          <option value="ClinVar_2019">ClinVar 2019</option>
+          <option value="DisGeNET">DisGeNET</option>
+          <option value="Human_Phenotype_Ontology">Human Phenotype Ontology</option>
+        </select>
+      </div>
+      <p class="setting-hint">Choose the annotation library for enrichment analysis.</p>
+    </div>
+    <div class="setting-group">
+      <label class="setting-label">Adjusted P-value Cutoff</label>
+      <input class="setting-input" type="number" id="pvalCutoff" value="0.05" min="0.0001" max="1" step="0.01">
+      <p class="setting-hint">Only display terms below this adjusted p-value threshold.</p>
+    </div>
+    <div class="setting-group">
+      <label class="setting-label">Max Terms to Display</label>
+      <input class="setting-input" type="number" id="maxTerms" value="20" min="5" max="100" step="5">
+      <p class="setting-hint">Number of top terms shown in bar chart.</p>
+    </div>
+    <div class="setting-group">
+      <label class="setting-label">Gene Column Name (for CSV/TSV)</label>
+      <input class="setting-input" type="text" id="geneColName" value="" placeholder="Auto-detect">
+      <p class="setting-hint">If your file has a specific column name for gene symbols, enter it here. Otherwise, PathwayLens will attempt to auto-detect.</p>
+    </div>
+  </div>
+</aside>
+
+<script>
+/* ═══════════════════ State ═══════════════════ */
+const state = {
+  genes: [],
+  enrichrId: null,
+  results: [],
+  barInstance: null,
+  bubbleInstance: null,
+};
+
+/* ═══════════════════ Demo Genes (Inflammatory Response) ═══════════════════ */
+const DEMO_GENES = [
+  'TNF','IL6','IL1B','CXCL8','CCL2','PTGS2','ICAM1','VCAM1','SELE','NFKBIA',
+  'NFKB1','RELA','TRAF2','MYD88','TLR4','IRAK1','MAPK14','MAPK1','JUN','FOS',
+  'STAT3','JAK2','SOCS3','IRF1','CXCL10','CCL5','IL10','TGFB1','MMP9','MMP2',
+  'VEGFA','HIF1A','HMOX1','NOS2','SOD2','CASP1','NLRP3','PYCARD','IL18','CXCL1',
+  'CSF2','CSF3','LIF','OSM','CCL3','CCL4','CXCL2','CXCL3','IL1A','IL1RN'
+];
+
+/* ═══════════════════ DOM ═══════════════════ */
+const $ = (sel) => document.querySelector(sel);
+const dropZone = $('#dropZone');
+const fileInput = $('#fileInput');
+const geneTextarea = $('#geneTextarea');
+const runBtn = $('#runBtn');
+const runBtnText = $('#runBtnText');
+const demoBtn = $('#demoBtn');
+const clearBtn = $('#clearBtn');
+const fileInfo = $('#fileInfo');
+const fileName = $('#fileName');
+const geneCount = $('#geneCount');
+const statusBar = $('#statusBar');
+const statusText = $('#statusText');
+const resultsSection = $('#results');
+const resultsMeta = $('#resultsMeta');
+const barLibBadge = $('#barLibBadge');
+const tableCountBadge = $('#tableCountBadge');
+const resultsBody = $('#resultsBody');
+const themeToggle = $('#themeToggle');
+const openSettings = $('#openSettings');
+const closeSettings = $('#closeSettings');
+const settingsOverlay = $('#settingsOverlay');
+const settingsPanel = $('#settingsPanel');
+
+/* ═══════════════════ Theme ═══════════════════ */
+themeToggle.addEventListener('click', () => {
+  const html = document.documentElement;
+  const next = html.dataset.theme === 'dark' ? 'light' : 'dark';
+  html.dataset.theme = next;
+  localStorage.setItem('pl-theme', next);
+  updateChartsTheme();
+});
+
+(function initTheme() {
+  const saved = localStorage.getItem('pl-theme');
+  if (saved) document.documentElement.dataset.theme = saved;
+})();
+
+/* ═══════════════════ Settings Panel ═══════════════════ */
+function toggleSettings(open) {
+  settingsOverlay.classList.toggle('open', open);
+  settingsPanel.classList.toggle('open', open);
+}
+
+openSettings.addEventListener('click', () => toggleSettings(true));
+closeSettings.addEventListener('click', () => toggleSettings(false));
+settingsOverlay.addEventListener('click', () => toggleSettings(false));
+
+/* ═══════════════════ File Handling ═══════════════════ */
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', (e) => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+function handleFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const delimiter = ext === 'tsv' ? '\t' : ',';
+
+  Papa.parse(file, {
+    delimiter: delimiter === '\t' ? '\t' : undefined,
+    header: true,
+    skipEmptyLines: true,
+    complete(res) {
+      const cols = res.meta.fields || [];
+      const userCol = $('#geneColName').value.trim();
+      let geneCol = null;
+
+      if (userCol && cols.includes(userCol)) {
+        geneCol = userCol;
+      } else {
+        const patterns = [/^gene$/i, /gene.?symbol/i, /gene.?name/i, /symbol/i, /gene_id/i, /geneid/i, /hgnc/i];
+        for (const p of patterns) {
+          const found = cols.find(c => p.test(c));
+          if (found) { geneCol = found; break; }
+        }
+        if (!geneCol) geneCol = cols[0];
+      }
+
+      const genes = [...new Set(
+        res.data
+          .map(r => (r[geneCol] || '').trim().toUpperCase())
+          .filter(g => g && g.length > 0 && !/^\d+$/.test(g))
+      )];
+
+      setGenes(genes, file.name);
+    }
+  });
+}
+
+function setGenes(genes, source = 'manual') {
+  state.genes = genes;
+  geneTextarea.value = genes.join('\n');
+  runBtn.disabled = genes.length === 0;
+
+  if (source !== 'manual') {
+    fileInfo.classList.add('visible');
+    fileName.textContent = source;
+    geneCount.textContent = `${genes.length} genes`;
+  }
+
+  clearBtn.style.display = genes.length > 0 ? '' : 'none';
+}
+
+/* Textarea input */
+geneTextarea.addEventListener('input', () => {
+  const genes = [...new Set(
+    geneTextarea.value.split(/[\n,;\t]+/).map(g => g.trim().toUpperCase()).filter(Boolean)
+  )];
+  state.genes = genes;
+  runBtn.disabled = genes.length === 0;
+  clearBtn.style.display = genes.length > 0 ? '' : 'none';
+  fileInfo.classList.remove('visible');
+});
+
+/* Demo */
+demoBtn.addEventListener('click', () => {
+  setGenes([...DEMO_GENES], 'demo (Inflammatory Response)');
+});
+
+/* Clear */
+clearBtn.addEventListener('click', () => {
+  state.genes = [];
+  geneTextarea.value = '';
+  fileInfo.classList.remove('visible');
+  runBtn.disabled = true;
+  clearBtn.style.display = 'none';
+  resultsSection.classList.remove('visible');
+  statusBar.classList.remove('visible');
+});
+
+/* ═══════════════════ Run Enrichment ═══════════════════ */
+runBtn.addEventListener('click', runEnrichment);
+
+async function runEnrichment() {
+  if (state.genes.length === 0) return;
+
+  runBtn.disabled = true;
+  runBtnText.textContent = 'Running...';
+  resultsSection.classList.remove('visible');
+  showStatus('Submitting gene list to Enrichr...');
+
+  try {
+    const listStr = state.genes.join('\n');
+    const formData = new FormData();
+    formData.append('list', listStr);
+    formData.append('description', 'PathwayLens analysis');
+
+    const addRes = await fetch('https://maayanlab.cloud/Enrichr/addList', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!addRes.ok) throw new Error(`Enrichr addList failed: ${addRes.status}`);
+    const addData = await addRes.json();
+    state.enrichrId = addData.userListId;
+
+    const library = $('#librarySelect').value;
+    showStatus(`Fetching results from <strong>${library.replace(/_/g,' ')}</strong>...`);
+
+    const enrichRes = await fetch(
+      `https://maayanlab.cloud/Enrichr/enrich?userListId=${state.enrichrId}&backgroundType=${library}`
+    );
+
+    if (!enrichRes.ok) throw new Error(`Enrichr enrich failed: ${enrichRes.status}`);
+    const enrichData = await enrichRes.json();
+
+    const raw = enrichData[library] || [];
+    const pCutoff = parseFloat($('#pvalCutoff').value) || 0.05;
+
+    /* Enrichr columns:
+       0: Rank, 1: Term, 2: P-value, 3: Z-score, 4: Combined score,
+       5: Overlapping genes, 6: Adjusted p-value, 7: Old p-val, 8: Old adj p-val */
+    const parsed = raw.map(r => ({
+      rank: r[0],
+      term: r[1],
+      pval: r[2],
+      zscore: r[3],
+      combinedScore: r[4],
+      genes: r[5],
+      adjPval: r[6],
+      geneCount: r[5].length,
+    })).filter(r => r.adjPval <= pCutoff)
+      .sort((a, b) => b.combinedScore - a.combinedScore);
+
+    state.results = parsed;
+
+    showStatus('Rendering charts...');
+    setTimeout(() => {
+      renderResults(parsed, library);
+      hideStatus();
+      runBtn.disabled = false;
+      runBtnText.textContent = 'Run Enrichment';
+    }, 120);
+
+  } catch (err) {
+    console.error(err);
+    showStatus(`<span style="color:var(--accent-rose)">Error: ${err.message}</span>`);
+    runBtn.disabled = false;
+    runBtnText.textContent = 'Run Enrichment';
+  }
+}
+
+/* ═══════════════════ Status Helpers ═══════════════════ */
+function showStatus(html) { statusBar.classList.add('visible'); statusText.innerHTML = html; }
+function hideStatus() { statusBar.classList.remove('visible'); }
+
+/* ═══════════════════ Render Results ═══════════════════ */
+function renderResults(data, library) {
+  if (data.length === 0) {
+    showStatus('No significant terms found at current p-value cutoff.');
+    return;
+  }
+
+  const maxTerms = parseInt($('#maxTerms').value) || 20;
+  const topN = data.slice(0, maxTerms);
+
+  resultsSection.classList.add('visible');
+  resultsMeta.textContent = `${data.length} terms · ${state.genes.length} input genes`;
+  barLibBadge.textContent = library.replace(/_/g, ' ');
+  tableCountBadge.textContent = `${data.length} terms`;
+
+  renderBarChart(topN);
+  renderBubbleChart(topN);
+  renderTable(data);
+
+  resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ═══════════════════ Chart Theme Helper ═══════════════════ */
+function getChartColors() {
+  const cs = getComputedStyle(document.documentElement);
+  return {
+    palette: cs.getPropertyValue('--chart-palette').split(',').map(c => c.trim()),
+    text: cs.getPropertyValue('--text-primary').trim(),
+    textSec: cs.getPropertyValue('--text-secondary').trim(),
+    textDim: cs.getPropertyValue('--text-tertiary').trim(),
+    border: cs.getPropertyValue('--border-subtle').trim(),
+    bg: cs.getPropertyValue('--bg-elevated').trim(),
+    accent: cs.getPropertyValue('--accent-primary').trim(),
+  };
+}
+
+/* ═══════════════════ Bar Chart ═══════════════════ */
+function renderBarChart(data) {
+  const c = getChartColors();
+  const container = document.getElementById('barChart');
+
+  if (state.barInstance) state.barInstance.dispose();
+  state.barInstance = echarts.init(container);
+
+  const terms = data.map(d => {
+    const t = d.term;
+    return t.length > 52 ? t.slice(0, 50) + '…' : t;
+  }).reverse();
+
+  const scores = data.map(d => Math.round(d.combinedScore * 100) / 100).reverse();
+  const pvals = data.map(d => d.adjPval).reverse();
+
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      backgroundColor: c.bg,
+      borderColor: c.border,
+      textStyle: { color: c.text, fontFamily: 'DM Sans', fontSize: 12 },
+      formatter(params) {
+        const idx = params[0].dataIndex;
+        return `<strong>${terms[idx]}</strong><br/>Combined Score: ${scores[idx]}<br/>Adj. P-value: ${pvals[idx].toExponential(2)}`;
+      }
+    },
+    grid: { left: 220, right: 40, top: 16, bottom: 36 },
+    xAxis: {
+      type: 'value',
+      name: 'Combined Score',
+      nameTextStyle: { color: c.textDim, fontSize: 11, fontFamily: 'DM Sans' },
+      axisLabel: { color: c.textDim, fontSize: 10, fontFamily: 'JetBrains Mono' },
+      splitLine: { lineStyle: { color: c.border } },
+      axisLine: { show: false },
+    },
+    yAxis: {
+      type: 'category',
+      data: terms,
+      axisLabel: { color: c.textSec, fontSize: 11, fontFamily: 'DM Sans', width: 200, overflow: 'truncate' },
+      axisLine: { show: false },
+      axisTick: { show: false },
+    },
+    series: [{
+      type: 'bar',
+      data: scores,
+      barMaxWidth: 18,
+      itemStyle: {
+        borderRadius: [0, 4, 4, 0],
+        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+          { offset: 0, color: c.palette[0] },
+          { offset: 1, color: c.palette[1] || c.palette[0] }
+        ])
+      },
+      emphasis: { itemStyle: { shadowBlur: 12, shadowColor: c.palette[0] + '44' } }
+    }],
+    animationDuration: 800,
+    animationEasing: 'cubicOut',
+  };
+
+  state.barInstance.setOption(option);
+  window.addEventListener('resize', () => state.barInstance?.resize());
+}
+
+/* ═══════════════════ Bubble Chart ═══════════════════ */
+function renderBubbleChart(data) {
+  const c = getChartColors();
+  const container = document.getElementById('bubbleChart');
+
+  if (state.bubbleInstance) state.bubbleInstance.dispose();
+  state.bubbleInstance = echarts.init(container);
+
+  const maxGenes = Math.max(...data.map(d => d.geneCount), 1);
+
+  const scatterData = data.map((d, i) => {
+    const overlap = d.geneCount;
+    /* Fold enrichment estimate: (overlap / inputSize) / (termSize / genomeSize) — simplified as combinedScore proxy */
+    const foldEnrichment = d.combinedScore / Math.max(Math.abs(d.zscore), 1);
+    const negLogP = -Math.log10(Math.max(d.pval, 1e-300));
+    return {
+      value: [Math.round(foldEnrichment * 100) / 100, Math.round(negLogP * 100) / 100, overlap],
+      term: d.term,
+      adjPval: d.adjPval,
+      symbolSize: 8 + (overlap / maxGenes) * 36,
+      itemStyle: { color: c.palette[i % c.palette.length], opacity: 0.78 }
+    };
+  });
+
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      backgroundColor: c.bg,
+      borderColor: c.border,
+      textStyle: { color: c.text, fontFamily: 'DM Sans', fontSize: 12 },
+      formatter(p) {
+        const d = p.data;
+        return `<strong>${d.term}</strong><br/>Fold Enrich.: ${d.value[0]}<br/>−log₁₀(P): ${d.value[1]}<br/>Genes: ${d.value[2]}<br/>Adj. P: ${d.adjPval.toExponential(2)}`;
+      }
+    },
+    grid: { left: 56, right: 24, top: 24, bottom: 48 },
+    xAxis: {
+      type: 'value',
+      name: 'Fold Enrichment',
+      nameLocation: 'center',
+      nameGap: 30,
+      nameTextStyle: { color: c.textDim, fontSize: 11, fontFamily: 'DM Sans' },
+      axisLabel: { color: c.textDim, fontSize: 10, fontFamily: 'JetBrains Mono' },
+      splitLine: { lineStyle: { color: c.border } },
+      axisLine: { lineStyle: { color: c.border } },
+    },
+    yAxis: {
+      type: 'value',
+      name: '−log₁₀(P-value)',
+      nameLocation: 'center',
+      nameGap: 38,
+      nameTextStyle: { color: c.textDim, fontSize: 11, fontFamily: 'DM Sans' },
+      axisLabel: { color: c.textDim, fontSize: 10, fontFamily: 'JetBrains Mono' },
+      splitLine: { lineStyle: { color: c.border } },
+      axisLine: { lineStyle: { color: c.border } },
+    },
+    series: [{
+      type: 'scatter',
+      data: scatterData,
+    }],
+    animationDuration: 600,
+  };
+
+  state.bubbleInstance.setOption(option);
+  window.addEventListener('resize', () => state.bubbleInstance?.resize());
+}
+
+/* ═══════════════════ Table ═══════════════════ */
+function renderTable(data) {
+  resultsBody.innerHTML = '';
+  data.forEach((d, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td class="td-term" title="${d.term}">${d.term}</td>
+      <td class="td-pval">${d.pval.toExponential(2)}</td>
+      <td class="td-pval">${d.adjPval.toExponential(2)}</td>
+      <td class="td-pval">${Math.round(d.combinedScore * 100) / 100}</td>
+      <td class="td-genes" title="${d.genes.join(', ')}">${d.genes.join(', ')}</td>
+    `;
+    resultsBody.appendChild(tr);
+  });
+}
+
+/* ═══════════════════ Update Charts on Theme Change ═══════════════════ */
+function updateChartsTheme() {
+  if (state.results.length > 0) {
+    const maxTerms = parseInt($('#maxTerms').value) || 20;
+    const topN = state.results.slice(0, maxTerms);
+    renderBarChart(topN);
+    renderBubbleChart(topN);
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TableWeaver</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+  :root {
+    --bg: #f6f5f1;
+    --surface: #ffffff;
+    --border: #d4d0c8;
+    --border-strong: #a8a299;
+    --text: #1a1815;
+    --text-muted: #6b655a;
+    --accent: #2d5a27;
+    --accent-light: #e8f0e6;
+    --accent-hover: #3d7a35;
+    --danger: #8b3a3a;
+    --danger-light: #f5eaea;
+    --mono: 'DM Mono', monospace;
+    --serif: 'Instrument Serif', Georgia, serif;
+    --radius: 4px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  }
+
+  html { font-size: 15px; }
+
+  body {
+    font-family: var(--mono);
+    font-weight: 400;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 6rem;
+  }
+
+  /* ─── Header ─── */
+  .header {
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 2.8rem;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 0.3rem;
+  }
+
+  .header h1 span {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .header .tagline {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 1.5rem;
+  }
+
+  .about {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.75;
+    max-width: 640px;
+  }
+
+  .about strong { color: var(--text); font-weight: 500; }
+
+  .limits {
+    margin-top: 1rem;
+    font-size: 0.75rem;
+    color: var(--border-strong);
+    letter-spacing: 0.03em;
+  }
+
+  /* ─── Sections ─── */
+  .section-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ─── File Slots ─── */
+  .file-slots {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+
+  .file-slot {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    box-shadow: var(--shadow);
+    transition: border-color 0.2s;
+    animation: slotIn 0.25s ease-out;
+  }
+
+  @keyframes slotIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .file-slot.loaded { border-left: 3px solid var(--accent); }
+
+  .slot-top {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .slot-number {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    min-width: 50px;
+  }
+
+  .file-slot input[type="file"] { display: none; }
+
+  .choose-btn {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    padding: 0.4rem 0.85rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    color: var(--text);
+    transition: all 0.15s;
+  }
+
+  .choose-btn:hover {
+    border-color: var(--border-strong);
+    background: #eeedea;
+  }
+
+  .file-name {
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 220px;
+  }
+
+  .file-meta {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  .remove-btn {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    background: none;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    padding: 0.2rem 0.4rem;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+  }
+
+  .remove-btn:hover { opacity: 1; }
+
+  .slot-config {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .slot-config label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .slot-config select {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+    max-width: 240px;
+  }
+
+  .slot-config select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .dedup-notice {
+    font-size: 0.7rem;
+    color: var(--danger);
+    margin-top: 0.5rem;
+  }
+
+  .add-slot-btn {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    padding: 0.6rem 1rem;
+    background: none;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius);
+    cursor: pointer;
+    color: var(--text-muted);
+    width: 100%;
+    transition: all 0.15s;
+  }
+
+  .add-slot-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-light);
+  }
+
+  /* ─── Controls ─── */
+  .controls {
+    margin-bottom: 2rem;
+  }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .mode-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .mode-toggle span {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    padding: 0.3rem 0.5rem;
+    border-radius: var(--radius);
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .mode-toggle span.active {
+    background: var(--text);
+    color: var(--bg);
+  }
+
+  .merge-btn {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 0.6rem 1.8rem;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-left: auto;
+  }
+
+  .merge-btn:hover { background: var(--accent-hover); }
+  .merge-btn:disabled {
+    background: var(--border);
+    color: var(--text-muted);
+    cursor: not-allowed;
+  }
+
+  /* ─── Output ─── */
+  .output {
+    display: none;
+    animation: slotIn 0.3s ease-out;
+  }
+
+  .output.visible { display: block; }
+
+  .output-stats {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    line-height: 1.8;
+  }
+
+  .output-stats strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .export-btns {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+
+  .export-btn {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    padding: 0.55rem 1.2rem;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+
+  .export-btn.primary {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .export-btn.primary:hover { background: var(--accent-hover); }
+
+  .export-btn.secondary {
+    background: var(--surface);
+    color: var(--accent);
+  }
+
+  .export-btn.secondary:hover { background: var(--accent-light); }
+
+  .preview-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  .preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  .preview-table th {
+    background: var(--bg);
+    font-weight: 500;
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 2px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  .preview-table td {
+    padding: 0.4rem 0.75rem;
+    border-bottom: 1px solid #f0efec;
+    color: var(--text);
+  }
+
+  .preview-table tr:hover td { background: #fafaf8; }
+
+  .preview-table td.na { color: var(--border-strong); font-style: italic; }
+
+  .preview-note {
+    font-size: 0.7rem;
+    color: var(--border-strong);
+    margin-top: 0.5rem;
+    text-align: right;
+  }
+
+  /* ─── Status ─── */
+  .status-bar {
+    font-size: 0.75rem;
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius);
+    margin-bottom: 1.5rem;
+    display: none;
+  }
+
+  .status-bar.error {
+    display: block;
+    background: var(--danger-light);
+    color: var(--danger);
+    border: 1px solid #d4b0b0;
+  }
+
+  .status-bar.info {
+    display: block;
+    background: var(--accent-light);
+    color: var(--accent);
+    border: 1px solid #b8d4b4;
+  }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 600px) {
+    .app { padding: 2rem 1rem 4rem; }
+    .header h1 { font-size: 2rem; }
+    .controls-row { flex-direction: column; align-items: flex-start; }
+    .merge-btn { margin-left: 0; width: 100%; }
+    .export-btns { flex-direction: column; }
+    .export-btn { text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Header -->
+  <header class="header">
+    <h1>Table<span>Weaver</span></h1>
+    <p class="tagline">Client-side dataset merge tool</p>
+    <div class="about">
+      Upload two or more <strong>CSV</strong> or <strong>TSV</strong> files, select a primary key column in each, and merge them into a single unified matrix. All processing happens locally in your browser — no data leaves your machine. Choose <strong>Union</strong> to consolidate all unique IDs, or <strong>Intersection</strong> to keep only IDs present in every file. Columns are namespaced as <strong>FileName|Column</strong> to prevent collisions. Missing values are filled with <strong>NA</strong>.
+    </div>
+    <p class="limits">Optimized for files up to ~30,000 rows × 10 columns each.</p>
+  </header>
+
+  <!-- File Upload Section -->
+  <div class="section-label">Input Files</div>
+  <div class="file-slots" id="fileSlots"></div>
+  <button class="add-slot-btn" id="addSlotBtn" type="button">+ Add another file</button>
+
+  <!-- Controls -->
+  <div style="margin-top: 2rem;">
+    <div class="section-label">Configuration</div>
+    <div class="controls">
+      <div class="controls-row">
+        <div class="mode-toggle" id="modeToggle">
+          <span class="active" data-mode="union">Union</span>
+          <span data-mode="intersection">Intersection</span>
+        </div>
+        <button class="merge-btn" id="mergeBtn" disabled type="button">Merge Tables</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-bar" id="statusBar"></div>
+
+  <!-- Output -->
+  <div class="output" id="output">
+    <div class="section-label">Result</div>
+    <div class="output-stats" id="outputStats"></div>
+    <div class="export-btns">
+      <button class="export-btn primary" id="exportXlsx" type="button">Download .xlsx</button>
+      <button class="export-btn secondary" id="exportTsv" type="button">Download .tsv</button>
+    </div>
+    <div class="preview-table-wrap">
+      <table class="preview-table" id="previewTable"></table>
+    </div>
+    <p class="preview-note" id="previewNote"></p>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ─── State ───
+  const state = {
+    slots: [],        // { id, file, fileName, headers, rows, selectedKey, dedupCount }
+    mode: 'union',    // 'union' | 'intersection'
+    mergedHeaders: [],
+    mergedRows: [],
+    nextId: 0
+  };
+
+  const $ = (sel) => document.querySelector(sel);
+  const slotsContainer = $('#fileSlots');
+  const addSlotBtn = $('#addSlotBtn');
+  const mergeBtn = $('#mergeBtn');
+  const modeToggle = $('#modeToggle');
+  const statusBar = $('#statusBar');
+  const output = $('#output');
+  const outputStats = $('#outputStats');
+  const previewTable = $('#previewTable');
+  const previewNote = $('#previewNote');
+
+  // ─── Initialize with 2 slots ───
+  function init() {
+    addSlot();
+    addSlot();
+  }
+
+  // ─── Slot Management ───
+  function addSlot() {
+    const id = state.nextId++;
+    const slot = { id, file: null, fileName: '', headers: [], rows: [], selectedKey: null, dedupCount: 0 };
+    state.slots.push(slot);
+    renderSlot(slot);
+    updateMergeBtn();
+  }
+
+  function removeSlot(id) {
+    state.slots = state.slots.filter(s => s.id !== id);
+    const el = document.getElementById('slot-' + id);
+    if (el) el.remove();
+    renumberSlots();
+    updateMergeBtn();
+  }
+
+  function renumberSlots() {
+    const els = slotsContainer.querySelectorAll('.file-slot');
+    els.forEach((el, i) => {
+      el.querySelector('.slot-number').textContent = 'File ' + (i + 1);
+    });
+  }
+
+  function renderSlot(slot) {
+    const div = document.createElement('div');
+    div.className = 'file-slot';
+    div.id = 'slot-' + slot.id;
+
+    div.innerHTML = `
+      <div class="slot-top">
+        <span class="slot-number">File ${state.slots.length}</span>
+        <input type="file" accept=".csv,.tsv,.txt" id="input-${slot.id}">
+        <button class="choose-btn" type="button" onclick="document.getElementById('input-${slot.id}').click()">Choose file…</button>
+        <span class="file-name" id="fname-${slot.id}"></span>
+        <span class="file-meta" id="fmeta-${slot.id}"></span>
+        <button class="remove-btn" type="button" id="remove-${slot.id}" title="Remove this file">✕</button>
+      </div>
+      <div class="slot-config" id="config-${slot.id}" style="display:none;">
+        <label for="key-${slot.id}">ID Column:</label>
+        <select id="key-${slot.id}"></select>
+      </div>
+      <div class="dedup-notice" id="dedup-${slot.id}"></div>
+    `;
+
+    slotsContainer.appendChild(div);
+
+    // File input handler
+    document.getElementById('input-' + slot.id).addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      loadFile(slot.id, file);
+    });
+
+    // Remove handler
+    document.getElementById('remove-' + slot.id).addEventListener('click', function () {
+      if (state.slots.length <= 2) {
+        // Reset the slot instead
+        resetSlot(slot.id);
+      } else {
+        removeSlot(slot.id);
+      }
+    });
+
+    // Key select handler
+    document.getElementById('key-' + slot.id).addEventListener('change', function () {
+      const s = state.slots.find(s => s.id === slot.id);
+      if (s) {
+        s.selectedKey = this.value;
+        applyDedup(s);
+        updateMergeBtn();
+      }
+    });
+  }
+
+  function resetSlot(id) {
+    const s = state.slots.find(s => s.id === id);
+    if (!s) return;
+    s.file = null;
+    s.fileName = '';
+    s.headers = [];
+    s.rows = [];
+    s.selectedKey = null;
+    s.dedupCount = 0;
+
+    const el = document.getElementById('slot-' + id);
+    el.classList.remove('loaded');
+    document.getElementById('fname-' + id).textContent = '';
+    document.getElementById('fmeta-' + id).textContent = '';
+    document.getElementById('config-' + id).style.display = 'none';
+    document.getElementById('dedup-' + id).textContent = '';
+    document.getElementById('input-' + id).value = '';
+    updateMergeBtn();
+  }
+
+  // ─── File Loading ───
+  function loadFile(slotId, file) {
+    const s = state.slots.find(s => s.id === slotId);
+    if (!s) return;
+
+    const fileName = file.name.replace(/\.(csv|tsv|txt)$/i, '');
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: function (results) {
+        if (!results.meta.fields || results.meta.fields.length === 0) {
+          showStatus('error', `Could not parse headers from "${file.name}". Check the file format.`);
+          return;
+        }
+
+        s.file = file;
+        s.fileName = fileName;
+        s.headers = results.meta.fields;
+        s.rows = results.data;
+        s.selectedKey = results.meta.fields[0];
+        s.dedupCount = 0;
+
+        // Update UI
+        const el = document.getElementById('slot-' + slotId);
+        el.classList.add('loaded');
+        document.getElementById('fname-' + slotId).textContent = file.name;
+        document.getElementById('fmeta-' + slotId).textContent = `${s.rows.length} rows · ${s.headers.length} cols`;
+
+        // Populate key dropdown
+        const select = document.getElementById('key-' + slotId);
+        select.innerHTML = s.headers.map(h => `<option value="${h}">${h}</option>`).join('');
+        select.value = s.selectedKey;
+        document.getElementById('config-' + slotId).style.display = 'flex';
+
+        applyDedup(s);
+        updateMergeBtn();
+        clearStatus();
+      },
+      error: function () {
+        showStatus('error', `Failed to read "${file.name}".`);
+      }
+    });
+  }
+
+  // ─── Deduplication ───
+  function applyDedup(slot) {
+    if (!slot.selectedKey || slot.rows.length === 0) return;
+
+    const seen = new Set();
+    const deduped = [];
+    let dupes = 0;
+
+    for (const row of slot.rows) {
+      const key = row[slot.selectedKey];
+      if (seen.has(key)) {
+        dupes++;
+      } else {
+        seen.add(key);
+        deduped.push(row);
+      }
+    }
+
+    slot.rows = deduped;
+    slot.dedupCount = dupes;
+
+    const notice = document.getElementById('dedup-' + slot.id);
+    if (dupes > 0) {
+      notice.textContent = `${dupes} duplicate row${dupes > 1 ? 's' : ''} removed (by "${slot.selectedKey}").`;
+      document.getElementById('fmeta-' + slot.id).textContent = `${slot.rows.length} rows · ${slot.headers.length} cols`;
+    } else {
+      notice.textContent = '';
+    }
+  }
+
+  // ─── Mode Toggle ───
+  modeToggle.addEventListener('click', function (e) {
+    const span = e.target.closest('span[data-mode]');
+    if (!span) return;
+    state.mode = span.dataset.mode;
+    modeToggle.querySelectorAll('span').forEach(s => s.classList.remove('active'));
+    span.classList.add('active');
+  });
+
+  // ─── Merge Button State ───
+  function updateMergeBtn() {
+    const ready = state.slots.filter(s => s.file && s.selectedKey);
+    mergeBtn.disabled = ready.length < 2;
+  }
+
+  // ─── Merge Engine ───
+  mergeBtn.addEventListener('click', function () {
+    const loaded = state.slots.filter(s => s.file && s.selectedKey);
+    if (loaded.length < 2) return;
+
+    clearStatus();
+    output.classList.remove('visible');
+
+    try {
+      // Build per-file lookup: Map<id, row>
+      const fileMaps = loaded.map(slot => {
+        const map = new Map();
+        for (const row of slot.rows) {
+          const id = row[slot.selectedKey];
+          if (!map.has(id)) map.set(id, row);
+        }
+        return { slot, map };
+      });
+
+      // Compute ID set
+      let idSet;
+      if (state.mode === 'union') {
+        idSet = new Set();
+        for (const { map } of fileMaps) {
+          for (const key of map.keys()) idSet.add(key);
+        }
+      } else {
+        // Intersection
+        idSet = new Set(fileMaps[0].map.keys());
+        for (let i = 1; i < fileMaps.length; i++) {
+          const current = fileMaps[i].map;
+          for (const key of idSet) {
+            if (!current.has(key)) idSet.delete(key);
+          }
+        }
+      }
+
+      if (idSet.size === 0) {
+        showStatus('error', 'No matching IDs found across the selected files.');
+        return;
+      }
+
+      // Build merged headers
+      const idColName = 'ID';
+      const mergedHeaders = [idColName];
+      const colSources = []; // { slot, originalCol }
+
+      for (const { slot } of fileMaps) {
+        for (const col of slot.headers) {
+          if (col === slot.selectedKey) continue;
+          const merged = slot.fileName + '|' + col;
+          mergedHeaders.push(merged);
+          colSources.push({ slot, originalCol: col });
+        }
+      }
+
+      // Build merged rows
+      const ids = Array.from(idSet).sort();
+      const mergedRows = [];
+
+      for (const id of ids) {
+        const row = [id];
+        for (const { slot, originalCol } of colSources) {
+          const fm = fileMaps.find(f => f.slot.id === slot.id);
+          const sourceRow = fm.map.get(id);
+          const val = sourceRow ? (sourceRow[originalCol] ?? 'NA') : 'NA';
+          row.push(val === '' ? 'NA' : val);
+        }
+        mergedRows.push(row);
+      }
+
+      state.mergedHeaders = mergedHeaders;
+      state.mergedRows = mergedRows;
+
+      // Show output
+      outputStats.innerHTML =
+        `<strong>${mergedRows.length}</strong> rows × <strong>${mergedHeaders.length}</strong> columns ` +
+        `&nbsp;·&nbsp; Mode: <strong>${state.mode}</strong> ` +
+        `&nbsp;·&nbsp; Sources: <strong>${loaded.length}</strong> files`;
+
+      renderPreview(mergedHeaders, mergedRows);
+      output.classList.add('visible');
+      output.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (e) {
+      showStatus('error', 'Merge failed: ' + e.message);
+    }
+  });
+
+  // ─── Preview Table ───
+  function renderPreview(headers, rows) {
+    const maxRows = 50;
+    const maxCols = 15;
+    const showH = headers.slice(0, maxCols);
+    const truncCols = headers.length > maxCols;
+    const truncRows = rows.length > maxRows;
+
+    let html = '<thead><tr>';
+    for (const h of showH) html += `<th>${esc(h)}</th>`;
+    if (truncCols) html += '<th>…</th>';
+    html += '</tr></thead><tbody>';
+
+    const displayRows = rows.slice(0, maxRows);
+    for (const row of displayRows) {
+      html += '<tr>';
+      for (let i = 0; i < showH.length; i++) {
+        const val = row[i];
+        const cls = val === 'NA' ? ' class="na"' : '';
+        html += `<td${cls}>${esc(val)}</td>`;
+      }
+      if (truncCols) html += '<td>…</td>';
+      html += '</tr>';
+    }
+
+    html += '</tbody>';
+    previewTable.innerHTML = html;
+
+    const notes = [];
+    if (truncRows) notes.push(`Showing ${maxRows} of ${rows.length} rows`);
+    if (truncCols) notes.push(`Showing ${showH.length} of ${headers.length} columns`);
+    previewNote.textContent = notes.length ? notes.join(' · ') : '';
+  }
+
+  // ─── Export ───
+  $('#exportTsv').addEventListener('click', function () {
+    if (!state.mergedRows.length) return;
+    const lines = [state.mergedHeaders.join('\t')];
+    for (const row of state.mergedRows) lines.push(row.join('\t'));
+    const blob = new Blob([lines.join('\n')], { type: 'text/tab-separated-values;charset=utf-8' });
+    download(blob, 'tableweaver_merged.tsv');
+  });
+
+  $('#exportXlsx').addEventListener('click', function () {
+    if (!state.mergedRows.length) return;
+    const ws_data = [state.mergedHeaders, ...state.mergedRows];
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Merged');
+    XLSX.writeFile(wb, 'tableweaver_merged.xlsx');
+  });
+
+  function download(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+  }
+
+  // ─── Helpers ───
+  function esc(str) {
+    if (str == null) return '';
+    const d = document.createElement('div');
+    d.textContent = String(str);
+    return d.innerHTML;
+  }
+
+  function showStatus(type, msg) {
+    statusBar.className = 'status-bar ' + type;
+    statusBar.textContent = msg;
+    statusBar.style.display = 'block';
+  }
+
+  function clearStatus() {
+    statusBar.style.display = 'none';
+    statusBar.textContent = '';
+  }
+
+  // ─── Events ───
+  addSlotBtn.addEventListener('click', addSlot);
+
+  // ─── Boot ───
+  init();
+
+})();
+</script>
+
+</body>
+</html>

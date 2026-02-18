@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RankEnrich — Browser-Native GSEA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════
+   CSS VARIABLES & THEME SYSTEM
+   ═══════════════════════════════════════════════ */
+:root {
+  --transition-speed: 0.4s;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #0a0b0f;
+  --bg-secondary: #12131a;
+  --bg-tertiary: #1a1b25;
+  --bg-card: #14151f;
+  --bg-card-hover: #1a1b28;
+  --bg-input: #1a1b25;
+  --border-color: #2a2b3a;
+  --border-subtle: #1e1f2e;
+  --text-primary: #e8e9f0;
+  --text-secondary: #9496a8;
+  --text-muted: #5c5e72;
+  --accent: #4ade80;
+  --accent-dim: rgba(74, 222, 128, 0.12);
+  --accent-glow: rgba(74, 222, 128, 0.25);
+  --accent-secondary: #22d3ee;
+  --danger: #f87171;
+  --warning: #fbbf24;
+  --overlay: rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+  --shadow-glow: 0 0 30px rgba(74, 222, 128, 0.08);
+  --es-line: #4ade80;
+  --barcode-hit: #e8e9f0;
+  --metric-fill: #2a2b3a;
+  --axis-color: #5c5e72;
+  --grid-color: #1e1f2e;
+  --zero-line: #3a3b4a;
+}
+
+[data-theme="light"] {
+  --bg-primary: #f8f8fb;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f0f0f5;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f5f5fa;
+  --bg-input: #f0f0f5;
+  --border-color: #dddde5;
+  --border-subtle: #e8e8f0;
+  --text-primary: #1a1a2e;
+  --text-secondary: #5c5e72;
+  --text-muted: #9496a8;
+  --accent: #16a34a;
+  --accent-dim: rgba(22, 163, 74, 0.08);
+  --accent-glow: rgba(22, 163, 74, 0.15);
+  --accent-secondary: #0891b2;
+  --danger: #dc2626;
+  --warning: #d97706;
+  --overlay: rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.1);
+  --shadow-glow: 0 0 30px rgba(22, 163, 74, 0.06);
+  --es-line: #16a34a;
+  --barcode-hit: #1a1a2e;
+  --metric-fill: #e8e8f0;
+  --axis-color: #5c5e72;
+  --grid-color: #e8e8f0;
+  --zero-line: #c8c8d5;
+}
+
+/* ═══════════════════════════════════════════════
+   RESET & BASE
+   ═══════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ═══════════════════════════════════════════════
+   SUBTLE BACKGROUND TEXTURE
+   ═══════════════════════════════════════════════ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════════════ */
+.app-container {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ═══════════════════════════════════════════════
+   TOP BAR
+   ═══════════════════════════════════════════════ */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 48px;
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.topbar-logo {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+}
+
+.topbar-tag {
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  padding: 2px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Theme Toggle */
+.theme-toggle {
+  position: relative;
+  width: 48px;
+  height: 26px;
+  border: none;
+  border-radius: 13px;
+  background: var(--bg-tertiary);
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  transition: all var(--transition-speed) ease;
+}
+
+.theme-toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  transition: transform var(--transition-speed) ease;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+[data-theme="light"] .theme-toggle::after {
+  transform: translateX(22px);
+}
+
+/* Settings Toggle */
+.settings-btn {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1.1rem;
+}
+
+.settings-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.settings-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+/* ═══════════════════════════════════════════════
+   HERO / LANDING
+   ═══════════════════════════════════════════════ */
+.hero {
+  text-align: center;
+  padding: 40px 0 56px;
+  max-width: 680px;
+  margin: 0 auto;
+  animation: fadeInUp 0.7s ease-out;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 5vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin-bottom: 16px;
+}
+
+.hero h1 .accent-word {
+  color: var(--accent);
+  font-style: italic;
+}
+
+.hero .subtitle {
+  font-size: 1.15rem;
+  color: var(--text-secondary);
+  font-weight: 300;
+  margin-bottom: 24px;
+  line-height: 1.7;
+}
+
+.hero .description {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.75;
+  max-width: 560px;
+  margin: 0 auto 36px;
+}
+
+/* ═══════════════════════════════════════════════
+   INPUT SECTION
+   ═══════════════════════════════════════════════ */
+.input-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+  animation: fadeInUp 0.7s ease-out 0.15s both;
+}
+
+@media (max-width: 700px) {
+  .input-section { grid-template-columns: 1fr; }
+}
+
+.upload-zone {
+  position: relative;
+  background: var(--bg-card);
+  border: 1.5px dashed var(--border-color);
+  border-radius: var(--radius);
+  padding: 32px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  box-shadow: var(--shadow-glow);
+}
+
+.upload-zone.loaded {
+  border-color: var(--accent);
+  border-style: solid;
+  background: var(--accent-dim);
+}
+
+.upload-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.upload-icon {
+  font-size: 1.6rem;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.upload-label {
+  font-weight: 500;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.upload-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.upload-filename {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--accent);
+  margin-top: 8px;
+  display: none;
+}
+
+.upload-zone.loaded .upload-filename {
+  display: block;
+}
+
+/* ═══════════════════════════════════════════════
+   ACTION BUTTONS
+   ═══════════════════════════════════════════════ */
+.actions-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 48px;
+  animation: fadeInUp 0.7s ease-out 0.3s both;
+  flex-wrap: wrap;
+}
+
+.btn {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 10px 24px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #0a0b0f;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.btn-primary:hover {
+  background: var(--accent);
+  color: #0a0b0f;
+  filter: brightness(1.1);
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+[data-theme="light"] .btn-primary {
+  color: #fff;
+}
+
+[data-theme="light"] .btn-primary:hover {
+  color: #fff;
+}
+
+/* ═══════════════════════════════════════════════
+   PROGRESS BAR
+   ═══════════════════════════════════════════════ */
+.progress-container {
+  display: none;
+  margin-bottom: 32px;
+  animation: fadeInUp 0.4s ease-out;
+}
+
+.progress-container.visible { display: block; }
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.progress-label {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.progress-value {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--accent);
+}
+
+.progress-track {
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.15s ease;
+}
+
+/* ═══════════════════════════════════════════════
+   RESULTS SECTION
+   ═══════════════════════════════════════════════ */
+.results-section {
+  display: none;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.results-section.visible { display: block; }
+
+/* Gene Set Selector */
+.geneset-selector {
+  margin-bottom: 24px;
+}
+
+.geneset-selector label {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.geneset-selector select {
+  width: 100%;
+  max-width: 500px;
+  padding: 10px 14px;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: border-color 0.2s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239496a8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+.geneset-selector select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Stats Cards */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.stat-card:hover { border-color: var(--accent); }
+
+.stat-card .stat-value {
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: var(--accent);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.stat-card .stat-value.positive { color: var(--accent); }
+.stat-card .stat-value.negative { color: var(--danger); }
+.stat-card .stat-value.neutral { color: var(--warning); }
+
+.stat-card .stat-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Enrichment Plot Container */
+.plot-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 28px;
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+}
+
+.plot-container svg text {
+  fill: var(--text-secondary);
+  font-family: var(--font-body);
+}
+
+.plot-container svg .axis-line,
+.plot-container svg .tick line {
+  stroke: var(--axis-color);
+}
+
+/* Leading Edge Table */
+.le-section {
+  margin-bottom: 48px;
+}
+
+.le-section h3 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.le-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.le-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.le-table th {
+  background: var(--bg-tertiary);
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+}
+
+.le-table td {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.le-table tbody tr:hover {
+  background: var(--accent-dim);
+}
+
+/* Export buttons */
+.export-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 48px;
+  flex-wrap: wrap;
+}
+
+/* ═══════════════════════════════════════════════
+   SETTINGS DRAWER
+   ═══════════════════════════════════════════════ */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.drawer-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: -380px;
+  width: 360px;
+  max-width: 90vw;
+  height: 100vh;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border-color);
+  z-index: 101;
+  transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+}
+
+.drawer.open { right: 0; }
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.drawer-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.drawer-close {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.drawer-close:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.drawer-body {
+  padding: 24px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.field-group {
+  margin-bottom: 24px;
+}
+
+.field-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.field-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.field-input {
+  width: 100%;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xs);
+  transition: border-color 0.2s;
+}
+
+.field-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ═══════════════════════════════════════════════
+   FOOTER
+   ═══════════════════════════════════════════════ */
+.app-footer {
+  text-align: center;
+  padding: 32px 0;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 40px;
+}
+
+.app-footer p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.app-footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* ═══════════════════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ═══════════════════════════════════════════════
+   ALL GENE SETS TABLE
+   ═══════════════════════════════════════════════ */
+.all-results-section {
+  display: none;
+  margin-bottom: 48px;
+  animation: fadeInUp 0.5s ease-out;
+}
+.all-results-section.visible { display: block; }
+
+.all-results-section h3 {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.all-table-wrap {
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.all-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.all-table th {
+  background: var(--bg-tertiary);
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.all-table th:hover { color: var(--accent); }
+.all-table th .sort-arrow { margin-left: 4px; font-size: 0.65rem; }
+
+.all-table td {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.all-table tbody tr {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.all-table tbody tr:hover { background: var(--accent-dim); }
+.all-table tbody tr.selected { background: var(--accent-dim); }
+
+.es-positive { color: var(--accent); }
+.es-negative { color: var(--danger); }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+
+  <!-- ════ TOP BAR ════ -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="topbar-logo">RankEnrich</span>
+      <span class="topbar-tag">GSEA</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="theme-toggle" id="themeToggle" title="Toggle theme" aria-label="Toggle dark/light theme"></button>
+      <button class="settings-btn" id="settingsBtn" title="Advanced settings" aria-label="Open settings">+</button>
+    </div>
+  </header>
+
+  <!-- ════ HERO ════ -->
+  <section class="hero" id="heroSection">
+    <h1>Browser-Native <span class="accent-word">GSEA.</span></h1>
+    <p class="subtitle">Perform robust Gene Set Enrichment Analysis without command-line tools or backend servers.</p>
+    <p class="description">RankEnrich brings the statistical power of GSEA to your browser. By utilizing Web Workers, it calculates running enrichment scores and permutation-based significance on your local machine, ensuring high performance and absolute data privacy.</p>
+  </section>
+
+  <!-- ════ FILE INPUTS ════ -->
+  <div class="input-section" id="inputSection">
+    <div class="upload-zone" id="rnkZone">
+      <span class="upload-icon">📊</span>
+      <span class="upload-label">Pre-Ranked Gene List</span>
+      <span class="upload-hint">CSV or TSV — Gene Symbol + Ranking Metric (Log2FC, t-stat, etc.)</span>
+      <span class="upload-filename" id="rnkFilename"></span>
+      <input type="file" id="rnkInput" accept=".csv,.tsv,.txt,.rnk">
+    </div>
+    <div class="upload-zone" id="gmtZone">
+      <span class="upload-icon">🧬</span>
+      <span class="upload-label">Gene Sets (GMT)</span>
+      <span class="upload-hint">GMT format — one gene set per line</span>
+      <span class="upload-filename" id="gmtFilename"></span>
+      <input type="file" id="gmtInput" accept=".gmt,.txt">
+    </div>
+  </div>
+
+  <!-- ════ ACTIONS ════ -->
+  <div class="actions-row">
+    <button class="btn btn-primary" id="runBtn" disabled>Run GSEA</button>
+    <button class="btn" id="exampleBtn">Run Example</button>
+  </div>
+
+  <!-- ════ PROGRESS ════ -->
+  <div class="progress-container" id="progressContainer">
+    <div class="progress-header">
+      <span class="progress-label" id="progressLabel">Computing…</span>
+      <span class="progress-value" id="progressValue">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <!-- ════ ALL GENE SETS RESULTS TABLE ════ -->
+  <div class="all-results-section" id="allResultsSection">
+    <h3>All Gene Set Results</h3>
+    <div class="all-table-wrap">
+      <table class="all-table" id="allResultsTable">
+        <thead>
+          <tr>
+            <th data-sort="name">Gene Set <span class="sort-arrow"></span></th>
+            <th data-sort="size">Size <span class="sort-arrow"></span></th>
+            <th data-sort="es">ES <span class="sort-arrow"></span></th>
+            <th data-sort="nes">NES <span class="sort-arrow"></span></th>
+            <th data-sort="pval">p-value <span class="sort-arrow"></span></th>
+            <th data-sort="fdr">FDR <span class="sort-arrow"></span></th>
+          </tr>
+        </thead>
+        <tbody id="allResultsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ════ RESULTS ════ -->
+  <div class="results-section" id="resultsSection">
+
+    <!-- Gene set selector -->
+    <div class="geneset-selector">
+      <label for="genesetSelect">Select Gene Set to Visualize</label>
+      <select id="genesetSelect"></select>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow">
+      <div class="stat-card"><span class="stat-value" id="statES">—</span><span class="stat-label">ES</span></div>
+      <div class="stat-card"><span class="stat-value" id="statNES">—</span><span class="stat-label">NES</span></div>
+      <div class="stat-card"><span class="stat-value" id="statPval">—</span><span class="stat-label">p-value</span></div>
+      <div class="stat-card"><span class="stat-value" id="statFDR">—</span><span class="stat-label">FDR q-val</span></div>
+      <div class="stat-card"><span class="stat-value" id="statSize">—</span><span class="stat-label">Set Size</span></div>
+      <div class="stat-card"><span class="stat-value" id="statHits">—</span><span class="stat-label">Hits</span></div>
+    </div>
+
+    <!-- D3 Enrichment Plot -->
+    <div class="plot-container" id="plotContainer"></div>
+
+    <!-- Leading Edge -->
+    <div class="le-section">
+      <h3>Leading Edge Genes</h3>
+      <div class="le-table-wrap">
+        <table class="le-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Gene</th>
+              <th>Rank</th>
+              <th>Metric</th>
+            </tr>
+          </thead>
+          <tbody id="leBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Export -->
+    <div class="export-row">
+      <button class="btn" id="exportSvgBtn">Export SVG</button>
+      <button class="btn" id="exportCsvBtn">Export Results CSV</button>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <p>RankEnrich — Client-side GSEA. All computation runs locally in your browser. No data leaves your machine.</p>
+  </footer>
+
+</div>
+
+<!-- ════ SETTINGS DRAWER ════ -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <span class="drawer-title">Advanced Settings</span>
+    <button class="drawer-close" id="drawerClose">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="field-group">
+      <label class="field-label" for="permInput">Number of Permutations</label>
+      <input class="field-input" type="number" id="permInput" value="1000" min="100" max="100000" step="100">
+      <p class="field-hint">Higher values improve p-value precision but increase computation time. Default: 1000.</p>
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="weightInput">Weighting Exponent (p)</label>
+      <input class="field-input" type="number" id="weightInput" value="1" min="0" max="2" step="0.25">
+      <p class="field-hint">Classic GSEA uses p=1. Set to 0 for unweighted (Kolmogorov-Smirnov).</p>
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="minSizeInput">Min Gene Set Size</label>
+      <input class="field-input" type="number" id="minSizeInput" value="15" min="1" max="500">
+      <p class="field-hint">Gene sets smaller than this will be filtered out.</p>
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="maxSizeInput">Max Gene Set Size</label>
+      <input class="field-input" type="number" id="maxSizeInput" value="500" min="10" max="10000">
+      <p class="field-hint">Gene sets larger than this will be filtered out.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     WEB WORKER (inline blob)
+     ═══════════════════════════════════════════════ -->
+<script id="gsea-worker-code" type="text/worker">
+/* ── GSEA Web Worker ── */
+/* Receives: { rankedList: [{gene, metric}], geneSets: [{name, genes}], nPerm, weightP, minSize, maxSize } */
+
+self.onmessage = function(e) {
+  const { rankedList, geneSets, nPerm, weightP, minSize, maxSize } = e.data;
+
+  const N = rankedList.length;
+  const geneIndex = new Map();
+  rankedList.forEach((g, i) => geneIndex.set(g.gene.toUpperCase(), i));
+
+  // Filter gene sets by size
+  const filteredSets = geneSets.map(gs => {
+    const hits = gs.genes.filter(g => geneIndex.has(g.toUpperCase()));
+    return { name: gs.name, genes: gs.genes, hits, size: hits.length };
+  }).filter(gs => gs.size >= minSize && gs.size <= maxSize);
+
+  if (filteredSets.length === 0) {
+    self.postMessage({ type: 'error', message: 'No gene sets passed the size filter. Try adjusting min/max size.' });
+    return;
+  }
+
+  const totalSets = filteredSets.length;
+
+  // Compute running enrichment score for a given set of hit indices against a given ranking order
+  function computeRunningES(hitIndicesSet, metricAbs, N, weightP) {
+    // hitIndicesSet: Set of indices that are hits
+    const Nh = hitIndicesSet.size;
+    const Nmiss = N - Nh;
+    if (Nh === 0 || Nmiss === 0) return { es: 0, runningES: new Float64Array(N), peakIdx: 0 };
+
+    // Compute NR: sum of |metric|^p for hits
+    let NR = 0;
+    for (const idx of hitIndicesSet) {
+      NR += Math.pow(metricAbs[idx], weightP);
+    }
+    if (NR === 0) NR = 1;
+
+    const missDecrement = 1.0 / Nmiss;
+    const runningES = new Float64Array(N);
+    let maxES = -Infinity, minES = Infinity;
+    let peakIdx = 0;
+    let current = 0;
+
+    for (let i = 0; i < N; i++) {
+      if (hitIndicesSet.has(i)) {
+        current += Math.pow(metricAbs[i], weightP) / NR;
+      } else {
+        current -= missDecrement;
+      }
+      runningES[i] = current;
+      if (Math.abs(current) > Math.abs(maxES > Math.abs(minES) ? maxES : minES)) {
+        // track peak
+      }
+      if (current > maxES) { maxES = current; }
+      if (current < minES) { minES = current; }
+    }
+
+    const es = Math.abs(maxES) >= Math.abs(minES) ? maxES : minES;
+    // Find peak index
+    for (let i = 0; i < N; i++) {
+      if (runningES[i] === es) { peakIdx = i; break; }
+    }
+
+    return { es, runningES, peakIdx };
+  }
+
+  // Pre-compute |metric| array
+  const metricAbs = new Float64Array(N);
+  for (let i = 0; i < N; i++) {
+    metricAbs[i] = Math.abs(rankedList[i].metric);
+  }
+
+  const results = [];
+
+  for (let s = 0; s < totalSets; s++) {
+    const gs = filteredSets[s];
+
+    // Get hit indices
+    const hitIdxSet = new Set();
+    const hitPositions = [];
+    for (const gene of gs.hits) {
+      const idx = geneIndex.get(gene.toUpperCase());
+      if (idx !== undefined) {
+        hitIdxSet.add(idx);
+        hitPositions.push(idx);
+      }
+    }
+    hitPositions.sort((a, b) => a - b);
+
+    // Observed ES
+    const observed = computeRunningES(hitIdxSet, metricAbs, N, weightP);
+
+    // Permutation test
+    let countExtreme = 0;
+    const permESs = new Float64Array(nPerm);
+    const allIndices = Array.from({ length: N }, (_, i) => i);
+
+    for (let p = 0; p < nPerm; p++) {
+      // Fisher-Yates partial shuffle to pick Nh random indices
+      const shuffled = allIndices.slice();
+      const Nh = hitIdxSet.size;
+      for (let i = N - 1; i >= N - Nh; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      const permSet = new Set(shuffled.slice(N - Nh));
+      const permResult = computeRunningES(permSet, metricAbs, N, weightP);
+      permESs[p] = permResult.es;
+
+      if (observed.es >= 0) {
+        if (permResult.es >= observed.es) countExtreme++;
+      } else {
+        if (permResult.es <= observed.es) countExtreme++;
+      }
+    }
+
+    const pval = Math.max((countExtreme + 1) / (nPerm + 1), 1 / (nPerm + 1));
+
+    // Compute NES: normalize by mean of permuted ES with same sign
+    let sameSigned = [];
+    for (let p = 0; p < nPerm; p++) {
+      if (observed.es >= 0 && permESs[p] >= 0) sameSigned.push(permESs[p]);
+      else if (observed.es < 0 && permESs[p] < 0) sameSigned.push(permESs[p]);
+    }
+    let meanPermES = sameSigned.length > 0
+      ? sameSigned.reduce((a, b) => a + b, 0) / sameSigned.length
+      : 1;
+    if (Math.abs(meanPermES) < 1e-10) meanPermES = observed.es >= 0 ? 1 : -1;
+    const nes = observed.es / Math.abs(meanPermES);
+
+    // Leading edge genes
+    const leadingEdge = [];
+    if (observed.es >= 0) {
+      for (const idx of hitPositions) {
+        if (idx <= observed.peakIdx) {
+          leadingEdge.push({ gene: rankedList[idx].gene, rank: idx, metric: rankedList[idx].metric });
+        }
+      }
+    } else {
+      for (let i = hitPositions.length - 1; i >= 0; i--) {
+        if (hitPositions[i] >= observed.peakIdx) {
+          leadingEdge.push({ gene: rankedList[hitPositions[i]].gene, rank: hitPositions[i], metric: rankedList[hitPositions[i]].metric });
+        }
+      }
+    }
+
+    results.push({
+      name: gs.name,
+      size: gs.size,
+      es: observed.es,
+      nes,
+      pval,
+      fdr: pval, // placeholder, computed below
+      runningES: Array.from(observed.runningES),
+      hitPositions,
+      leadingEdge,
+      peakIdx: observed.peakIdx
+    });
+
+    // Progress update every set
+    if (s % 1 === 0 || s === totalSets - 1) {
+      self.postMessage({ type: 'progress', current: s + 1, total: totalSets });
+    }
+  }
+
+  // FDR: Benjamini-Hochberg on p-values
+  const sorted = results.map((r, i) => ({ pval: r.pval, idx: i })).sort((a, b) => a.pval - b.pval);
+  const m = sorted.length;
+  for (let i = 0; i < m; i++) {
+    const fdr = Math.min(sorted[i].pval * m / (i + 1), 1);
+    results[sorted[i].idx].fdr = fdr;
+  }
+  // Enforce monotonicity (step-up)
+  const fdrSorted = sorted.map(s => ({ fdr: results[s.idx].fdr, idx: s.idx }));
+  for (let i = m - 2; i >= 0; i--) {
+    if (results[fdrSorted[i].idx].fdr > results[fdrSorted[i + 1].idx].fdr) {
+      results[fdrSorted[i].idx].fdr = results[fdrSorted[i + 1].idx].fdr;
+    }
+  }
+
+  self.postMessage({ type: 'done', results });
+};
+</script>
+
+<!-- ═══════════════════════════════════════════════
+     MAIN APPLICATION SCRIPT
+     ═══════════════════════════════════════════════ -->
+<script>
+(function() {
+  'use strict';
+
+  // ── State ──
+  let rankedList = null;   // [{gene, metric}]
+  let geneSets = null;     // [{name, genes:[]}]
+  let gseaResults = null;  // array of results
+  let worker = null;
+
+  // ── DOM refs ──
+  const $ = (sel) => document.querySelector(sel);
+  const themeToggle = $('#themeToggle');
+  const settingsBtn = $('#settingsBtn');
+  const drawerOverlay = $('#drawerOverlay');
+  const drawer = $('#drawer');
+  const drawerClose = $('#drawerClose');
+  const rnkInput = $('#rnkInput');
+  const gmtInput = $('#gmtInput');
+  const rnkZone = $('#rnkZone');
+  const gmtZone = $('#gmtZone');
+  const rnkFilename = $('#rnkFilename');
+  const gmtFilename = $('#gmtFilename');
+  const runBtn = $('#runBtn');
+  const exampleBtn = $('#exampleBtn');
+  const progressContainer = $('#progressContainer');
+  const progressLabel = $('#progressLabel');
+  const progressValue = $('#progressValue');
+  const progressFill = $('#progressFill');
+  const resultsSection = $('#resultsSection');
+  const allResultsSection = $('#allResultsSection');
+  const genesetSelect = $('#genesetSelect');
+
+  // ── Theme ──
+  themeToggle.addEventListener('click', () => {
+    const html = document.documentElement;
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    // re-render plot if visible
+    if (gseaResults) renderSelectedPlot();
+  });
+
+  // ── Settings Drawer ──
+  function openDrawer() {
+    drawer.classList.add('open');
+    drawerOverlay.classList.add('open');
+    settingsBtn.classList.add('active');
+  }
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    drawerOverlay.classList.remove('open');
+    settingsBtn.classList.remove('active');
+  }
+  settingsBtn.addEventListener('click', () => {
+    drawer.classList.contains('open') ? closeDrawer() : openDrawer();
+  });
+  drawerOverlay.addEventListener('click', closeDrawer);
+  drawerClose.addEventListener('click', closeDrawer);
+
+  // ── Drag/drop styling ──
+  [rnkZone, gmtZone].forEach(zone => {
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', () => zone.classList.remove('dragover'));
+  });
+
+  // ── File Parsing ──
+  function parseRankedList(file) {
+    return new Promise((resolve, reject) => {
+      Papa.parse(file, {
+        header: false,
+        skipEmptyLines: true,
+        dynamicTyping: true,
+        complete: (res) => {
+          try {
+            const rows = res.data;
+            // Detect header
+            let start = 0;
+            if (rows.length > 0 && isNaN(parseFloat(rows[0][1]))) start = 1;
+
+            const list = [];
+            for (let i = start; i < rows.length; i++) {
+              const gene = String(rows[i][0]).trim();
+              const metric = parseFloat(rows[i][1]);
+              if (gene && !isNaN(metric)) {
+                list.push({ gene, metric });
+              }
+            }
+            // Sort descending by metric
+            list.sort((a, b) => b.metric - a.metric);
+            resolve(list);
+          } catch (e) { reject(e); }
+        },
+        error: reject
+      });
+    });
+  }
+
+  function parseGMT(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const lines = reader.result.split(/\r?\n/).filter(l => l.trim());
+          const sets = lines.map(line => {
+            const parts = line.split('\t');
+            return {
+              name: parts[0],
+              genes: parts.slice(2).map(g => g.trim()).filter(Boolean)
+            };
+          });
+          resolve(sets);
+        } catch (e) { reject(e); }
+      };
+      reader.onerror = reject;
+      reader.readAsText(file);
+    });
+  }
+
+  rnkInput.addEventListener('change', async (e) => {
+    if (e.target.files.length) {
+      try {
+        rankedList = await parseRankedList(e.target.files[0]);
+        rnkZone.classList.add('loaded');
+        rnkFilename.textContent = `${e.target.files[0].name} — ${rankedList.length} genes`;
+        updateRunBtn();
+      } catch (err) {
+        alert('Error parsing ranked list: ' + err.message);
+      }
+    }
+  });
+
+  gmtInput.addEventListener('change', async (e) => {
+    if (e.target.files.length) {
+      try {
+        geneSets = await parseGMT(e.target.files[0]);
+        gmtZone.classList.add('loaded');
+        gmtFilename.textContent = `${e.target.files[0].name} — ${geneSets.length} sets`;
+        updateRunBtn();
+      } catch (err) {
+        alert('Error parsing GMT file: ' + err.message);
+      }
+    }
+  });
+
+  function updateRunBtn() {
+    runBtn.disabled = !(rankedList && geneSets);
+  }
+
+  // ── Run GSEA ──
+  function runGSEA() {
+    const nPerm = parseInt($('#permInput').value) || 1000;
+    const weightP = parseFloat($('#weightInput').value) || 1;
+    const minSize = parseInt($('#minSizeInput').value) || 15;
+    const maxSize = parseInt($('#maxSizeInput').value) || 500;
+
+    // Show progress
+    progressContainer.classList.add('visible');
+    progressFill.style.width = '0%';
+    progressValue.textContent = '0%';
+    progressLabel.textContent = 'Computing enrichment scores…';
+    runBtn.disabled = true;
+    resultsSection.classList.remove('visible');
+    allResultsSection.classList.remove('visible');
+
+    // Create worker from inline code
+    const workerCode = document.getElementById('gsea-worker-code').textContent;
+    const blob = new Blob([workerCode], { type: 'application/javascript' });
+    const workerUrl = URL.createObjectURL(blob);
+    if (worker) worker.terminate();
+    worker = new Worker(workerUrl);
+
+    worker.onmessage = function(e) {
+      const msg = e.data;
+      if (msg.type === 'progress') {
+        const pct = Math.round((msg.current / msg.total) * 100);
+        progressFill.style.width = pct + '%';
+        progressValue.textContent = pct + '%';
+        progressLabel.textContent = `Processing gene set ${msg.current} of ${msg.total}…`;
+      } else if (msg.type === 'done') {
+        gseaResults = msg.results;
+        progressFill.style.width = '100%';
+        progressValue.textContent = '100%';
+        progressLabel.textContent = 'Complete!';
+        setTimeout(() => {
+          progressContainer.classList.remove('visible');
+          showResults();
+        }, 500);
+        runBtn.disabled = false;
+        URL.revokeObjectURL(workerUrl);
+      } else if (msg.type === 'error') {
+        alert(msg.message);
+        progressContainer.classList.remove('visible');
+        runBtn.disabled = false;
+      }
+    };
+
+    worker.postMessage({ rankedList, geneSets, nPerm, weightP, minSize, maxSize });
+  }
+
+  runBtn.addEventListener('click', runGSEA);
+
+  // ── Show Results ──
+  function showResults() {
+    if (!gseaResults || gseaResults.length === 0) return;
+
+    // Sort by |NES| descending
+    gseaResults.sort((a, b) => Math.abs(b.nes) - Math.abs(a.nes));
+
+    // Populate all-results table
+    renderAllResultsTable();
+
+    // Populate selector
+    genesetSelect.innerHTML = '';
+    gseaResults.forEach((r, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = `${r.name} (NES: ${r.nes.toFixed(2)}, FDR: ${r.fdr.toFixed(4)})`;
+      genesetSelect.appendChild(opt);
+    });
+
+    genesetSelect.addEventListener('change', renderSelectedPlot);
+
+    allResultsSection.classList.add('visible');
+    resultsSection.classList.add('visible');
+    renderSelectedPlot();
+    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ── All Results Table ──
+  let currentSort = { col: 'nes', dir: 'desc' };
+
+  function renderAllResultsTable() {
+    const tbody = $('#allResultsBody');
+    const sorted = [...gseaResults];
+
+    // Sort
+    sorted.sort((a, b) => {
+      let va = a[currentSort.col], vb = b[currentSort.col];
+      if (currentSort.col === 'name') {
+        return currentSort.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+      }
+      if (currentSort.col === 'nes' || currentSort.col === 'es') {
+        va = Math.abs(va); vb = Math.abs(vb);
+      }
+      return currentSort.dir === 'asc' ? va - vb : vb - va;
+    });
+
+    tbody.innerHTML = sorted.map((r, i) => {
+      const esClass = r.es >= 0 ? 'es-positive' : 'es-negative';
+      const origIdx = gseaResults.indexOf(r);
+      return `<tr data-idx="${origIdx}">
+        <td style="font-family:var(--font-body);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.name}">${r.name}</td>
+        <td>${r.size}</td>
+        <td class="${esClass}">${r.es.toFixed(4)}</td>
+        <td class="${esClass}">${r.nes.toFixed(4)}</td>
+        <td>${r.pval < 0.001 ? r.pval.toExponential(2) : r.pval.toFixed(4)}</td>
+        <td>${r.fdr < 0.001 ? r.fdr.toExponential(2) : r.fdr.toFixed(4)}</td>
+      </tr>`;
+    }).join('');
+
+    // Click rows to select in plot
+    tbody.querySelectorAll('tr').forEach(tr => {
+      tr.addEventListener('click', () => {
+        const idx = parseInt(tr.dataset.idx);
+        genesetSelect.value = idx;
+        renderSelectedPlot();
+        tbody.querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
+        tr.classList.add('selected');
+      });
+    });
+
+    // Sort headers
+    document.querySelectorAll('.all-table th[data-sort]').forEach(th => {
+      th.onclick = () => {
+        const col = th.dataset.sort;
+        if (currentSort.col === col) {
+          currentSort.dir = currentSort.dir === 'desc' ? 'asc' : 'desc';
+        } else {
+          currentSort = { col, dir: 'desc' };
+        }
+        renderAllResultsTable();
+      };
+    });
+  }
+
+  function renderSelectedPlot() {
+    const idx = parseInt(genesetSelect.value);
+    const r = gseaResults[idx];
+    if (!r) return;
+
+    // Stats
+    const esEl = $('#statES');
+    esEl.textContent = r.es.toFixed(4);
+    esEl.className = 'stat-value ' + (r.es >= 0 ? 'positive' : 'negative');
+
+    const nesEl = $('#statNES');
+    nesEl.textContent = r.nes.toFixed(4);
+    nesEl.className = 'stat-value ' + (r.nes >= 0 ? 'positive' : 'negative');
+
+    $('#statPval').textContent = r.pval < 0.001 ? r.pval.toExponential(2) : r.pval.toFixed(4);
+    $('#statPval').className = 'stat-value ' + (r.pval < 0.05 ? 'positive' : 'neutral');
+
+    $('#statFDR').textContent = r.fdr < 0.001 ? r.fdr.toExponential(2) : r.fdr.toFixed(4);
+    $('#statFDR').className = 'stat-value ' + (r.fdr < 0.25 ? 'positive' : 'neutral');
+
+    $('#statSize').textContent = r.size;
+    $('#statHits').textContent = r.hitPositions.length;
+
+    // Leading edge table
+    const leBody = $('#leBody');
+    leBody.innerHTML = r.leadingEdge.slice(0, 50).map((g, i) =>
+      `<tr><td>${i + 1}</td><td>${g.gene}</td><td>${g.rank}</td><td>${g.metric.toFixed(4)}</td></tr>`
+    ).join('');
+
+    // Draw D3 plot
+    drawEnrichmentPlot(r);
+  }
+
+  // ── D3 Enrichment Plot ──
+  function drawEnrichmentPlot(result) {
+    const container = $('#plotContainer');
+    container.innerHTML = '';
+
+    const style = getComputedStyle(document.documentElement);
+    const esLineColor = style.getPropertyValue('--es-line').trim();
+    const barcodeColor = style.getPropertyValue('--barcode-hit').trim();
+    const metricFillColor = style.getPropertyValue('--metric-fill').trim();
+    const axisColor = style.getPropertyValue('--axis-color').trim();
+    const gridColor = style.getPropertyValue('--grid-color').trim();
+    const zeroColor = style.getPropertyValue('--zero-line').trim();
+    const textColor = style.getPropertyValue('--text-secondary').trim();
+    const bgColor = style.getPropertyValue('--bg-card').trim();
+
+    const fullWidth = Math.min(container.clientWidth - 4, 900);
+    const margin = { top: 30, right: 30, bottom: 70, left: 60 };
+    const esHeight = 220;
+    const barcodeHeight = 30;
+    const metricHeight = 60;
+    const totalHeight = margin.top + esHeight + barcodeHeight + metricHeight + margin.bottom;
+    const width = fullWidth - margin.left - margin.right;
+
+    const svg = d3.select(container).append('svg')
+      .attr('width', fullWidth)
+      .attr('height', totalHeight)
+      .attr('viewBox', `0 0 ${fullWidth} ${totalHeight}`)
+      .style('display', 'block')
+      .style('margin', '0 auto');
+
+    const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+    const N = result.runningES.length;
+    const xScale = d3.scaleLinear().domain([0, N - 1]).range([0, width]);
+
+    // ── ES subplot ──
+    const esExtent = d3.extent(result.runningES);
+    const esMin = Math.min(esExtent[0], 0) * 1.1;
+    const esMax = Math.max(esExtent[1], 0) * 1.1;
+    const yES = d3.scaleLinear().domain([esMin, esMax]).range([esHeight, 0]);
+
+    // Grid lines
+    const esTicks = yES.ticks(5);
+    esTicks.forEach(t => {
+      g.append('line')
+        .attr('x1', 0).attr('x2', width)
+        .attr('y1', yES(t)).attr('y2', yES(t))
+        .attr('stroke', gridColor).attr('stroke-width', 0.5);
+    });
+
+    // Zero line
+    g.append('line')
+      .attr('x1', 0).attr('x2', width)
+      .attr('y1', yES(0)).attr('y2', yES(0))
+      .attr('stroke', zeroColor).attr('stroke-width', 1).attr('stroke-dasharray', '4,3');
+
+    // Running ES line - subsample for performance
+    const step = Math.max(1, Math.floor(N / 2000));
+    const lineData = [];
+    for (let i = 0; i < N; i += step) {
+      lineData.push({ x: i, y: result.runningES[i] });
+    }
+    if (lineData[lineData.length - 1].x !== N - 1) {
+      lineData.push({ x: N - 1, y: result.runningES[N - 1] });
+    }
+
+    const line = d3.line()
+      .x(d => xScale(d.x))
+      .y(d => yES(d.y))
+      .curve(d3.curveMonotoneX);
+
+    g.append('path')
+      .datum(lineData)
+      .attr('fill', 'none')
+      .attr('stroke', esLineColor)
+      .attr('stroke-width', 2)
+      .attr('d', line);
+
+    // Peak marker
+    g.append('circle')
+      .attr('cx', xScale(result.peakIdx))
+      .attr('cy', yES(result.es))
+      .attr('r', 4)
+      .attr('fill', esLineColor)
+      .attr('stroke', bgColor)
+      .attr('stroke-width', 1.5);
+
+    // Peak label
+    g.append('text')
+      .attr('x', xScale(result.peakIdx))
+      .attr('y', yES(result.es) + (result.es >= 0 ? -12 : 16))
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '11px')
+      .attr('font-family', 'var(--font-mono)')
+      .attr('fill', esLineColor)
+      .text(`ES = ${result.es.toFixed(3)}`);
+
+    // ES y-axis
+    const yAxisES = d3.axisLeft(yES).ticks(5).tickSize(-3);
+    const yAxisG = g.append('g').call(yAxisES);
+    yAxisG.selectAll('text').attr('fill', textColor).attr('font-size', '10px');
+    yAxisG.selectAll('line').attr('stroke', axisColor);
+    yAxisG.select('.domain').attr('stroke', axisColor);
+
+    // ES label
+    g.append('text')
+      .attr('transform', 'rotate(-90)')
+      .attr('x', -esHeight / 2)
+      .attr('y', -45)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '11px')
+      .attr('fill', textColor)
+      .text('Enrichment Score');
+
+    // ── Barcode subplot ──
+    const barcodeY = esHeight + 4;
+    g.append('rect')
+      .attr('x', 0).attr('y', barcodeY)
+      .attr('width', width).attr('height', barcodeHeight)
+      .attr('fill', 'none');
+
+    result.hitPositions.forEach(pos => {
+      g.append('line')
+        .attr('x1', xScale(pos)).attr('x2', xScale(pos))
+        .attr('y1', barcodeY).attr('y2', barcodeY + barcodeHeight)
+        .attr('stroke', barcodeColor)
+        .attr('stroke-width', 1)
+        .attr('opacity', 0.6);
+    });
+
+    // ── Metric subplot ──
+    const metricY = barcodeY + barcodeHeight + 4;
+    const metricExtent = d3.extent(rankedList, d => d.metric);
+    const yMetric = d3.scaleLinear()
+      .domain([metricExtent[0], metricExtent[1]])
+      .range([metricHeight, 0]);
+
+    // Draw metric as area
+    const metricStep = Math.max(1, Math.floor(N / 800));
+    const metricLineData = [];
+    for (let i = 0; i < N; i += metricStep) {
+      metricLineData.push({ x: i, y: rankedList[i].metric });
+    }
+
+    const area = d3.area()
+      .x(d => xScale(d.x))
+      .y0(yMetric(0))
+      .y1(d => yMetric(d.y))
+      .curve(d3.curveMonotoneX);
+
+    g.append('path')
+      .datum(metricLineData)
+      .attr('transform', `translate(0,${metricY})`)
+      .attr('fill', metricFillColor)
+      .attr('d', area);
+
+    // Zero line for metric
+    g.append('line')
+      .attr('x1', 0).attr('x2', width)
+      .attr('y1', metricY + yMetric(0)).attr('y2', metricY + yMetric(0))
+      .attr('stroke', zeroColor).attr('stroke-width', 0.5).attr('stroke-dasharray', '3,3');
+
+    // X axis
+    const xAxis = d3.axisBottom(xScale).ticks(6).tickFormat(d => d.toLocaleString());
+    const xAxisG = g.append('g')
+      .attr('transform', `translate(0,${metricY + metricHeight})`)
+      .call(xAxis);
+    xAxisG.selectAll('text').attr('fill', textColor).attr('font-size', '10px');
+    xAxisG.selectAll('line').attr('stroke', axisColor);
+    xAxisG.select('.domain').attr('stroke', axisColor);
+
+    // X label
+    g.append('text')
+      .attr('x', width / 2)
+      .attr('y', metricY + metricHeight + 35)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '11px')
+      .attr('fill', textColor)
+      .text('Gene Rank');
+
+    // Title
+    svg.append('text')
+      .attr('x', fullWidth / 2)
+      .attr('y', 18)
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '13px')
+      .attr('font-weight', '600')
+      .attr('font-family', 'var(--font-body)')
+      .attr('fill', style.getPropertyValue('--text-primary').trim())
+      .text(result.name);
+  }
+
+  // ── Export SVG ──
+  $('#exportSvgBtn').addEventListener('click', () => {
+    const svgEl = $('#plotContainer svg');
+    if (!svgEl) return;
+    const serializer = new XMLSerializer();
+    let source = serializer.serializeToString(svgEl);
+    source = '<?xml version="1.0" standalone="no"?>\n' + source;
+    const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'rankenrich_gsea_plot.svg';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // ── Export CSV ──
+  $('#exportCsvBtn').addEventListener('click', () => {
+    if (!gseaResults) return;
+    let csv = 'Gene Set,Size,ES,NES,p-value,FDR q-value\n';
+    gseaResults.forEach(r => {
+      csv += `"${r.name}",${r.size},${r.es.toFixed(6)},${r.nes.toFixed(6)},${r.pval.toFixed(6)},${r.fdr.toFixed(6)}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'rankenrich_gsea_results.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // ── Example Data ──
+  exampleBtn.addEventListener('click', () => {
+    // Generate synthetic pre-ranked list: 5000 genes with simulated metrics
+    const genes = [];
+    const prefixes = ['BRCA','TP53','MYC','EGFR','VEGF','KRAS','PTEN','AKT','MAPK','CDK','RB','STAT','JAK','NOTCH','WNT','FGF','PDGF','RAF','MEK','ERK','PI3K','MTOR','BCL','BAX','CASP','TNF','IL','TGFB','BMP','SHH','CTNNB','APC','SMAD','FOXO','GATA','SOX','HOX','PAX','RUNX','ETS'];
+    for (let i = 0; i < 5000; i++) {
+      const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+      const suffix = Math.floor(Math.random() * 200) + 1;
+      genes.push({ gene: `${prefix}${suffix}`, metric: 0 });
+    }
+    // Ensure unique
+    const seen = new Set();
+    const unique = [];
+    genes.forEach(g => {
+      if (!seen.has(g.gene)) { seen.add(g.gene); unique.push(g); }
+    });
+    // Assign metrics: normal distribution
+    unique.forEach(g => {
+      g.metric = (Math.random() + Math.random() + Math.random() - 1.5) * 4;
+    });
+    // Make first 60 genes strongly upregulated (to create a clear enrichment signal)
+    const upGenes = unique.slice(0, 60);
+    upGenes.forEach(g => { g.metric = 2 + Math.random() * 4; });
+
+    // Sort descending
+    unique.sort((a, b) => b.metric - a.metric);
+    rankedList = unique;
+
+    // Create synthetic gene sets
+    const geneNames = unique.map(g => g.gene);
+    const pathwayA = geneNames.slice(0, 40).concat(geneNames.slice(200, 220)); // enriched at top
+    const pathwayB = geneNames.slice(geneNames.length - 50, geneNames.length - 10).concat(geneNames.slice(100, 115)); // enriched at bottom
+    const pathwayRandom = [];
+    for (let i = 0; i < 35; i++) {
+      pathwayRandom.push(geneNames[Math.floor(Math.random() * geneNames.length)]);
+    }
+
+    geneSets = [
+      { name: 'HALLMARK_CELL_CYCLE_ACTIVATED', genes: pathwayA },
+      { name: 'HALLMARK_INFLAMMATORY_RESPONSE', genes: pathwayB },
+      { name: 'CUSTOM_RANDOM_GENESET', genes: pathwayRandom }
+    ];
+
+    // Update UI
+    rnkZone.classList.add('loaded');
+    rnkFilename.textContent = `example_ranked_list.rnk — ${rankedList.length} genes`;
+    gmtZone.classList.add('loaded');
+    gmtFilename.textContent = `example_genesets.gmt — ${geneSets.length} sets`;
+    updateRunBtn();
+
+    // Auto-run with reduced perms for demo
+    const origPerm = $('#permInput').value;
+    $('#permInput').value = 500;
+    runGSEA();
+    $('#permInput').value = origPerm;
+  });
+
+  // ── Window resize ──
+  let resizeTimeout;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      if (gseaResults) renderSelectedPlot();
+    }, 250);
+  });
+
+})();
+</script>
+
+</body>
+</html>

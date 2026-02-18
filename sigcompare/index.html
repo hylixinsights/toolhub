@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SigCompare — Intersect Multi-Cohort Signatures</title>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-sankey/0.12.3/d3-sankey.min.js"></script>
+
+<style>
+/* ═══════════════════════════════════════════
+   CSS VARIABLES & THEME SYSTEM
+   ═══════════════════════════════════════════ */
+:root {
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="dark"] {
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #111118;
+  --bg-tertiary: #1a1a24;
+  --bg-elevated: #22222e;
+  --bg-hover: #2a2a38;
+  --border-subtle: rgba(255,255,255,0.06);
+  --border-default: rgba(255,255,255,0.1);
+  --border-accent: rgba(130,120,255,0.3);
+  --text-primary: #e8e6f0;
+  --text-secondary: #9895a8;
+  --text-muted: #5e5b6e;
+  --accent-primary: #8278ff;
+  --accent-secondary: #ff6b8a;
+  --accent-tertiary: #4ecdc4;
+  --accent-warm: #f7b955;
+  --accent-glow: rgba(130,120,255,0.15);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+  --drop-zone-bg: rgba(130,120,255,0.04);
+  --drop-zone-border: rgba(130,120,255,0.2);
+  --drop-zone-hover: rgba(130,120,255,0.1);
+  --chip-bg: rgba(130,120,255,0.12);
+  --chip-text: #a8a0ff;
+  --sankey-node: #8278ff;
+  --upset-bar: #8278ff;
+  --upset-dot-active: #e8e6f0;
+  --upset-dot-inactive: #2a2a38;
+  --upset-line: #e8e6f0;
+}
+
+[data-theme="light"] {
+  --bg-primary: #f5f4f8;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #eeedf3;
+  --bg-elevated: #ffffff;
+  --bg-hover: #e8e6f0;
+  --border-subtle: rgba(0,0,0,0.04);
+  --border-default: rgba(0,0,0,0.1);
+  --border-accent: rgba(100,80,220,0.25);
+  --text-primary: #1a1828;
+  --text-secondary: #5e5872;
+  --text-muted: #9892a8;
+  --accent-primary: #6450dc;
+  --accent-secondary: #e0446c;
+  --accent-tertiary: #2ba89a;
+  --accent-warm: #d4982a;
+  --accent-glow: rgba(100,80,220,0.08);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.1);
+  --drop-zone-bg: rgba(100,80,220,0.03);
+  --drop-zone-border: rgba(100,80,220,0.2);
+  --drop-zone-hover: rgba(100,80,220,0.08);
+  --chip-bg: rgba(100,80,220,0.1);
+  --chip-text: #6450dc;
+  --sankey-node: #6450dc;
+  --upset-bar: #6450dc;
+  --upset-dot-active: #1a1828;
+  --upset-dot-inactive: #e0dde8;
+  --upset-line: #1a1828;
+}
+
+/* ═══════════════════════════════════════════
+   BASE & RESET
+   ═══════════════════════════════════════════ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  transition: background var(--transition), color var(--transition);
+  overflow-x: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; }
+
+/* ═══════════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════════ */
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 28px;
+}
+
+/* ═══════════════════════════════════════════
+   HEADER
+   ═══════════════════════════════════════════ */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 40px;
+}
+
+.logo-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+
+.logo-text {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  color: var(--text-primary);
+}
+
+.logo-text span {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 13px;
+  margin-left: 8px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+  font-size: 15px;
+}
+
+.btn-icon:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-accent);
+}
+
+/* ═══════════════════════════════════════════
+   HERO / LANDING
+   ═══════════════════════════════════════════ */
+.hero-section {
+  text-align: center;
+  padding: 48px 0 32px;
+  animation: fadeUp 0.6s ease-out;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero-headline {
+  font-size: clamp(32px, 5vw, 48px);
+  font-weight: 600;
+  letter-spacing: -1.5px;
+  line-height: 1.15;
+  margin-bottom: 14px;
+  background: linear-gradient(135deg, var(--text-primary), var(--accent-primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  font-size: 16px;
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto 24px;
+  line-height: 1.65;
+}
+
+.hero-description {
+  font-size: 14px;
+  color: var(--text-muted);
+  max-width: 680px;
+  margin: 0 auto 36px;
+  line-height: 1.7;
+}
+
+.demo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-accent);
+  background: var(--accent-glow);
+  color: var(--accent-primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  letter-spacing: 0.2px;
+}
+
+.demo-btn:hover {
+  background: var(--accent-primary);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(130,120,255,0.3);
+}
+
+/* ═══════════════════════════════════════════
+   DROP ZONE
+   ═══════════════════════════════════════════ */
+.dropzone-container {
+  margin-bottom: 28px;
+  animation: fadeUp 0.6s ease-out 0.1s both;
+}
+
+.dropzone {
+  border: 2px dashed var(--drop-zone-border);
+  border-radius: var(--radius-lg);
+  background: var(--drop-zone-bg);
+  padding: 48px 28px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition);
+  position: relative;
+}
+
+.dropzone.active {
+  border-color: var(--accent-primary);
+  background: var(--drop-zone-hover);
+  transform: scale(1.005);
+}
+
+.dropzone:hover {
+  border-color: var(--accent-primary);
+  background: var(--drop-zone-hover);
+}
+
+.dropzone-icon {
+  font-size: 36px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.dropzone-text {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.dropzone-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.dropzone input[type="file"] {
+  display: none;
+}
+
+/* ═══════════════════════════════════════════
+   FILE CHIPS
+   ═══════════════════════════════════════════ */
+.file-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  justify-content: center;
+}
+
+.file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  animation: chipIn 0.3s ease-out;
+}
+
+@keyframes chipIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.file-chip .chip-remove {
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.file-chip .chip-remove:hover { opacity: 1; }
+
+.file-chip .chip-color {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════
+   COLUMN MAPPING
+   ═══════════════════════════════════════════ */
+.mapping-section {
+  margin-bottom: 24px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  animation: fadeUp 0.4s ease-out;
+}
+
+.mapping-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition);
+}
+
+.mapping-header:hover { background: var(--bg-hover); }
+
+.mapping-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.mapping-arrow {
+  transition: transform var(--transition);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.mapping-arrow.open { transform: rotate(180deg); }
+
+.mapping-body {
+  display: none;
+  padding: 0 20px 20px;
+}
+
+.mapping-body.open { display: block; }
+
+.mapping-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.mapping-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+
+.mapping-card-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mapping-card-title .card-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.mapping-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mapping-row:last-child { margin-bottom: 0; }
+
+.mapping-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 80px;
+  font-family: var(--font-mono);
+}
+
+.mapping-select {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.mapping-select:focus { border-color: var(--accent-primary); }
+
+/* ═══════════════════════════════════════════
+   ADVANCED OPTIONS PANEL
+   ═══════════════════════════════════════════ */
+.advanced-panel {
+  margin-bottom: 24px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.advanced-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition);
+}
+
+.advanced-header:hover { background: var(--bg-hover); }
+
+.advanced-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.advanced-plus {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background: var(--accent-glow);
+  color: var(--accent-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  transition: transform var(--transition);
+}
+
+.advanced-plus.open { transform: rotate(45deg); }
+
+.advanced-body {
+  display: none;
+  padding: 0 20px 20px;
+}
+
+.advanced-body.open { display: block; }
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-row label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 120px;
+}
+
+.filter-input {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  width: 100px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.filter-input:focus { border-color: var(--accent-primary); }
+
+.filter-select {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  outline: none;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  accent-color: var(--accent-primary);
+}
+
+/* ═══════════════════════════════════════════
+   ACTION BUTTONS
+   ═══════════════════════════════════════════ */
+.action-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  padding: 10px 28px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--accent-primary);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  letter-spacing: 0.3px;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(130,120,255,0.35);
+}
+
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-accent);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════════
+   STATUS / STATS BAR
+   ═══════════════════════════════════════════ */
+.stats-bar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  animation: fadeUp 0.4s ease-out;
+}
+
+.stat-card {
+  flex: 1;
+  min-width: 140px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+}
+
+.stat-value {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -1px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════
+   VISUALIZATION TABS
+   ═══════════════════════════════════════════ */
+.viz-section {
+  margin-bottom: 48px;
+}
+
+.viz-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  width: fit-content;
+}
+
+.viz-tab {
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.viz-tab.active {
+  background: var(--accent-primary);
+  color: #fff;
+}
+
+.viz-tab:hover:not(.active) {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.viz-panel {
+  display: none;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  min-height: 500px;
+  position: relative;
+}
+
+.viz-panel.active { display: block; }
+
+.viz-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.viz-placeholder-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.3;
+}
+
+/* UpSet custom canvas */
+#upset-canvas {
+  width: 100%;
+  min-height: 460px;
+}
+
+#sankey-canvas {
+  width: 100%;
+  min-height: 460px;
+}
+
+/* ═══════════════════════════════════════════
+   INTERSECTION TABLE
+   ═══════════════════════════════════════════ */
+.table-container {
+  max-height: 340px;
+  overflow-y: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.int-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.int-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.int-table th {
+  background: var(--bg-tertiary);
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.int-table td {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.int-table tbody tr:hover { background: var(--bg-hover); }
+
+.set-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  margin: 1px 2px;
+}
+
+/* ═══════════════════════════════════════════
+   FOOTER
+   ═══════════════════════════════════════════ */
+.app-footer {
+  text-align: center;
+  padding: 32px 0;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 48px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* ═══════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════ */
+.toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  font-size: 13px;
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: all 0.35s ease;
+  pointer-events: none;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .app-container { padding: 0 16px; }
+  .hero-headline { font-size: 28px; }
+  .dropzone { padding: 32px 16px; }
+  .mapping-grid { grid-template-columns: 1fr; }
+  .stats-bar { flex-direction: column; }
+  .filter-row { flex-direction: column; align-items: flex-start; }
+}
+
+/* Hidden utility */
+.hidden { display: none !important; }
+</style>
+</head>
+
+<body>
+<div class="app-container">
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="logo-group">
+      <div class="logo-icon">Sc</div>
+      <div class="logo-text">SigCompare <span>v1.0</span></div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" id="themeToggle" title="Toggle theme">◐</button>
+      <button class="btn-icon" id="helpBtn" title="Help">?</button>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero-section" id="heroSection">
+    <h1 class="hero-headline">Intersect Multi-Cohort Signatures.</h1>
+    <p class="hero-sub">Advanced visual comparison of multiple DEG tables using UpSet plots and Sankey diagrams.</p>
+    <p class="hero-description">
+      SigCompare simplifies meta-analysis. Drop multiple differential expression results into the browser to instantly visualize consensus signatures, universally altered genes, and cohort-specific biological responses without writing a single line of code.
+    </p>
+    <button class="demo-btn" id="demoBtn">⬡ Load Mock Cohorts</button>
+  </section>
+
+  <!-- DROP ZONE -->
+  <section class="dropzone-container">
+    <div class="dropzone" id="dropzone">
+      <div class="dropzone-icon">⇪</div>
+      <div class="dropzone-text">Drop CSV / TSV files here, or click to browse</div>
+      <div class="dropzone-hint">Multiple files accepted • PapaParse auto-detect</div>
+      <input type="file" id="fileInput" multiple accept=".csv,.tsv,.txt,.tab">
+    </div>
+    <div class="file-chips" id="fileChips"></div>
+  </section>
+
+  <!-- COLUMN MAPPING -->
+  <section class="mapping-section hidden" id="mappingSection">
+    <div class="mapping-header" id="mappingToggle">
+      <div class="mapping-header-left">
+        <span>⚙</span> Column Mapping
+      </div>
+      <span class="mapping-arrow open" id="mappingArrow">▼</span>
+    </div>
+    <div class="mapping-body open" id="mappingBody">
+      <div class="mapping-grid" id="mappingGrid"></div>
+    </div>
+  </section>
+
+  <!-- ADVANCED OPTIONS -->
+  <section class="advanced-panel hidden" id="advancedPanel">
+    <div class="advanced-header" id="advancedToggle">
+      <div class="advanced-header-left">
+        <div class="advanced-plus" id="advancedPlus">+</div>
+        Advanced Filters
+      </div>
+    </div>
+    <div class="advanced-body" id="advancedBody">
+      <div class="filter-row">
+        <label>Pre-filter by |Log2FC| ≥</label>
+        <input type="number" class="filter-input" id="filterFC" value="0" step="0.1" min="0">
+      </div>
+      <div class="filter-row">
+        <label>Pre-filter by p-value ≤</label>
+        <input type="number" class="filter-input" id="filterPval" value="1" step="0.01" min="0" max="1">
+      </div>
+      <div class="filter-row">
+        <label class="checkbox-label">
+          <input type="checkbox" id="filterDirectional">
+          Direction-aware comparison (separate Up / Down genes)
+        </label>
+      </div>
+    </div>
+  </section>
+
+  <!-- ACTION BAR -->
+  <div class="action-bar hidden" id="actionBar">
+    <button class="btn-primary" id="compareBtn" disabled>Compare Signatures</button>
+    <button class="btn-secondary" id="exportBtn" disabled>Export Intersections CSV</button>
+    <button class="btn-secondary" id="clearBtn">Clear All</button>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-bar hidden" id="statsBar"></div>
+
+  <!-- VISUALIZATIONS -->
+  <section class="viz-section hidden" id="vizSection">
+    <div class="viz-tabs">
+      <button class="viz-tab active" data-panel="upset">UpSet Plot</button>
+      <button class="viz-tab" data-panel="sankey">Sankey Diagram</button>
+      <button class="viz-tab" data-panel="table">Intersection Table</button>
+    </div>
+    <div class="viz-panel active" id="panel-upset">
+      <div id="upset-canvas"></div>
+    </div>
+    <div class="viz-panel" id="panel-sankey">
+      <div id="sankey-canvas"></div>
+    </div>
+    <div class="viz-panel" id="panel-table">
+      <div id="table-canvas"></div>
+    </div>
+  </section>
+
+  <footer class="app-footer">
+    SigCompare — Client-side gene signature comparison. No data leaves your browser.
+  </footer>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// STATE MANAGEMENT
+// ═══════════════════════════════════════════════════
+const STATE = {
+  files: [],         // { name, data: [{...}], columns: [], mapping: { gene, log2fc, pval } }
+  intersections: [], // { sets: [...], genes: [...] }
+  colors: ['#8278ff','#ff6b8a','#4ecdc4','#f7b955','#c678dd','#56b6c2','#e06c75','#98c379','#d19a66','#61afef']
+};
+
+// ═══════════════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════════════
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  // Re-render charts if they exist
+  if (STATE.intersections.length) {
+    renderUpset();
+    renderSankey();
+  }
+});
+
+// ═══════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════
+function toast(msg, duration = 3000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), duration);
+}
+
+// ═══════════════════════════════════════════════════
+// FILE UPLOAD + DRAG & DROP
+// ═══════════════════════════════════════════════════
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('active'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('active'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('active');
+  handleFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+function handleFiles(fileList) {
+  Array.from(fileList).forEach(file => {
+    if (STATE.files.find(f => f.name === file.name)) {
+      toast(`"${file.name}" already loaded`);
+      return;
+    }
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      dynamicTyping: true,
+      complete: result => {
+        if (result.data.length === 0) { toast(`"${file.name}" is empty`); return; }
+        const cols = result.meta.fields || Object.keys(result.data[0]);
+        const entry = {
+          name: file.name.replace(/\.\w+$/, ''),
+          data: result.data,
+          columns: cols,
+          mapping: autoMap(cols)
+        };
+        STATE.files.push(entry);
+        refreshUI();
+        toast(`Loaded "${entry.name}" — ${result.data.length} rows`);
+      },
+      error: () => toast(`Failed to parse "${file.name}"`)
+    });
+  });
+}
+
+function autoMap(cols) {
+  const lower = cols.map(c => c.toLowerCase());
+  const gene = cols[lower.findIndex(c => /^(gene|symbol|gene[_\s]?symbol|gene[_\s]?name|gene_id|geneid)$/i.test(c))] || cols[0];
+  const log2fc = cols[lower.findIndex(c => /log2?f(old)?c(hange)?|lfc|logfc/i.test(c))] || '';
+  const pval = cols[lower.findIndex(c => /p[\.\-_]?val|padj|fdr|adj[\.\-_]?p|q[\.\-_]?val/i.test(c))] || '';
+  return { gene, log2fc, pval };
+}
+
+// ═══════════════════════════════════════════════════
+// UI REFRESH
+// ═══════════════════════════════════════════════════
+function refreshUI() {
+  const hasFiles = STATE.files.length > 0;
+  document.getElementById('mappingSection').classList.toggle('hidden', !hasFiles);
+  document.getElementById('advancedPanel').classList.toggle('hidden', !hasFiles);
+  document.getElementById('actionBar').classList.toggle('hidden', !hasFiles);
+  document.getElementById('compareBtn').disabled = STATE.files.length < 2;
+
+  // Hero shrink
+  if (hasFiles) document.getElementById('heroSection').style.padding = '24px 0 16px';
+
+  renderFileChips();
+  renderMappingCards();
+}
+
+function renderFileChips() {
+  const container = document.getElementById('fileChips');
+  container.innerHTML = STATE.files.map((f, i) => `
+    <div class="file-chip">
+      <span class="chip-color" style="background:${STATE.colors[i % STATE.colors.length]}"></span>
+      ${f.name}
+      <span class="chip-remove" data-idx="${i}">✕</span>
+    </div>
+  `).join('');
+  container.querySelectorAll('.chip-remove').forEach(el => {
+    el.addEventListener('click', () => {
+      STATE.files.splice(+el.dataset.idx, 1);
+      refreshUI();
+      if (STATE.files.length < 2) hideResults();
+    });
+  });
+}
+
+function renderMappingCards() {
+  const grid = document.getElementById('mappingGrid');
+  grid.innerHTML = STATE.files.map((f, i) => {
+    const opts = col => f.columns.map(c => `<option value="${c}" ${c === col ? 'selected' : ''}>${c}</option>`).join('');
+    const emptyOpt = '<option value="">— none —</option>';
+    return `
+      <div class="mapping-card">
+        <div class="mapping-card-title">
+          <span class="card-dot" style="background:${STATE.colors[i % STATE.colors.length]}"></span>
+          ${f.name}
+        </div>
+        <div class="mapping-row">
+          <span class="mapping-label">Gene Col</span>
+          <select class="mapping-select" data-file="${i}" data-field="gene">${opts(f.mapping.gene)}</select>
+        </div>
+        <div class="mapping-row">
+          <span class="mapping-label">Log2FC</span>
+          <select class="mapping-select" data-file="${i}" data-field="log2fc">${emptyOpt}${opts(f.mapping.log2fc)}</select>
+        </div>
+        <div class="mapping-row">
+          <span class="mapping-label">P-value</span>
+          <select class="mapping-select" data-file="${i}" data-field="pval">${emptyOpt}${opts(f.mapping.pval)}</select>
+        </div>
+      </div>
+    `;
+  }).join('');
+  grid.querySelectorAll('.mapping-select').forEach(sel => {
+    sel.addEventListener('change', () => {
+      STATE.files[+sel.dataset.file].mapping[sel.dataset.field] = sel.value;
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// TOGGLE PANELS
+// ═══════════════════════════════════════════════════
+document.getElementById('mappingToggle').addEventListener('click', () => {
+  document.getElementById('mappingBody').classList.toggle('open');
+  document.getElementById('mappingArrow').classList.toggle('open');
+});
+document.getElementById('advancedToggle').addEventListener('click', () => {
+  document.getElementById('advancedBody').classList.toggle('open');
+  document.getElementById('advancedPlus').classList.toggle('open');
+});
+
+// ═══════════════════════════════════════════════════
+// VIZ TABS
+// ═══════════════════════════════════════════════════
+document.querySelectorAll('.viz-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.viz-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.viz-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(`panel-${tab.dataset.panel}`).classList.add('active');
+    if (tab.dataset.panel === 'sankey') renderSankey();
+    if (tab.dataset.panel === 'upset') renderUpset();
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// COMPARE LOGIC — SET INTERSECTION ENGINE
+// ═══════════════════════════════════════════════════
+document.getElementById('compareBtn').addEventListener('click', runComparison);
+
+function extractGenes(fileEntry) {
+  const m = fileEntry.mapping;
+  const fcThresh = parseFloat(document.getElementById('filterFC').value) || 0;
+  const pvThresh = parseFloat(document.getElementById('filterPval').value) || 1;
+  const directional = document.getElementById('filterDirectional').checked;
+
+  let genes = [];
+  fileEntry.data.forEach(row => {
+    const g = row[m.gene];
+    if (!g || String(g).trim() === '') return;
+
+    const fc = m.log2fc ? parseFloat(row[m.log2fc]) : null;
+    const pv = m.pval ? parseFloat(row[m.pval]) : null;
+
+    if (fc !== null && !isNaN(fc) && Math.abs(fc) < fcThresh) return;
+    if (pv !== null && !isNaN(pv) && pv > pvThresh) return;
+
+    let label = String(g).trim().toUpperCase();
+    if (directional && fc !== null && !isNaN(fc)) {
+      label = (fc >= 0 ? 'UP:' : 'DOWN:') + label;
+    }
+    genes.push(label);
+  });
+  return [...new Set(genes)];
+}
+
+function computeIntersections(setsMap) {
+  // setsMap: { name: Set([genes]) }
+  const names = Object.keys(setsMap);
+  const n = names.length;
+  const results = [];
+
+  // Generate all non-empty subsets using bitmask
+  for (let mask = 1; mask < (1 << n); mask++) {
+    const included = [];
+    const excluded = [];
+    for (let i = 0; i < n; i++) {
+      if (mask & (1 << i)) included.push(names[i]);
+      else excluded.push(names[i]);
+    }
+    // Genes in ALL included sets and in NONE of excluded sets
+    let inter = null;
+    for (const name of included) {
+      if (inter === null) inter = new Set(setsMap[name]);
+      else inter = new Set([...inter].filter(g => setsMap[name].has(g)));
+    }
+    for (const name of excluded) {
+      inter = new Set([...inter].filter(g => !setsMap[name].has(g)));
+    }
+    if (inter.size > 0) {
+      results.push({ sets: included, mask, genes: [...inter], size: inter.size });
+    }
+  }
+  return results.sort((a, b) => b.size - a.size);
+}
+
+function runComparison() {
+  if (STATE.files.length < 2) { toast('Upload at least 2 files'); return; }
+
+  const setsMap = {};
+  STATE.files.forEach(f => {
+    setsMap[f.name] = new Set(extractGenes(f));
+  });
+
+  STATE.intersections = computeIntersections(setsMap);
+  STATE.setsMap = setsMap;
+
+  // Stats
+  const totalGenes = new Set(Object.values(setsMap).flatMap(s => [...s])).size;
+  const coreInter = STATE.intersections.find(i => i.sets.length === STATE.files.length);
+  showStats(totalGenes, coreInter ? coreInter.size : 0);
+
+  document.getElementById('vizSection').classList.remove('hidden');
+  document.getElementById('exportBtn').disabled = false;
+
+  renderUpset();
+  renderTable();
+  toast('Comparison complete');
+}
+
+function showStats(total, core) {
+  const bar = document.getElementById('statsBar');
+  bar.classList.remove('hidden');
+  bar.innerHTML = `
+    <div class="stat-card"><div class="stat-value">${STATE.files.length}</div><div class="stat-label">Signatures</div></div>
+    <div class="stat-card"><div class="stat-value">${total.toLocaleString()}</div><div class="stat-label">Unique Genes</div></div>
+    <div class="stat-card"><div class="stat-value">${core.toLocaleString()}</div><div class="stat-label">Core Intersection</div></div>
+    <div class="stat-card"><div class="stat-value">${STATE.intersections.length}</div><div class="stat-label">Subsets</div></div>
+  `;
+}
+
+function hideResults() {
+  document.getElementById('vizSection').classList.add('hidden');
+  document.getElementById('statsBar').classList.add('hidden');
+  document.getElementById('exportBtn').disabled = true;
+  STATE.intersections = [];
+}
+
+// ═══════════════════════════════════════════════════
+// UPSET PLOT — Custom ECharts Implementation
+// ═══════════════════════════════════════════════════
+function renderUpset() {
+  const container = document.getElementById('upset-canvas');
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+  const sorted = [...STATE.intersections].sort((a, b) => b.size - a.size).slice(0, 40);
+  if (sorted.length === 0) return;
+
+  const names = STATE.files.map(f => f.name);
+  const barColor = isDark ? '#8278ff' : '#6450dc';
+  const dotActive = isDark ? '#e8e6f0' : '#1a1828';
+  const dotInactive = isDark ? '#2a2a38' : '#e0dde8';
+  const lineColor = isDark ? '#e8e6f0' : '#1a1828';
+  const textColor = isDark ? '#9895a8' : '#5e5872';
+  const bgColor = 'transparent';
+
+  // Build SVG manually for the dot matrix
+  const barH = 220;
+  const dotAreaH = names.length * 28 + 20;
+  const totalH = barH + dotAreaH + 40;
+  const barW = Math.max(sorted.length * 32, 400);
+  const totalW = Math.max(barW + 160, container.clientWidth);
+
+  const maxSize = Math.max(...sorted.map(s => s.size));
+
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${totalW}" height="${totalH}" style="font-family:'DM Sans',sans-serif">`;
+
+  // Set labels on the left
+  const leftMargin = 140;
+  names.forEach((name, i) => {
+    const y = barH + 30 + i * 28;
+    const setSize = STATE.setsMap[name].size;
+    svg += `<text x="${leftMargin - 10}" y="${y + 5}" text-anchor="end" fill="${textColor}" font-size="11" font-weight="500">${name}</text>`;
+    svg += `<text x="${leftMargin - 10}" y="${y + 17}" text-anchor="end" fill="${isDark ? '#5e5b6e' : '#9892a8'}" font-size="9">(${setSize})</text>`;
+  });
+
+  // Bars + dot matrix
+  sorted.forEach((inter, idx) => {
+    const x = leftMargin + idx * 32 + 16;
+    const barHeight = (inter.size / maxSize) * (barH - 30);
+    const barY = barH - barHeight;
+
+    // Bar
+    svg += `<rect x="${x - 8}" y="${barY}" width="16" height="${barHeight}" rx="3" fill="${barColor}" opacity="0.85">
+      <title>${inter.sets.join(' ∩ ')}: ${inter.size} genes</title>
+    </rect>`;
+
+    // Bar label
+    svg += `<text x="${x}" y="${barY - 6}" text-anchor="middle" fill="${textColor}" font-size="10" font-weight="500">${inter.size}</text>`;
+
+    // Dots
+    const activeDots = [];
+    names.forEach((name, i) => {
+      const cy = barH + 30 + i * 28 + 5;
+      const isActive = inter.sets.includes(name);
+      svg += `<circle cx="${x}" cy="${cy}" r="6" fill="${isActive ? dotActive : dotInactive}"/>`;
+      if (isActive) activeDots.push(cy);
+    });
+
+    // Connecting line
+    if (activeDots.length > 1) {
+      const minY = Math.min(...activeDots);
+      const maxY = Math.max(...activeDots);
+      svg += `<line x1="${x}" y1="${minY}" x2="${x}" y2="${maxY}" stroke="${lineColor}" stroke-width="2" opacity="0.6"/>`;
+    }
+  });
+
+  svg += '</svg>';
+  container.innerHTML = `<div style="overflow-x:auto;overflow-y:hidden">${svg}</div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// SANKEY DIAGRAM — D3.js
+// ═══════════════════════════════════════════════════
+function renderSankey() {
+  const container = document.getElementById('sankey-canvas');
+  container.innerHTML = '';
+
+  if (!STATE.intersections.length) return;
+
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const names = STATE.files.map(f => f.name);
+
+  const width = container.clientWidth || 800;
+  const height = Math.max(460, names.length * 80);
+
+  // Build nodes and links for Sankey
+  // Structure: Total → Each Set → Intersection categories
+  const nodes = [];
+  const links = [];
+  const nodeMap = {};
+
+  function addNode(name) {
+    if (!(name in nodeMap)) {
+      nodeMap[name] = nodes.length;
+      nodes.push({ name });
+    }
+    return nodeMap[name];
+  }
+
+  // Source: each set
+  names.forEach(name => addNode(name));
+
+  // Target: intersection groups (top 20 by size)
+  const topInter = [...STATE.intersections].sort((a, b) => b.size - a.size).slice(0, 20);
+
+  topInter.forEach(inter => {
+    const label = inter.sets.length === names.length ? '★ Core (' + inter.size + ')'
+                : inter.sets.length === 1 ? inter.sets[0] + ' unique (' + inter.size + ')'
+                : inter.sets.join(' ∩ ') + ' (' + inter.size + ')';
+    const targetIdx = addNode(label);
+    inter.sets.forEach(setName => {
+      links.push({ source: nodeMap[setName], target: targetIdx, value: inter.size });
+    });
+  });
+
+  // Create SVG
+  const svg = d3.select(container).append('svg')
+    .attr('width', width)
+    .attr('height', height);
+
+  const sankey = d3.sankey()
+    .nodeId(d => d.index)
+    .nodeWidth(18)
+    .nodePadding(14)
+    .nodeAlign(d3.sankeyLeft)
+    .extent([[20, 20], [width - 20, height - 20]]);
+
+  try {
+    const graph = sankey({ nodes: nodes.map(d => ({...d})), links: links.map(d => ({...d})) });
+
+    // Links
+    svg.append('g')
+      .selectAll('path')
+      .data(graph.links)
+      .join('path')
+      .attr('d', d3.sankeyLinkHorizontal())
+      .attr('fill', 'none')
+      .attr('stroke', isDark ? '#8278ff' : '#6450dc')
+      .attr('stroke-opacity', 0.25)
+      .attr('stroke-width', d => Math.max(1, d.width))
+      .append('title')
+      .text(d => `${d.source.name} → ${d.target.name}: ${d.value}`);
+
+    // Nodes
+    svg.append('g')
+      .selectAll('rect')
+      .data(graph.nodes)
+      .join('rect')
+      .attr('x', d => d.x0)
+      .attr('y', d => d.y0)
+      .attr('height', d => Math.max(1, d.y1 - d.y0))
+      .attr('width', d => d.x1 - d.x0)
+      .attr('fill', (d, i) => {
+        if (i < names.length) return STATE.colors[i % STATE.colors.length];
+        return isDark ? '#4a4560' : '#b8b0d8';
+      })
+      .attr('rx', 3)
+      .append('title')
+      .text(d => d.name);
+
+    // Labels
+    svg.append('g')
+      .selectAll('text')
+      .data(graph.nodes)
+      .join('text')
+      .attr('x', d => d.x0 < width / 2 ? d.x1 + 8 : d.x0 - 8)
+      .attr('y', d => (d.y0 + d.y1) / 2)
+      .attr('dy', '0.35em')
+      .attr('text-anchor', d => d.x0 < width / 2 ? 'start' : 'end')
+      .attr('fill', isDark ? '#9895a8' : '#5e5872')
+      .attr('font-size', '11px')
+      .attr('font-family', "'DM Sans', sans-serif")
+      .text(d => d.name.length > 35 ? d.name.slice(0, 32) + '…' : d.name);
+  } catch(err) {
+    container.innerHTML = `<div class="viz-placeholder"><div class="viz-placeholder-icon">⚠</div>Sankey layout error — try with fewer overlapping sets.</div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// INTERSECTION TABLE
+// ═══════════════════════════════════════════════════
+function renderTable() {
+  const container = document.getElementById('table-canvas');
+  const sorted = [...STATE.intersections].sort((a, b) => b.size - a.size);
+  const names = STATE.files.map(f => f.name);
+
+  let html = `<div class="table-container"><table class="int-table"><thead><tr>
+    <th>Sets</th><th>Count</th><th>Genes (first 20)</th>
+  </tr></thead><tbody>`;
+
+  sorted.forEach(inter => {
+    const badges = inter.sets.map(s => {
+      const idx = names.indexOf(s);
+      const c = STATE.colors[idx % STATE.colors.length];
+      return `<span class="set-badge" style="background:${c}22;color:${c}">${s}</span>`;
+    }).join(' ');
+    const genes = inter.genes.slice(0, 20).join(', ') + (inter.genes.length > 20 ? '…' : '');
+    html += `<tr><td>${badges}</td><td style="font-weight:600">${inter.size}</td><td style="font-size:11px;color:var(--text-secondary)">${genes}</td></tr>`;
+  });
+
+  html += '</tbody></table></div>';
+  container.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════
+// EXPORT CSV
+// ═══════════════════════════════════════════════════
+document.getElementById('exportBtn').addEventListener('click', () => {
+  if (!STATE.intersections.length) return;
+  const rows = [['Sets', 'Count', 'Genes']];
+  STATE.intersections.forEach(i => {
+    rows.push([i.sets.join(' ∩ '), i.size, i.genes.join(';')]);
+  });
+  const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'sigcompare_intersections.csv';
+  a.click();
+  toast('CSV exported');
+});
+
+// ═══════════════════════════════════════════════════
+// CLEAR
+// ═══════════════════════════════════════════════════
+document.getElementById('clearBtn').addEventListener('click', () => {
+  STATE.files = [];
+  STATE.intersections = [];
+  STATE.setsMap = {};
+  hideResults();
+  refreshUI();
+  document.getElementById('heroSection').style.padding = '';
+  toast('All cleared');
+});
+
+// ═══════════════════════════════════════════════════
+// DEMO DATA
+// ═══════════════════════════════════════════════════
+document.getElementById('demoBtn').addEventListener('click', loadDemoData);
+
+function loadDemoData() {
+  // Universal genes (present in all 3)
+  const core = ['TP53','BRCA1','EGFR','MYC','PTEN','KRAS','AKT1','PIK3CA','RB1','CDKN2A',
+                'CDH1','CTNNB1','NOTCH1','BRAF','ERBB2','VHL','APC','SMAD4','ATM','NRAS'];
+
+  // Pairwise overlaps
+  const ab = ['FOXM1','AURKA','CDC20','BUB1','CCNB1','PLK1','TTK','NDC80','KIF11','CENPE'];
+  const ac = ['IL6','TNF','STAT3','JAK2','CXCL8','CCL2','IL1B','NFKB1','MMP9','VEGFA'];
+  const bc = ['SOX2','POU5F1','NANOG','KLF4','LIN28A','SALL4','DPPA4','TDGF1','ZFP42','PRDM14'];
+
+  // Unique genes per cohort
+  const uA = ['APOE','TREM2','CLU','BIN1','ABCA7','CD33','MS4A6A','PICALM','CR1','SORL1',
+              'ADAMTS4','FERMT2','SLC24A4','PTK2B','CELF1'];
+  const uB = ['HBB','HBA1','SLC4A1','ANK1','EPB42','SPTA1','GYPA','ALAS2','KLF1','GATA1',
+              'TAL1','NFE2','EKLF','BCL11A','MYB'];
+  const uC = ['COL1A1','COL3A1','FN1','BGN','POSTN','SPARC','LOX','MMP2','TGFB1','ACTA2',
+              'VIM','SNAI1','ZEB1','TWIST1','CDH2'];
+
+  const setA = [...core, ...ab, ...ac, ...uA];
+  const setB = [...core, ...ab, ...bc, ...uB];
+  const setC = [...core, ...ac, ...bc, ...uC];
+
+  function mockTable(genes, label) {
+    return genes.map(g => ({
+      Gene_Symbol: g,
+      Log2FC: (Math.random() * 6 - 3).toFixed(3),
+      padj: (Math.random() * 0.05).toFixed(6),
+      baseMean: (Math.random() * 5000).toFixed(1)
+    }));
+  }
+
+  STATE.files = [
+    { name: 'Cohort_A_Alzheimer', data: mockTable(setA, 'A'), columns: ['Gene_Symbol','Log2FC','padj','baseMean'], mapping: { gene: 'Gene_Symbol', log2fc: 'Log2FC', pval: 'padj' }},
+    { name: 'Cohort_B_Leukemia', data: mockTable(setB, 'B'), columns: ['Gene_Symbol','Log2FC','padj','baseMean'], mapping: { gene: 'Gene_Symbol', log2fc: 'Log2FC', pval: 'padj' }},
+    { name: 'Cohort_C_Fibrosis', data: mockTable(setC, 'C'), columns: ['Gene_Symbol','Log2FC','padj','baseMean'], mapping: { gene: 'Gene_Symbol', log2fc: 'Log2FC', pval: 'padj' }}
+  ];
+
+  refreshUI();
+  toast('3 mock cohorts loaded — click Compare');
+}
+
+// ═══════════════════════════════════════════════════
+// HELP
+// ═══════════════════════════════════════════════════
+document.getElementById('helpBtn').addEventListener('click', () => {
+  toast('Drop CSV/TSV files → map gene column → Compare. Use Advanced Filters for Log2FC/p-value cutoffs.', 5000);
+});
+</script>
+</body>
+</html>

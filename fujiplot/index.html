@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FujiPlot — Clean Volcano Plots</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #FFFFFF;
+  --bg-secondary: #F7F7F8;
+  --bg-tertiary: #EEEEF0;
+  --text: #111111;
+  --text-secondary: #555;
+  --text-tertiary: #888;
+  --up-color: #C21807;
+  --down-color: #1565C0;
+  --neutral: #CCCCCC;
+  --border: #E0E0E0;
+  --accent: #C21807;
+  --card-bg: #FFFFFF;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06);
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+}
+
+[data-theme="dark"] {
+  --bg: #0F1115;
+  --bg-secondary: #1A1D24;
+  --bg-tertiary: #252830;
+  --text: #F5F5F5;
+  --text-secondary: #AAA;
+  --text-tertiary: #666;
+  --up-color: #FFD600;
+  --down-color: #4FC3F7;
+  --neutral: #333;
+  --border: #333;
+  --accent: #FFD600;
+  --card-bg: #1A1D24;
+  --shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.3s, color 0.3s;
+  overflow-x: hidden;
+}
+
+/* ── Landing ── */
+#landing {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+  position: relative;
+}
+
+.landing-bg {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  overflow: hidden;
+  z-index: 0;
+  opacity: 0.06;
+}
+
+.landing-bg svg { width: 100%; height: 100%; }
+
+.landing-content {
+  position: relative;
+  z-index: 1;
+  max-width: 640px;
+}
+
+.logo-mark {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 1.5rem;
+  position: relative;
+}
+
+.logo-mark svg { width: 100%; height: 100%; }
+
+h1.brand {
+  font-family: var(--font-mono);
+  font-size: 2.8rem;
+  font-weight: 700;
+  letter-spacing: -1px;
+  margin-bottom: 0.5rem;
+}
+
+.brand-accent { color: var(--accent); }
+
+.subtitle {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.description {
+  font-size: 0.92rem;
+  color: var(--text-tertiary);
+  line-height: 1.7;
+  margin-bottom: 2.5rem;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.btn-group { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+
+.btn {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0.7rem 1.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-primary {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+
+.btn-primary:hover { opacity: 0.85; }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+}
+
+.btn-secondary:hover { background: var(--bg-secondary); }
+
+.footer-note {
+  position: absolute;
+  bottom: 2rem;
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+}
+
+/* ── App Layout ── */
+#app { display: none; min-height: 100vh; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.topbar-brand {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.topbar-actions { display: flex; gap: 0.5rem; align-items: center; }
+
+.icon-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  transition: all 0.15s;
+}
+
+.icon-btn:hover { background: var(--bg-secondary); }
+
+.main-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: calc(100vh - 49px);
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  padding: 1.25rem;
+  overflow-y: auto;
+  max-height: calc(100vh - 49px);
+}
+
+.sidebar-section {
+  margin-bottom: 1.5rem;
+}
+
+.sidebar-section h3 {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-tertiary);
+  margin-bottom: 0.75rem;
+  font-family: var(--font-mono);
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+
+.control-row label {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.control-row input[type="number"],
+.control-row select {
+  width: 80px;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.control-row input[type="range"] {
+  width: 100px;
+  accent-color: var(--accent);
+}
+
+.range-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.6rem;
+}
+
+.range-row .range-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.range-row label {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.range-row .range-val {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+.range-row input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.export-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.export-btn {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.export-btn:hover { background: var(--bg-tertiary); }
+
+/* ── Main Panel ── */
+.main-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  overflow: hidden;
+}
+
+/* ── Metrics Bar ── */
+.metrics-bar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.metric {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-val {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.metric-label {
+  font-size: 0.68rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-up .metric-val { color: var(--up-color); }
+.metric-down .metric-val { color: var(--down-color); }
+
+.truncation-banner {
+  display: none;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+  font-family: var(--font-mono);
+}
+
+/* ── Plot Container ── */
+.plot-container {
+  flex: 1;
+  position: relative;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 500px;
+}
+
+.plot-container canvas,
+.plot-container svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* ── Selections ── */
+.selections-bar {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.selection-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.selection-tag:hover { background: var(--bg-tertiary); }
+.selection-tag .remove { cursor: pointer; opacity: 0.5; }
+.selection-tag .remove:hover { opacity: 1; }
+
+/* ── Upload Zone ── */
+.upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 400px;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.upload-zone:hover,
+.upload-zone.drag-over {
+  border-color: var(--accent);
+  background: var(--bg-secondary);
+}
+
+.upload-zone-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  opacity: 0.3;
+}
+
+.upload-zone-text {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.35rem;
+}
+
+.upload-zone-hint {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+}
+
+/* ── Error ── */
+.error-box {
+  display: none;
+  background: #FFF0F0;
+  border: 1px solid #FFCCCC;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: #C21807;
+}
+
+[data-theme="dark"] .error-box {
+  background: #2A1A1A;
+  border-color: #552222;
+  color: #FF8888;
+}
+
+/* ── Tooltip ── */
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  box-shadow: var(--shadow);
+  z-index: 200;
+  display: none;
+  line-height: 1.5;
+  max-width: 260px;
+}
+
+/* ── Selection overlay ── */
+.selection-rect {
+  position: absolute;
+  border: 1.5px dashed var(--accent);
+  background: rgba(194, 24, 7, 0.06);
+  pointer-events: none;
+  display: none;
+  z-index: 50;
+}
+
+[data-theme="dark"] .selection-rect {
+  background: rgba(255, 214, 0, 0.06);
+}
+
+/* ── Modal ── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.active { display: flex; }
+
+.modal {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 1.5rem;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+}
+
+.modal h3 {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.modal input[type="text"] {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg-secondary);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .main-layout { grid-template-columns: 1fr; }
+  .sidebar { max-height: none; border-right: none; border-bottom: 1px solid var(--border); }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ Landing Page ═══ -->
+<div id="landing">
+  <div class="landing-bg">
+    <svg viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <radialGradient id="g1" cx="50%" cy="60%"><stop offset="0%" stop-color="currentColor" stop-opacity="0.4"/><stop offset="100%" stop-color="currentColor" stop-opacity="0"/></radialGradient>
+      </defs>
+      <circle cx="400" cy="360" r="220" fill="url(#g1)"/>
+      <line x1="200" y1="500" x2="400" y2="100" stroke="currentColor" stroke-width="0.5" opacity="0.3"/>
+      <line x1="600" y1="500" x2="400" y2="100" stroke="currentColor" stroke-width="0.5" opacity="0.3"/>
+    </svg>
+  </div>
+  <div class="landing-content">
+    <div class="logo-mark">
+      <svg viewBox="0 0 72 72" fill="none">
+        <polygon points="36,8 62,60 10,60" stroke="var(--accent)" stroke-width="2" fill="none" opacity="0.6"/>
+        <polygon points="36,20 52,54 20,54" stroke="var(--accent)" stroke-width="1.5" fill="none" opacity="0.35"/>
+        <circle cx="36" cy="40" r="3" fill="var(--accent)" opacity="0.8"/>
+      </svg>
+    </div>
+    <h1 class="brand">Fuji<span class="brand-accent">Plot</span></h1>
+    <p class="subtitle">A clean client-side volcano plot for differential omics signatures.</p>
+    <p class="description">
+      FujiPlot visualizes effect size and statistical strength using dual diagonal gradients
+      and transparency encoding. All computation runs locally in your browser. Export a publication-ready
+      SVG and a fully annotated table with session parameters.
+    </p>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="enterApp()">▲ Run FujiPlot</button>
+      <button class="btn btn-secondary" onclick="loadDemo()">View demo results</button>
+    </div>
+  </div>
+  <div class="footer-note">No server · No database · Fully client-side</div>
+</div>
+
+<!-- ═══ App ═══ -->
+<div id="app">
+  <div class="topbar">
+    <span class="topbar-brand" onclick="goHome()">Fuji<span class="brand-accent">Plot</span></span>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">◑</button>
+      <button class="icon-btn" onclick="resetSession()" title="New session">↺</button>
+    </div>
+  </div>
+  <div class="main-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-section">
+        <h3>Thresholds</h3>
+        <div class="control-row">
+          <label>|log₂FC| ≥</label>
+          <input type="number" id="ctrl-fc" value="1.0" step="0.1" min="0" onchange="rerender()">
+        </div>
+        <div class="control-row">
+          <label>FDR ≤</label>
+          <input type="number" id="ctrl-fdr" value="0.05" step="0.01" min="0" max="1" onchange="rerender()">
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Display</h3>
+        <div class="control-row">
+          <label>Top N genes</label>
+          <select id="ctrl-topn" onchange="rerender()">
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="200" selected>200</option>
+            <option value="500">500</option>
+            <option value="1000">1000</option>
+            <option value="all">All</option>
+          </select>
+        </div>
+        <div class="range-row">
+          <div class="range-header"><label>Point size</label><span class="range-val" id="val-radius">4.5</span></div>
+          <input type="range" id="ctrl-radius" min="2" max="8" step="0.5" value="4.5" oninput="document.getElementById('val-radius').textContent=this.value;rerender()">
+        </div>
+        <div class="range-row">
+          <div class="range-header"><label>Opacity</label><span class="range-val" id="val-alpha">0.35</span></div>
+          <input type="range" id="ctrl-alpha" min="0.05" max="1" step="0.05" value="0.35" oninput="document.getElementById('val-alpha').textContent=this.value;rerender()">
+        </div>
+        <div class="range-row">
+          <div class="range-header"><label>Labels</label><span class="range-val" id="val-labels">10</span></div>
+          <input type="range" id="ctrl-labels" min="0" max="30" step="1" value="10" oninput="document.getElementById('val-labels').textContent=this.value;rerender()">
+        </div>
+        <div class="control-row">
+          <label>Ref. lines</label>
+          <input type="checkbox" id="ctrl-reflines" checked onchange="rerender()">
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Export</h3>
+        <div class="export-btns">
+          <button class="export-btn" onclick="exportSVG()">↓ SVG</button>
+          <button class="export-btn" onclick="exportTable()">↓ Table (TSV)</button>
+          <button class="export-btn" onclick="exportLog()">↓ Session log</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main-panel">
+      <div class="error-box" id="error-box"></div>
+
+      <div class="metrics-bar" id="metrics-bar" style="display:none">
+        <div class="metric"><span class="metric-val" id="m-total">0</span><span class="metric-label">Total</span></div>
+        <div class="metric"><span class="metric-val" id="m-displayed">0</span><span class="metric-label">Displayed</span></div>
+        <div class="metric"><span class="metric-val" id="m-deg">0</span><span class="metric-label">DEG</span></div>
+        <div class="metric metric-up"><span class="metric-val" id="m-up">0</span><span class="metric-label">Up</span></div>
+        <div class="metric metric-down"><span class="metric-val" id="m-down">0</span><span class="metric-label">Down</span></div>
+        <div class="metric"><span class="metric-val" id="m-ns">0</span><span class="metric-label">NS</span></div>
+      </div>
+
+      <div class="truncation-banner" id="trunc-banner"></div>
+
+      <!-- Upload zone (shown when no data) -->
+      <div class="upload-zone" id="upload-zone"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="handleDrop(event)"
+           onclick="document.getElementById('file-input').click()">
+        <div class="upload-zone-icon">▲</div>
+        <div class="upload-zone-text">Drop your differential expression table here</div>
+        <div class="upload-zone-hint">CSV or TSV · Requires gene_symbol, log2FC, adj.P.Val columns</div>
+        <input type="file" id="file-input" accept=".csv,.tsv,.txt" style="display:none" onchange="handleFile(this.files[0])">
+      </div>
+
+      <!-- Plot area (shown when data loaded) -->
+      <div class="plot-container" id="plot-container" style="display:none">
+        <canvas id="plot-canvas"></canvas>
+        <svg id="plot-svg"></svg>
+        <div class="tooltip" id="tooltip"></div>
+        <div class="selection-rect" id="selection-rect"></div>
+      </div>
+
+      <div class="selections-bar" id="selections-bar"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Selection Name Modal ═══ -->
+<div class="modal-overlay" id="modal-selection">
+  <div class="modal">
+    <h3>Name this selection</h3>
+    <input type="text" id="selection-name-input" placeholder="e.g. Cluster A">
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="cancelSelection()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmSelection()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// FujiPlot Core Engine
+// ════════════════════════════════════════════════════════════════
+
+let STATE = {
+  rawData: null,
+  processedData: null,
+  genes: [],
+  xLim: 1,
+  yLim: 1,
+  maxDiag: 1,
+  selections: [],
+  pendingSelection: null,
+  sessionLog: [],
+  theme: 'light',
+  isDragging: false,
+  dragStart: null,
+  fileName: ''
+};
+
+// ── Theme ──
+function toggleTheme() {
+  STATE.theme = STATE.theme === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', STATE.theme === 'dark' ? 'dark' : '');
+  const alphaCtrl = document.getElementById('ctrl-alpha');
+  if (STATE.theme === 'dark' && parseFloat(alphaCtrl.value) < 0.5) {
+    alphaCtrl.value = 0.5;
+    document.getElementById('val-alpha').textContent = '0.5';
+  }
+  if (STATE.genes.length) rerender();
+}
+
+// ── Navigation ──
+function enterApp() {
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+function goHome() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('landing').style.display = 'flex';
+}
+
+function resetSession() {
+  STATE.rawData = null;
+  STATE.processedData = null;
+  STATE.genes = [];
+  STATE.selections = [];
+  STATE.sessionLog = [];
+  document.getElementById('upload-zone').style.display = 'flex';
+  document.getElementById('plot-container').style.display = 'none';
+  document.getElementById('metrics-bar').style.display = 'none';
+  document.getElementById('trunc-banner').style.display = 'none';
+  document.getElementById('selections-bar').innerHTML = '';
+  showError('');
+}
+
+// ── Error ──
+function showError(msg) {
+  const box = document.getElementById('error-box');
+  if (msg) { box.style.display = 'block'; box.textContent = msg; }
+  else { box.style.display = 'none'; box.textContent = ''; }
+}
+
+// ── File Handling ──
+function handleDrop(e) {
+  e.preventDefault();
+  e.target.closest('.upload-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+}
+
+function handleFile(file) {
+  if (!file) return;
+  showError('');
+  STATE.fileName = file.name;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      processInput(e.target.result, file.name);
+    } catch (err) {
+      showError('Error processing file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ── Column detection ──
+const COL_ALIASES = {
+  gene: ['gene_symbol', 'gene.symbol', 'genesymbol', 'gene', 'symbol', 'genename', 'gene_name', 'gene.name', 'hgnc_symbol'],
+  log2fc: ['log2fc', 'logfc', 'log2foldchange', 'log2_fold_change', 'log2.fold.change', 'lfc', 'log2(fc)'],
+  padj: ['adj.p.val', 'padj', 'adj_p_val', 'adjpval', 'p.adj', 'p_adj', 'fdr', 'q.value', 'qvalue', 'adjusted_p_value', 'adj.p.value', 'padjust', 'p_adjusted', 'adj_pval']
+};
+
+function detectColumn(headers, aliases) {
+  const lower = headers.map(h => h.toLowerCase().trim());
+  for (const alias of aliases) {
+    const idx = lower.indexOf(alias.toLowerCase());
+    if (idx >= 0) return idx;
+  }
+  return -1;
+}
+
+// ── Parsing & Processing ──
+function processInput(text, filename) {
+  const sep = filename.endsWith('.tsv') || text.split('\t').length > text.split(',').length ? '\t' : ',';
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) throw new Error('File must have a header and at least one data row.');
+
+  const headers = lines[0].split(sep).map(h => h.replace(/^["']|["']$/g, '').trim());
+  const geneIdx = detectColumn(headers, COL_ALIASES.gene);
+  const fcIdx = detectColumn(headers, COL_ALIASES.log2fc);
+  const padjIdx = detectColumn(headers, COL_ALIASES.padj);
+
+  if (geneIdx < 0) throw new Error('Missing required column: gene_symbol. Found columns: ' + headers.join(', '));
+  if (fcIdx < 0) throw new Error('Missing required column: log2FC. Found columns: ' + headers.join(', '));
+  if (padjIdx < 0) throw new Error('Missing required column: adjusted p-value. Found columns: ' + headers.join(', '));
+
+  let symbolsCleaned = 0;
+  const rows = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(sep).map(c => c.replace(/^["']|["']$/g, '').trim());
+    if (cols.length <= Math.max(geneIdx, fcIdx, padjIdx)) continue;
+
+    let gene = cols[geneIdx];
+    if (!gene || gene === '' || gene === 'NA' || gene === 'null') continue;
+
+    // Clean gene symbol: take first
+    if (gene.includes('///')) { gene = gene.split('///')[0].trim(); symbolsCleaned++; }
+    else if (gene.includes('//')) { gene = gene.split('//')[0].trim(); symbolsCleaned++; }
+    else if (gene.includes(';')) { gene = gene.split(';')[0].trim(); symbolsCleaned++; }
+
+    const log2fc = parseFloat(cols[fcIdx]);
+    const padj = parseFloat(cols[padjIdx]);
+
+    if (isNaN(log2fc) || isNaN(padj)) continue;
+    if (padj < 0 || padj > 1) continue;
+
+    // Integrated score: padj floored at 1e-10 for score
+    const padjScore = Math.max(padj, 1e-10);
+    const score = log2fc * (-Math.log10(padjScore));
+
+    rows.push({ gene, log2fc, padj, score });
+  }
+
+  if (rows.length === 0) throw new Error('No valid rows found after parsing.');
+
+  // Deduplication: keep max |score|
+  const geneMap = new Map();
+  for (const row of rows) {
+    const existing = geneMap.get(row.gene);
+    if (!existing || Math.abs(row.score) > Math.abs(existing.score)) {
+      geneMap.set(row.gene, row);
+    }
+  }
+
+  const dedupCount = rows.length - geneMap.size;
+  const genes = Array.from(geneMap.values());
+
+  // Compute derived
+  for (const g of genes) {
+    g.y = -Math.log10(Math.max(g.padj, 1e-300));
+  }
+
+  // Axis limits: 99th percentile
+  const absFCs = genes.map(g => Math.abs(g.log2fc)).sort((a, b) => a - b);
+  const ys = genes.map(g => g.y).sort((a, b) => a - b);
+
+  STATE.xLim = percentile(absFCs, 0.99) || 3;
+  STATE.yLim = percentile(ys, 0.99) || 5;
+  STATE.maxDiag = (STATE.xLim + STATE.yLim) / Math.sqrt(2);
+
+  // Ranking: radial volcano strength
+  const xScale99 = STATE.xLim;
+  const yScale99 = STATE.yLim;
+
+  for (const g of genes) {
+    const xn = Math.abs(g.log2fc) / xScale99;
+    const yn = g.y / yScale99;
+    g.rank = Math.sqrt(xn * xn + yn * yn);
+  }
+
+  genes.sort((a, b) => b.rank - a.rank);
+
+  STATE.genes = genes;
+
+  // Log
+  STATE.sessionLog = [
+    `File: ${filename}`,
+    `Parsed rows: ${rows.length}`,
+    `Symbols cleaned: ${symbolsCleaned}`,
+    `Deduplicated: ${dedupCount}`,
+    `Final genes: ${genes.length}`,
+    `x_lim (99th %ile |log2FC|): ${STATE.xLim.toFixed(4)}`,
+    `y_lim (99th %ile -log10 padj): ${STATE.yLim.toFixed(4)}`,
+  ];
+
+  // Show plot
+  document.getElementById('upload-zone').style.display = 'none';
+  document.getElementById('plot-container').style.display = 'block';
+  document.getElementById('metrics-bar').style.display = 'flex';
+
+  rerender();
+  setupInteractions();
+}
+
+function percentile(sorted, p) {
+  if (sorted.length === 0) return 0;
+  const idx = Math.floor(p * (sorted.length - 1));
+  return sorted[Math.min(idx, sorted.length - 1)];
+}
+
+// ── Render ──
+function rerender() {
+  if (!STATE.genes.length) return;
+
+  const fcCut = parseFloat(document.getElementById('ctrl-fc').value);
+  const fdrCut = parseFloat(document.getElementById('ctrl-fdr').value);
+  const topNVal = document.getElementById('ctrl-topn').value;
+  const topN = topNVal === 'all' ? STATE.genes.length : parseInt(topNVal);
+  const radius = parseFloat(document.getElementById('ctrl-radius').value);
+  const alphaSlider = parseFloat(document.getElementById('ctrl-alpha').value);
+  const labelCount = parseInt(document.getElementById('ctrl-labels').value);
+  const showRefLines = document.getElementById('ctrl-reflines').checked;
+
+  const genes = STATE.genes;
+  const displayed = genes.slice(0, topN);
+
+  // Metrics
+  const yFdrLine = -Math.log10(Math.max(fdrCut, 1e-300));
+  let upCount = 0, downCount = 0, nsCount = 0;
+  for (const g of genes) {
+    const isDeg = Math.abs(g.log2fc) >= fcCut && g.padj <= fdrCut;
+    g.isDeg = isDeg;
+    if (isDeg && g.log2fc > 0) upCount++;
+    else if (isDeg && g.log2fc < 0) downCount++;
+    else nsCount++;
+  }
+
+  document.getElementById('m-total').textContent = genes.length;
+  document.getElementById('m-displayed').textContent = displayed.length;
+  document.getElementById('m-deg').textContent = upCount + downCount;
+  document.getElementById('m-up').textContent = upCount;
+  document.getElementById('m-down').textContent = downCount;
+  document.getElementById('m-ns').textContent = nsCount;
+
+  // Truncation check
+  let truncated = 0;
+  for (const g of displayed) {
+    if (Math.abs(g.log2fc) > STATE.xLim || g.y > STATE.yLim) truncated++;
+  }
+  const truncBanner = document.getElementById('trunc-banner');
+  if (truncated > 0) {
+    truncBanner.style.display = 'block';
+    truncBanner.textContent = `${truncated} point(s) truncated to axis bounds.`;
+  } else {
+    truncBanner.style.display = 'none';
+  }
+
+  // ── Drawing ──
+  const container = document.getElementById('plot-container');
+  const rect = container.getBoundingClientRect();
+  const W = rect.width;
+  const H = rect.height;
+
+  const margin = { top: 30, right: 30, bottom: 55, left: 65 };
+  const plotW = W - margin.left - margin.right;
+  const plotH = H - margin.top - margin.bottom;
+
+  const xLim = STATE.xLim;
+  const yLim = STATE.yLim;
+
+  const scaleX = (v) => margin.left + ((v + xLim) / (2 * xLim)) * plotW;
+  const scaleY = (v) => margin.top + (1 - v / yLim) * plotH;
+
+  // Inverse scales for interaction
+  STATE.invX = (px) => ((px - margin.left) / plotW) * 2 * xLim - xLim;
+  STATE.invY = (py) => (1 - (py - margin.top) / plotH) * yLim;
+  STATE.margin = margin;
+  STATE.plotW = plotW;
+  STATE.plotH = plotH;
+
+  // ── Canvas for points ──
+  const canvas = document.getElementById('plot-canvas');
+  canvas.width = W * 2;
+  canvas.height = H * 2;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(2, 2);
+  ctx.clearRect(0, 0, W, H);
+
+  const isDark = STATE.theme === 'dark';
+  const upColor = isDark ? [255, 214, 0] : [194, 24, 7];
+  const downColor = isDark ? [79, 195, 247] : [21, 101, 192];
+  const neutralColor = isDark ? [17, 17, 17] : [255, 255, 255];
+
+  for (const g of displayed) {
+    const cx = scaleX(clamp(g.log2fc, -xLim, xLim));
+    const cy = scaleY(clamp(g.y, 0, yLim));
+
+    // Diagonal projections
+    const upDiag = (g.log2fc + g.y) / Math.sqrt(2);
+    const downDiag = (-g.log2fc + g.y) / Math.sqrt(2);
+    const upNorm = clamp(upDiag / STATE.maxDiag, 0, 1);
+    const downNorm = clamp(downDiag / STATE.maxDiag, 0, 1);
+
+    let color, intensity;
+    if (g.log2fc >= 0) {
+      intensity = upNorm;
+      color = lerpColor(neutralColor, upColor, intensity);
+    } else {
+      intensity = downNorm;
+      color = lerpColor(neutralColor, downColor, intensity);
+    }
+
+    const alpha = alphaSlider * clamp(Math.max(upNorm, downNorm), 0.15, 1.0);
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${color[0]},${color[1]},${color[2]},${alpha})`;
+    ctx.fill();
+
+    // Store screen coords for interaction
+    g._cx = cx;
+    g._cy = cy;
+  }
+
+  STATE.displayed = displayed;
+
+  // ── SVG overlay (axes, lines, labels) ──
+  const svg = document.getElementById('plot-svg');
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+  svg.innerHTML = '';
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  const textColor = isDark ? '#F5F5F5' : '#111111';
+  const lineColor = isDark ? '#444' : '#CCC';
+  const refColor = isDark ? '#555' : '#BBB';
+
+  // Axes group
+  const gAxes = svgEl('g', { id: 'axes' });
+
+  // X axis
+  gAxes.appendChild(svgLine(margin.left, margin.top + plotH, margin.left + plotW, margin.top + plotH, lineColor, 1));
+  // Y axis
+  gAxes.appendChild(svgLine(margin.left, margin.top, margin.left, margin.top + plotH, lineColor, 1));
+
+  // X ticks
+  const xTicks = niceRange(-xLim, xLim, 8);
+  for (const t of xTicks) {
+    const tx = scaleX(t);
+    gAxes.appendChild(svgLine(tx, margin.top + plotH, tx, margin.top + plotH + 5, lineColor, 1));
+    gAxes.appendChild(svgText(tx, margin.top + plotH + 18, t.toFixed(1), textColor, '0.7rem', 'middle'));
+  }
+
+  // Y ticks
+  const yTicks = niceRange(0, yLim, 6);
+  for (const t of yTicks) {
+    const ty = scaleY(t);
+    gAxes.appendChild(svgLine(margin.left - 5, ty, margin.left, ty, lineColor, 1));
+    gAxes.appendChild(svgText(margin.left - 10, ty + 3, t.toFixed(0), textColor, '0.7rem', 'end'));
+  }
+
+  // Axis labels
+  gAxes.appendChild(svgText(margin.left + plotW / 2, H - 8, 'log₂FC', textColor, '0.82rem', 'middle', 'var(--font-body)'));
+
+  const yLabel = svgText(15, margin.top + plotH / 2, '−log₁₀(FDR)', textColor, '0.82rem', 'middle', 'var(--font-body)');
+  yLabel.setAttribute('transform', `rotate(-90, 15, ${margin.top + plotH / 2})`);
+  gAxes.appendChild(yLabel);
+
+  svg.appendChild(gAxes);
+
+  // Reference lines
+  if (showRefLines) {
+    const gRef = svgEl('g', { id: 'reference-lines' });
+    const dashArr = '6,4';
+
+    // Vertical FC cutoffs
+    if (fcCut <= xLim) {
+      gRef.appendChild(svgLine(scaleX(fcCut), margin.top, scaleX(fcCut), margin.top + plotH, refColor, 1, dashArr));
+      gRef.appendChild(svgLine(scaleX(-fcCut), margin.top, scaleX(-fcCut), margin.top + plotH, refColor, 1, dashArr));
+    }
+
+    // Horizontal FDR cutoff
+    if (yFdrLine <= yLim) {
+      gRef.appendChild(svgLine(margin.left, scaleY(yFdrLine), margin.left + plotW, scaleY(yFdrLine), refColor, 1, dashArr));
+    }
+
+    svg.appendChild(gRef);
+  }
+
+  // Labels
+  if (labelCount > 0) {
+    const gLabels = svgEl('g', { id: 'labels' });
+    const labelGenes = displayed.slice(0, labelCount);
+
+    // Simple repel: offset based on position
+    for (const g of labelGenes) {
+      const cx = g._cx;
+      const cy = g._cy;
+      const offsetX = g.log2fc >= 0 ? radius + 3 : -(radius + 3);
+      const anchor = g.log2fc >= 0 ? 'start' : 'end';
+      const lbl = svgText(cx + offsetX, cy - radius - 2, g.gene, textColor, '0.68rem', anchor, "'Space Mono', monospace");
+      lbl.style.pointerEvents = 'none';
+      gLabels.appendChild(lbl);
+    }
+    svg.appendChild(gLabels);
+  }
+}
+
+// ── Helpers ──
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+function lerpColor(a, b, t) {
+  return [
+    Math.round(a[0] + (b[0] - a[0]) * t),
+    Math.round(a[1] + (b[1] - a[1]) * t),
+    Math.round(a[2] + (b[2] - a[2]) * t)
+  ];
+}
+
+function niceRange(min, max, count) {
+  const step = (max - min) / count;
+  const mag = Math.pow(10, Math.floor(Math.log10(step)));
+  const niceStep = Math.ceil(step / mag) * mag;
+  const ticks = [];
+  for (let t = Math.ceil(min / niceStep) * niceStep; t <= max; t += niceStep) {
+    ticks.push(Math.round(t * 1000) / 1000);
+  }
+  return ticks;
+}
+
+function svgEl(tag, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs || {})) el.setAttribute(k, v);
+  return el;
+}
+
+function svgLine(x1, y1, x2, y2, stroke, width, dash) {
+  const l = svgEl('line', { x1, y1, x2, y2, stroke, 'stroke-width': width });
+  if (dash) l.setAttribute('stroke-dasharray', dash);
+  return l;
+}
+
+function svgText(x, y, text, fill, fontSize, anchor, fontFamily) {
+  const t = svgEl('text', { x, y, fill, 'font-size': fontSize, 'text-anchor': anchor || 'start', 'font-family': fontFamily || "'DM Sans', sans-serif" });
+  t.textContent = text;
+  return t;
+}
+
+// ── Interactions ──
+function setupInteractions() {
+  const container = document.getElementById('plot-container');
+  const tooltip = document.getElementById('tooltip');
+  const selRect = document.getElementById('selection-rect');
+
+  // Hover tooltip
+  container.addEventListener('mousemove', (e) => {
+    if (STATE.isDragging) return;
+    const rect = container.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    let closest = null;
+    let minDist = 15;
+
+    for (const g of (STATE.displayed || [])) {
+      const dx = mx - g._cx;
+      const dy = my - g._cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < minDist) { minDist = dist; closest = g; }
+    }
+
+    if (closest) {
+      tooltip.style.display = 'block';
+      tooltip.innerHTML = `<strong>${closest.gene}</strong><br>log₂FC: ${closest.log2fc.toFixed(3)}<br>FDR: ${closest.padj.toExponential(2)}<br>−log₁₀: ${closest.y.toFixed(2)}<br>Rank: ${(STATE.genes.indexOf(closest) + 1)}`;
+      let tx = mx + 15;
+      let ty = my - 10;
+      if (tx + 200 > rect.width) tx = mx - 200;
+      if (ty < 5) ty = my + 15;
+      tooltip.style.left = tx + 'px';
+      tooltip.style.top = ty + 'px';
+    } else {
+      tooltip.style.display = 'none';
+    }
+  });
+
+  container.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+
+  // Shift+drag selection
+  container.addEventListener('mousedown', (e) => {
+    if (!e.shiftKey) return;
+    const rect = container.getBoundingClientRect();
+    STATE.isDragging = true;
+    STATE.dragStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    selRect.style.display = 'block';
+    selRect.style.left = STATE.dragStart.x + 'px';
+    selRect.style.top = STATE.dragStart.y + 'px';
+    selRect.style.width = '0px';
+    selRect.style.height = '0px';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!STATE.isDragging) return;
+    const rect = container.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const x = Math.min(STATE.dragStart.x, mx);
+    const y = Math.min(STATE.dragStart.y, my);
+    const w = Math.abs(mx - STATE.dragStart.x);
+    const h = Math.abs(my - STATE.dragStart.y);
+    selRect.style.left = x + 'px';
+    selRect.style.top = y + 'px';
+    selRect.style.width = w + 'px';
+    selRect.style.height = h + 'px';
+  });
+
+  document.addEventListener('mouseup', (e) => {
+    if (!STATE.isDragging) return;
+    STATE.isDragging = false;
+    selRect.style.display = 'none';
+
+    const rect = container.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const x1 = Math.min(STATE.dragStart.x, mx);
+    const y1 = Math.min(STATE.dragStart.y, my);
+    const x2 = Math.max(STATE.dragStart.x, mx);
+    const y2 = Math.max(STATE.dragStart.y, my);
+
+    if (x2 - x1 < 5 || y2 - y1 < 5) return;
+
+    // Find genes in selection
+    const selected = [];
+    for (const g of (STATE.displayed || [])) {
+      if (g._cx >= x1 && g._cx <= x2 && g._cy >= y1 && g._cy <= y2) {
+        selected.push(g.gene);
+      }
+    }
+
+    if (selected.length === 0) return;
+
+    STATE.pendingSelection = selected;
+    document.getElementById('modal-selection').classList.add('active');
+    document.getElementById('selection-name-input').value = '';
+    document.getElementById('selection-name-input').focus();
+  });
+}
+
+function confirmSelection() {
+  const name = document.getElementById('selection-name-input').value.trim() || `Selection ${STATE.selections.length + 1}`;
+  STATE.selections.push({ name, genes: new Set(STATE.pendingSelection) });
+  STATE.pendingSelection = null;
+  document.getElementById('modal-selection').classList.remove('active');
+  renderSelections();
+}
+
+function cancelSelection() {
+  STATE.pendingSelection = null;
+  document.getElementById('modal-selection').classList.remove('active');
+}
+
+function renderSelections() {
+  const bar = document.getElementById('selections-bar');
+  bar.innerHTML = '';
+  STATE.selections.forEach((sel, i) => {
+    const tag = document.createElement('span');
+    tag.className = 'selection-tag';
+    tag.innerHTML = `${sel.name} (${sel.genes.size}) <span class="remove" onclick="removeSelection(${i})">✕</span>`;
+    bar.appendChild(tag);
+  });
+}
+
+function removeSelection(i) {
+  STATE.selections.splice(i, 1);
+  renderSelections();
+}
+
+// ── Exports ──
+function exportSVG() {
+  if (!STATE.genes.length) return;
+
+  // Build a complete SVG with points included
+  const container = document.getElementById('plot-container');
+  const rect = container.getBoundingClientRect();
+  const W = rect.width;
+  const H = rect.height;
+
+  const fcCut = parseFloat(document.getElementById('ctrl-fc').value);
+  const radius = parseFloat(document.getElementById('ctrl-radius').value);
+  const alphaSlider = parseFloat(document.getElementById('ctrl-alpha').value);
+  const isDark = STATE.theme === 'dark';
+  const bgColor = isDark ? '#0F1115' : '#FFFFFF';
+
+  // Clone the SVG overlay
+  const overlay = document.getElementById('plot-svg');
+  const svgClone = overlay.cloneNode(true);
+  svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+  // Add background rect
+  const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  bgRect.setAttribute('width', W);
+  bgRect.setAttribute('height', H);
+  bgRect.setAttribute('fill', bgColor);
+  svgClone.insertBefore(bgRect, svgClone.firstChild);
+
+  // Add points group
+  const gPoints = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  gPoints.setAttribute('id', 'points');
+
+  const upColor = isDark ? [255, 214, 0] : [194, 24, 7];
+  const downColor = isDark ? [79, 195, 247] : [21, 101, 192];
+  const neutralColor = isDark ? [17, 17, 17] : [255, 255, 255];
+
+  for (const g of (STATE.displayed || [])) {
+    const upDiag = (g.log2fc + g.y) / Math.sqrt(2);
+    const downDiag = (-g.log2fc + g.y) / Math.sqrt(2);
+    const upNorm = clamp(upDiag / STATE.maxDiag, 0, 1);
+    const downNorm = clamp(downDiag / STATE.maxDiag, 0, 1);
+
+    let color, intensity;
+    if (g.log2fc >= 0) {
+      intensity = upNorm;
+      color = lerpColor(neutralColor, upColor, intensity);
+    } else {
+      intensity = downNorm;
+      color = lerpColor(neutralColor, downColor, intensity);
+    }
+    const alpha = alphaSlider * clamp(Math.max(upNorm, downNorm), 0.15, 1.0);
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', g._cx);
+    circle.setAttribute('cy', g._cy);
+    circle.setAttribute('r', radius);
+    circle.setAttribute('fill', `rgba(${color[0]},${color[1]},${color[2]},${alpha})`);
+    gPoints.appendChild(circle);
+  }
+
+  // Insert points before labels
+  const labelsGroup = svgClone.querySelector('#labels');
+  if (labelsGroup) {
+    svgClone.insertBefore(gPoints, labelsGroup);
+  } else {
+    svgClone.appendChild(gPoints);
+  }
+
+  const svgStr = new XMLSerializer().serializeToString(svgClone);
+  download('fujiplot.svg', svgStr, 'image/svg+xml');
+}
+
+function exportTable() {
+  if (!STATE.genes.length) return;
+
+  const fcCut = parseFloat(document.getElementById('ctrl-fc').value);
+  const fdrCut = parseFloat(document.getElementById('ctrl-fdr').value);
+
+  const headers = ['gene_symbol', 'log2FC', 'padj', 'neglog10_padj', 'integrated_score', 'is_deg'];
+  STATE.selections.forEach(s => headers.push(s.name));
+
+  const rows = [headers.join('\t')];
+  for (const g of STATE.genes) {
+    const isDeg = Math.abs(g.log2fc) >= fcCut && g.padj <= fdrCut ? 1 : 0;
+    const row = [g.gene, g.log2fc.toFixed(6), g.padj.toExponential(4), g.y.toFixed(4), g.score.toFixed(4), isDeg];
+    STATE.selections.forEach(s => row.push(s.genes.has(g.gene) ? 1 : 0));
+    rows.push(row.join('\t'));
+  }
+
+  download('fujiplot_table.tsv', rows.join('\n'), 'text/tab-separated-values');
+}
+
+function exportLog() {
+  const fcCut = parseFloat(document.getElementById('ctrl-fc').value);
+  const fdrCut = parseFloat(document.getElementById('ctrl-fdr').value);
+  const topN = document.getElementById('ctrl-topn').value;
+
+  const log = [
+    '=== FujiPlot Session Log ===',
+    `Timestamp: ${new Date().toISOString()}`,
+    '',
+    '--- Data ---',
+    ...STATE.sessionLog,
+    '',
+    '--- Parameters ---',
+    `log2FC cutoff: ${fcCut}`,
+    `FDR cutoff: ${fdrCut}`,
+    `Top N: ${topN}`,
+    `Radius: ${document.getElementById('ctrl-radius').value}`,
+    `Alpha: ${document.getElementById('ctrl-alpha').value}`,
+    `Labels: ${document.getElementById('ctrl-labels').value}`,
+    `Theme: ${STATE.theme}`,
+    `padj floor (score): 1e-10`,
+    `padj floor (y-axis): 1e-300`,
+    '',
+    '--- Selections ---',
+    ...STATE.selections.map(s => `${s.name}: ${s.genes.size} genes`),
+    '',
+    '--- Counts ---',
+    `Total genes: ${document.getElementById('m-total').textContent}`,
+    `DEG: ${document.getElementById('m-deg').textContent}`,
+    `Up: ${document.getElementById('m-up').textContent}`,
+    `Down: ${document.getElementById('m-down').textContent}`,
+    `NS: ${document.getElementById('m-ns').textContent}`,
+  ];
+
+  download('fujiplot_session.log', log.join('\n'), 'text/plain');
+}
+
+function download(filename, content, mime) {
+  const blob = new Blob([content], { type: mime });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ── Demo Data Generator ──
+function loadDemo() {
+  enterApp();
+  const genes = [];
+  const geneNames = [];
+
+  // Generate realistic gene names
+  const prefixes = ['TP', 'BRC', 'MYC', 'AKT', 'PIK', 'MAP', 'CDK', 'RAS', 'RAF', 'MEK', 'ERK', 'JAK', 'STAT', 'NOTCH', 'WNT', 'SHH', 'FGF', 'VEGF', 'EGF', 'TGF',
+    'IL', 'TNF', 'IFN', 'CXCL', 'CCL', 'MMP', 'ADAM', 'COL', 'FN', 'LAMA', 'SOX', 'PAX', 'HOX', 'FOX', 'KLF', 'GATA', 'RUNX',
+    'SLC', 'ABC', 'CYP', 'GST', 'ALDH', 'HSP', 'UBE', 'PSMB', 'ATG', 'CASP', 'BCL', 'BAX', 'MDM', 'RB', 'BRCA', 'ATM', 'CHEK',
+    'HDAC', 'KDM', 'DNMT', 'TET', 'IDH', 'SIRT', 'PARP', 'TOP'];
+  const suffixes = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '2A', '2B', '3A', '3B', 'A1', 'A2', 'B1', 'B2', 'L1', 'L2'];
+
+  for (let i = 0; i < 8000; i++) {
+    const name = prefixes[Math.floor(Math.random() * prefixes.length)] + suffixes[Math.floor(Math.random() * suffixes.length)];
+    if (geneNames.includes(name)) { geneNames.push(name + 'X' + i); } else { geneNames.push(name); }
+  }
+
+  // Most genes: small effect, high p-value (center cloud)
+  const rows = [];
+  for (let i = 0; i < 8000; i++) {
+    let log2fc, padj;
+
+    const r = Math.random();
+    if (r < 0.7) {
+      // Noise cloud
+      log2fc = (Math.random() - 0.5) * 1.5;
+      padj = Math.pow(10, -(Math.random() * 2));
+    } else if (r < 0.85) {
+      // Moderate DEGs
+      log2fc = (Math.random() > 0.5 ? 1 : -1) * (1 + Math.random() * 2);
+      padj = Math.pow(10, -(2 + Math.random() * 5));
+    } else if (r < 0.95) {
+      // Strong DEGs
+      log2fc = (Math.random() > 0.5 ? 1 : -1) * (2 + Math.random() * 3);
+      padj = Math.pow(10, -(4 + Math.random() * 8));
+    } else {
+      // Extreme
+      log2fc = (Math.random() > 0.5 ? 1 : -1) * (3 + Math.random() * 4);
+      padj = Math.pow(10, -(8 + Math.random() * 20));
+    }
+
+    rows.push(`${geneNames[i]}\t${log2fc.toFixed(6)}\t${padj.toExponential(4)}`);
+  }
+
+  const tsv = 'gene_symbol\tlogFC\tadj.P.Val\n' + rows.join('\n');
+  processInput(tsv, 'demo_data.tsv');
+}
+
+// ── Resize Handler ──
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { if (STATE.genes.length) rerender(); }, 200);
+});
+
+// ── Enter on modal ──
+document.getElementById('selection-name-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') confirmSelection();
+  if (e.key === 'Escape') cancelSelection();
+});
+</script>
+</body>
+</html>

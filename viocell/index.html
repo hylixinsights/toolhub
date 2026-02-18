@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VioCell — Single-Cell Distribution Viewer</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#fafafa;--bg-el:#ffffff;--text:#1a1a1a;--text-2:#6b6b6b;--text-3:#999;
+  --border:#e8e8e8;--border-lt:#f0f0f0;
+  --shape-fill:rgba(45,90,220,0.06);--shape-stroke:rgba(45,90,220,0.55);
+  --pt-color:rgba(45,90,220,0.28);
+  --accent:#2d5adc;--accent-soft:rgba(45,90,220,0.08);
+  --box-fill:rgba(45,90,220,0.04);--box-stroke:rgba(45,90,220,0.45);
+  --med-stroke:#2d5adc;
+  --grid:#f0f0f0;--grid-lbl:#aaa;
+  --font:'DM Sans',sans-serif;--mono:'JetBrains Mono',monospace;
+  --shadow:0 1px 3px rgba(0,0,0,0.04),0 4px 12px rgba(0,0,0,0.03);
+  --radius:10px;
+}
+[data-theme="dark"]{
+  --bg:#0c0c0e;--bg-el:#151518;--text:#e8e8ec;--text-2:#8a8a94;--text-3:#5a5a64;
+  --border:#252528;--border-lt:#1e1e22;
+  --shape-fill:rgba(110,145,255,0.08);--shape-stroke:rgba(110,145,255,0.5);
+  --pt-color:rgba(110,145,255,0.3);
+  --accent:#6e91ff;--accent-soft:rgba(110,145,255,0.1);
+  --box-fill:rgba(110,145,255,0.06);--box-stroke:rgba(110,145,255,0.4);
+  --med-stroke:#6e91ff;
+  --grid:#1e1e22;--grid-lbl:#555;
+  --shadow:0 1px 3px rgba(0,0,0,0.3),0 4px 12px rgba(0,0,0,0.2);
+}
+html{font-size:16px}
+body{
+  background:var(--bg);color:var(--text);font-family:var(--font);
+  min-height:100vh;display:flex;justify-content:center;
+  -webkit-font-smoothing:antialiased;transition:background .3s,color .3s;
+}
+.shell{width:100%;max-width:960px;padding:3rem 2rem 4rem}
+
+/* LANDING */
+#landing{animation:fu .6s ease both}
+@keyframes fu{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.brand{display:flex;align-items:baseline;gap:.6rem;margin-bottom:2.5rem}
+.brand-name{font-size:1.6rem;font-weight:500;letter-spacing:-.03em}
+.brand-tag{font-size:.72rem;font-weight:300;color:var(--text-3);letter-spacing:.06em;text-transform:uppercase}
+.hero-text{font-size:1.05rem;font-weight:300;line-height:1.75;color:var(--text-2);max-width:600px;margin-bottom:2.5rem}
+.hero-text strong{font-weight:500;color:var(--text)}
+.fmt{background:var(--bg-el);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:2.5rem;box-shadow:var(--shadow)}
+.fmt-label{font-size:.7rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:.75rem}
+.fmt-code{font-family:var(--mono);font-size:.82rem;line-height:1.9;color:var(--text-2)}
+.fmt-code .hl{color:var(--accent);font-weight:400}
+.acts{display:flex;gap:.75rem;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:.4rem;padding:.65rem 1.25rem;border-radius:8px;font-family:var(--font);font-size:.85rem;font-weight:500;cursor:pointer;transition:all .2s;border:none;text-decoration:none}
+.btn-p{background:var(--accent);color:#fff}.btn-p:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn-s{background:var(--accent-soft);color:var(--accent);border:1px solid transparent}.btn-s:hover{border-color:var(--accent);transform:translateY(-1px)}
+input[type="file"]{display:none}
+
+/* THEME TOGGLE */
+.tt{position:fixed;top:1.5rem;right:1.5rem;z-index:100;width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--bg-el);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;box-shadow:var(--shadow)}
+.tt:hover{border-color:var(--accent);transform:scale(1.05)}
+.tt svg{width:16px;height:16px;fill:none;stroke:var(--text-2);stroke-width:1.5;stroke-linecap:round}
+[data-theme="dark"] .ic-sun{display:block}[data-theme="dark"] .ic-moon{display:none}
+:not([data-theme="dark"]) .ic-sun{display:none}:not([data-theme="dark"]) .ic-moon{display:block}
+
+/* APP */
+#app{display:none;animation:fu .4s ease both}
+.toolbar{display:flex;align-items:center;gap:.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border-lt);margin-bottom:1.25rem;flex-wrap:wrap}
+.toolbar .sep{width:1px;height:18px;background:var(--border);margin:0 .4rem}
+.tb{padding:.4rem .75rem;border-radius:6px;font-family:var(--font);font-size:.8rem;font-weight:400;background:transparent;border:none;color:var(--text-2);cursor:pointer;transition:all .15s}
+.tb:hover{color:var(--text);background:var(--accent-soft)}
+.tb.on{color:var(--accent);background:var(--accent-soft);font-weight:500}
+.sg{display:flex;align-items:center;gap:0;margin-left:auto;border:1px solid var(--border);border-radius:7px;overflow:hidden}
+.sg .sl{font-size:.7rem;font-weight:400;color:var(--text-3);padding:0 .55rem;letter-spacing:.03em}
+.sb{padding:.32rem .65rem;font-family:var(--font);font-size:.74rem;font-weight:400;background:transparent;border:none;border-left:1px solid var(--border);color:var(--text-3);cursor:pointer;transition:all .15s}
+.sb:first-of-type{border-left:none}
+.sb:hover{color:var(--text);background:var(--accent-soft)}
+.sb[aria-pressed="true"]{color:var(--accent);background:var(--accent-soft);font-weight:500}
+.ln{font-size:.74rem;color:var(--text-3);padding:.45rem .7rem;background:var(--accent-soft);border-radius:6px;margin-bottom:1rem;display:none;font-family:var(--mono)}
+.cw{background:var(--bg-el);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem 1.5rem 1rem;box-shadow:var(--shadow)}
+
+/* SVG */
+svg{display:block;width:100%;overflow:visible}
+.domain{display:none}
+.tick line{stroke:var(--grid);stroke-width:.5px}
+.tick text{fill:var(--grid-lbl);font-size:10.5px;font-family:'DM Sans',sans-serif;font-weight:400}
+.xa .tick text{font-size:11.5px;fill:var(--text-2);font-weight:400}
+.shape-path{fill:var(--shape-fill);stroke:var(--shape-stroke);stroke-width:1.2px}
+.bx-r{fill:var(--box-fill);stroke:var(--box-stroke);stroke-width:1px}
+.bx-w{stroke:var(--box-stroke);stroke-width:1px}
+.bx-m{stroke:var(--med-stroke);stroke-width:1.8px;stroke-linecap:round}
+.jp{fill:var(--pt-color);stroke:none}
+</style>
+</head>
+<body>
+
+<button class="tt" id="toggleTheme" aria-label="Toggle theme">
+  <svg class="ic-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  <svg class="ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+</button>
+
+<div class="shell">
+  <div id="landing">
+    <div class="brand"><span class="brand-name">VioCell</span><span class="brand-tag">Distribution Viewer</span></div>
+    <p class="hero-text">A client-side rendering tool for publication-ready distribution graphics from <strong>single-cell expression data</strong>. Upload a two-column CSV with <strong>group</strong> and <strong>value</strong> headers — no server, no dependencies.</p>
+    <div class="fmt">
+      <div class="fmt-label">Expected Format</div>
+      <div class="fmt-code"><span class="hl">group,value</span><br>Control_CD4,4.52<br>Control_CD4,3.12<br>Treated_CD4,7.89<br>Treated_CD4,6.45</div>
+    </div>
+    <div class="acts">
+      <button class="btn btn-p" id="loadExample">Load Synthetic Dataset</button>
+      <label class="btn btn-s">Upload CSV<input type="file" id="fileL" accept=".csv"></label>
+    </div>
+  </div>
+
+  <div id="app">
+    <div class="toolbar">
+      <button class="tb" id="backHome">← Back</button>
+      <div class="sep"></div>
+      <label class="tb" style="cursor:pointer">Upload<input type="file" id="fileA" accept=".csv"></label>
+      <div class="sep"></div>
+      <button class="tb" id="bBox">Boxplot</button>
+      <button class="tb" id="bVio">Violin</button>
+      <div class="sep"></div>
+      <button class="tb" id="expSvg">Export SVG</button>
+      <div class="sg">
+        <span class="sl">Y</span>
+        <button class="sb" data-s="linear" aria-pressed="true">Linear</button>
+        <button class="sb" data-s="log10" aria-pressed="false">log₁₀</button>
+        <button class="sb" data-s="log2" aria-pressed="false">log₂</button>
+      </div>
+    </div>
+    <div class="ln" id="logN"></div>
+    <div class="cw"><div id="chart"></div></div>
+  </div>
+</div>
+
+<script>
+let raw=[],pMode='boxplot',sMode='linear';
+const M={t:24,r:24,b:48,l:56},W=820-M.l-M.r,H=430-M.t-M.b;
+
+const rootSvg=d3.select("#chart").append("svg").attr("viewBox",`0 0 ${W+M.l+M.r} ${H+M.t+M.b}`);
+const defs=rootSvg.append("defs");
+const g=rootSvg.append("g").attr("transform",`translate(${M.l},${M.t})`);
+const xS=d3.scaleBand().range([0,W]).padding(0.35);
+let yS;
+const gX=g.append("g").attr("class","xa").attr("transform",`translate(0,${H})`);
+const gY=g.append("g").attr("class","ya");
+const gP=g.append("g"),gD=g.append("g");
+
+const $l=document.getElementById('landing'),$a=document.getElementById('app'),$ln=document.getElementById('logN');
+const $bb=document.getElementById('bBox'),$bv=document.getElementById('bVio');
+
+function goApp(){$l.style.display='none';$a.style.display='block';render();}
+document.getElementById('backHome').addEventListener('click',()=>{$a.style.display='none';$l.style.display='block';});
+document.getElementById('toggleTheme').addEventListener('click',()=>{document.body.dataset.theme=document.body.dataset.theme==='dark'?'':'dark';});
+
+function setPM(m){pMode=m;$bb.classList.toggle('on',m==='boxplot');$bv.classList.toggle('on',m==='violin');if(raw.length)render();}
+$bb.addEventListener('click',()=>setPM('boxplot'));$bv.addEventListener('click',()=>setPM('violin'));setPM('boxplot');
+
+document.querySelectorAll('.sb').forEach(b=>b.addEventListener('click',()=>{
+  sMode=b.dataset.s;document.querySelectorAll('.sb').forEach(x=>x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true');if(raw.length)render();
+}));
+
+function hFile(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{raw=d3.csvParse(ev.target.result,d=>({group:d.group||d.grupo,value:+(d.value||d.valor)}));e.target.value='';setPM('boxplot');goApp();};r.readAsText(f);}
+document.getElementById('fileL').addEventListener('change',hFile);
+document.getElementById('fileA').addEventListener('change',hFile);
+
+document.getElementById('loadExample').addEventListener('click',()=>{
+  raw=[];const rn=d3.randomNormal;
+  for(let i=0;i<400;i++)raw.push({group:'Control',value:rn(3.5,0.9)()});
+  for(let i=0;i<300;i++){raw.push({group:'Treatment',value:rn(2.2,0.6)()});raw.push({group:'Treatment',value:rn(6.8,0.8)()});}
+  for(let i=0;i<250;i++)raw.push({group:'KO_Line',value:rn(5.0,1.4)()});
+  for(let i=0;i<200;i++){raw.push({group:'Stim_24h',value:rn(1.8,0.5)()});raw.push({group:'Stim_24h',value:rn(8.2,0.7)()});}
+  setPM('boxplot');goApp();
+});
+
+document.getElementById('expSvg').addEventListener('click',()=>{
+  const cl=document.querySelector('#chart svg').cloneNode(true);
+  const cs=getComputedStyle(document.body),rv=v=>cs.getPropertyValue(v).trim();
+  cl.querySelectorAll('.xa .tick text').forEach(e=>{e.setAttribute('fill',rv('--text-2'));e.style.fontFamily='"DM Sans",sans-serif';});
+  cl.querySelectorAll('.ya .tick text').forEach(e=>{e.setAttribute('fill',rv('--grid-lbl'));e.style.fontFamily='"DM Sans",sans-serif';});
+  cl.querySelectorAll('.tick line').forEach(e=>e.setAttribute('stroke',rv('--grid')));
+  cl.querySelectorAll('.shape-path').forEach(e=>{e.setAttribute('fill',rv('--shape-fill'));e.setAttribute('stroke',rv('--shape-stroke'));});
+  cl.querySelectorAll('.bx-r').forEach(e=>{e.setAttribute('fill',rv('--box-fill'));e.setAttribute('stroke',rv('--box-stroke'));});
+  cl.querySelectorAll('.bx-w').forEach(e=>e.setAttribute('stroke',rv('--box-stroke')));
+  cl.querySelectorAll('.bx-m').forEach(e=>e.setAttribute('stroke',rv('--med-stroke')));
+  cl.querySelectorAll('.jp').forEach(e=>{e.setAttribute('fill',rv('--pt-color'));e.removeAttribute('style');});
+  let s=new XMLSerializer().serializeToString(cl);
+  if(!s.match(/xmlns="http/))s=s.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
+  s='<?xml version="1.0" standalone="no"?>\r\n'+s;
+  const a=document.createElement('a');a.href="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(s);a.download="VioCell_Export.svg";a.click();
+});
+
+function silverman(d){const n=d.length;if(n<2)return 1;const sd=d3.deviation(d)||1,iq=d3.quantile(d,.75)-d3.quantile(d,.25),s=Math.min(sd,(iq||sd)/1.34);return .9*(s||1)*Math.pow(n,-.2);}
+function kdeE(bw,ticks){return vals=>ticks.map(t=>[t,d3.mean(vals,v=>{const u=(t-v)/bw;return Math.abs(u)<=1?.75*(1-u*u)/bw:0})]);}
+
+function render(){
+  gP.selectAll('*').remove();gD.selectAll('*').remove();defs.selectAll('*').remove();
+  const groups=[...new Set(raw.map(d=>d.group))];xS.domain(groups);
+  let data=raw.map(d=>({...d})),off=0;const mnR=d3.min(data,d=>d.value);
+
+  if(sMode!=='linear'){
+    if(mnR<=0){off=1-mnR;if(off<1)off=1;data.forEach(d=>d.value+=off);$ln.textContent=`Pseudocount +${off.toFixed(1)} applied (values ≤ 0 detected).`;$ln.style.display='block';}else{$ln.style.display='none';}
+    const lo=d3.min(data,d=>d.value),hi=d3.max(data,d=>d.value),base=sMode==='log10'?10:2;
+    yS=d3.scaleLog().base(base).domain([lo*.85,hi*1.15]).range([H,0]).clamp(true);
+  }else{
+    $ln.style.display='none';const lo=d3.min(data,d=>d.value),hi=d3.max(data,d=>d.value),p=(hi-lo)*.06;
+    yS=d3.scaleLinear().domain([lo-p,hi+p]).nice().range([H,0]);
+  }
+
+  gX.transition().duration(350).call(d3.axisBottom(xS).tickSize(0));gX.selectAll('text').attr('dy','1.8em');gX.select('.domain').remove();
+  const yAg=sMode==='linear'?d3.axisLeft(yS).ticks(6).tickSize(-W):d3.axisLeft(yS).ticks(6,'.4~g').tickSize(-W);
+  gY.transition().duration(350).call(yAg);gY.select('.domain').remove();gY.selectAll('.tick line').attr('stroke-dasharray','3,5').attr('opacity',.45);
+
+  const byG=d3.group(data,d=>d.group),tot=data.length,pr=Math.max(1.3,4.2-Math.log10(tot));
+
+  groups.forEach((_,i)=>{const gr=defs.append('linearGradient').attr('id',`vf${i}`).attr('x1',0).attr('x2',0).attr('y1',0).attr('y2',1);gr.append('stop').attr('offset','0%').attr('stop-color','var(--shape-stroke)').attr('stop-opacity',.12);gr.append('stop').attr('offset','100%').attr('stop-color','var(--shape-stroke)').attr('stop-opacity',.03);});
+
+  byG.forEach((vals,key)=>{
+    const v=vals.map(d=>d.value).sort(d3.ascending);
+    const q1=d3.quantile(v,.25),med=d3.quantile(v,.5),q3=d3.quantile(v,.75),iqr=q3-q1;
+    const lo=Math.max(v[0],q1-1.5*iqr),hi=Math.min(v[v.length-1],q3+1.5*iqr);
+    const cx=xS(key)+xS.bandwidth()/2,bw=xS.bandwidth()*.38,gi=groups.indexOf(key);
+    const gg=gP.append('g');
+
+    if(pMode==='boxplot'){
+      gg.append('line').attr('class','bx-w').attr('x1',cx).attr('x2',cx).attr('y1',yS(lo)).attr('y2',yS(hi));
+      gg.append('rect').attr('class','bx-r').attr('x',cx-bw/2).attr('y',yS(q3)).attr('width',bw).attr('height',Math.max(1,yS(q1)-yS(q3))).attr('rx',3);
+      gg.append('line').attr('class','bx-m').attr('x1',cx-bw/2).attr('x2',cx+bw/2).attr('y1',yS(med)).attr('y2',yS(med));
+      [lo,hi].forEach(wv=>{gg.append('line').attr('class','bx-w').attr('x1',cx-bw*.25).attr('x2',cx+bw*.25).attr('y1',yS(wv)).attr('y2',yS(wv));});
+    }else{
+      let dens;
+      if(sMode!=='linear'){
+        const lF=sMode==='log10'?Math.log10:Math.log2,eF=sMode==='log10'?x=>10**x:x=>2**x;
+        const lv=v.map(lF),bwK=silverman(lv),lMn=d3.min(lv),lMx=d3.max(lv),tk=d3.range(lMn,lMx,(lMx-lMn)/100);
+        dens=kdeE(bwK,tk)(lv).map(d=>[eF(d[0]),d[1]]);
+      }else{const bwK=silverman(v);dens=kdeE(bwK,yS.ticks(100))(v);}
+      const mx=d3.max(dens,d=>d[1])||1,ws=d3.scaleLinear().domain([0,mx]).range([0,xS.bandwidth()*.44]);
+      gg.append('path').attr('class','shape-path').datum(dens).attr('fill',`url(#vf${gi})`).attr('d',d3.area().y0(d=>yS(d[0])).y1(d=>yS(d[0])).x0(d=>cx-ws(d[1])).x1(d=>cx+ws(d[1])).curve(d3.curveCatmullRom));
+    }
+  });
+
+  gD.selectAll('circle').data(data).join('circle').attr('class','jp')
+    .attr('cx',d=>xS(d.group)+xS.bandwidth()/2+(Math.random()-.5)*xS.bandwidth()*.52)
+    .attr('cy',d=>yS(d.value)).attr('r',pr);
+}
+</script>
+</body>
+</html>

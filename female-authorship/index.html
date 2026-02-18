@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gender in Authorship — Top Journals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F4F0;
+    --card: #FFFFFF;
+    --brown: #6B4E31;
+    --brown-light: #A08468;
+    --brown-faint: rgba(107,78,49,0.08);
+    --text: #2C2420;
+    --text-dim: #9E9389;
+    --grid: #E8E2DB;
+    --accent-first: #7B4F2E;
+    --accent-last: #A0724D;
+    --serif: 'Source Serif 4', Georgia, serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    font-family: var(--serif);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 60px;
+  }
+  h1 {
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    font-style: italic;
+    margin-bottom: 28px;
+  }
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  select {
+    font-family: var(--serif);
+    font-size: 0.95rem;
+    padding: 8px 36px 8px 14px;
+    border: 1.5px solid #D4CBC1;
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B4E31' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    min-width: 240px;
+  }
+  select:focus { outline: none; border-color: var(--brown); }
+  .btn {
+    font-family: var(--serif);
+    font-size: 0.82rem;
+    padding: 7px 20px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: var(--brown); color: #fff; border: none; }
+  .btn-primary:hover { background: #523A22; }
+  .btn-outline { background: transparent; color: var(--brown); border: 1.5px solid var(--brown); }
+  .btn-outline:hover { background: var(--brown-faint); }
+
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: 0 6px 32px rgba(0,0,0,0.06);
+    padding: 32px 36px 24px;
+    max-width: 780px;
+    width: 100%;
+  }
+  .year-display {
+    text-align: center;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--brown);
+    height: 48px;
+    line-height: 48px;
+    font-variant-numeric: tabular-nums;
+    opacity: 0;
+    transition: opacity 0.3s;
+    letter-spacing: -0.02em;
+  }
+  .year-display.visible { opacity: 1; }
+  .chart-container {
+    width: 100%;
+    position: relative;
+  }
+  svg { display: block; width: 100%; }
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    margin-top: 14px;
+    font-size: 0.78rem;
+    color: var(--brown-light);
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .legend-line { width: 28px; height: 0; }
+  .legend-solid { border-top: 2.5px solid var(--accent-first); }
+  .legend-dashed { border-top: 2.5px dashed var(--accent-last); }
+  .note {
+    text-align: center;
+    font-size: 0.68rem;
+    color: #C4BAB0;
+    margin-top: 16px;
+  }
+  .no-data {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-dim);
+    font-style: italic;
+    font-size: 0.95rem;
+  }
+  @media (max-width: 600px) {
+    .card { padding: 20px 16px 16px; }
+    h1 { font-size: 1.3rem; }
+    select { min-width: 180px; font-size: 0.85rem; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Female Authorship in Top Journals</h1>
+<p class="subtitle">Percentage of female authors among gender-classified names, 2002–2025</p>
+
+<div class="controls">
+  <select id="journalSelect"><option value="">Loading...</option></select>
+  <button class="btn btn-primary" id="playBtn" onclick="togglePlay()">▶ Play</button>
+  <button class="btn btn-outline" onclick="replay()">↺ Replay</button>
+</div>
+
+<div class="card">
+  <div class="year-display" id="yearDisplay"></div>
+  <div class="chart-container" id="chartContainer">
+    <div class="no-data" id="noData">Select a journal to view the animation</div>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-line legend-solid"></div>
+      <span>First author</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line legend-dashed"></div>
+      <span>Last author</span>
+    </div>
+  </div>
+</div>
+
+<p class="note">Excluding authors with undetermined gender · Source: PubMed + gender-guesser · Nakaya Lab, USP</p>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let allData = {};       // journalName -> [{year, first, last}, ...]
+let journalNames = [];
+let currentJournal = null;
+let progress = 0;
+let playing = false;
+let animId = null;
+let startTime = null;
+let pausedProgress = 0;
+const DURATION = 5500;
+
+// ============================================================
+// CHART DIMENSIONS
+// ============================================================
+const W = 700, H = 340;
+const margin = { top: 18, right: 48, bottom: 38, left: 48 };
+const plotW = W - margin.left - margin.right;
+const plotH = H - margin.top - margin.bottom;
+const yMin = 0, yMax = 55;
+
+// ============================================================
+// LOAD CSV
+// ============================================================
+async function loadData() {
+  try {
+    const resp = await fetch('data.csv');
+    const text = await resp.text();
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',');
+
+    // Parse journal names from header pairs
+    const journals = [];
+    for (let i = 1; i < headers.length; i += 2) {
+      const name = headers[i].replace(' 1st', '').trim();
+      if (name) journals.push(name);
+    }
+
+    // Init data structure
+    journals.forEach(j => { allData[j] = []; });
+
+    // Parse rows
+    for (let r = 1; r < lines.length; r++) {
+      const cols = lines[r].split(',');
+      const year = parseInt(cols[0]);
+      if (isNaN(year)) continue;
+
+      journals.forEach((j, ji) => {
+        const colFirst = 1 + ji * 2;
+        const colLast = 2 + ji * 2;
+        const first = parseFloat(cols[colFirst]);
+        const last = parseFloat(cols[colLast]);
+        if (!isNaN(first) && !isNaN(last)) {
+          allData[j].push({ year, first, last });
+        }
+      });
+    }
+
+    // Filter out journals with no data
+    journalNames = journals.filter(j => allData[j].length > 0);
+
+    populateDropdown();
+    if (journalNames.length > 0) {
+      selectJournal(journalNames[0]);
+    }
+  } catch (e) {
+    document.getElementById('noData').textContent = 'Error loading data.csv — make sure it is in the same folder.';
+    console.error(e);
+  }
+}
+
+function populateDropdown() {
+  const sel = document.getElementById('journalSelect');
+  sel.innerHTML = '';
+  journalNames.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', () => selectJournal(sel.value));
+}
+
+function selectJournal(name) {
+  currentJournal = name;
+  document.getElementById('journalSelect').value = name;
+  stopAnim();
+  progress = 0;
+  pausedProgress = 0;
+  renderChart();
+  // Auto-play
+  setTimeout(() => { playing = true; startAnim(); }, 400);
+}
+
+// ============================================================
+// SVG CHART
+// ============================================================
+function xPos(year, data) {
+  const xMinY = data[0].year;
+  const xMaxY = data[data.length - 1].year;
+  return margin.left + ((year - xMinY) / (xMaxY - xMinY)) * plotW;
+}
+function yPos(val) {
+  return margin.top + (1 - (val - yMin) / (yMax - yMin)) * plotH;
+}
+
+function buildPath(data, key) {
+  return data.map((d, i) =>
+    `${i === 0 ? 'M' : 'L'}${xPos(d.year, data).toFixed(1)},${yPos(d[key]).toFixed(1)}`
+  ).join(' ');
+}
+
+function buildArea(data) {
+  const top = data.map((d, i) =>
+    `${i === 0 ? 'M' : 'L'}${xPos(d.year, data).toFixed(1)},${yPos(d.first).toFixed(1)}`
+  ).join(' ');
+  const last = data[data.length - 1];
+  const first = data[0];
+  return `${top} L${xPos(last.year, data).toFixed(1)},${yPos(0).toFixed(1)} L${xPos(first.year, data).toFixed(1)},${yPos(0).toFixed(1)} Z`;
+}
+
+function lerpPoint(data, key, frac) {
+  const t = frac * (data.length - 1);
+  const i = Math.min(Math.floor(t), data.length - 2);
+  const f = t - i;
+  const yr = data[i].year + (data[i + 1].year - data[i].year) * f;
+  const val = data[i][key] + (data[i + 1][key] - data[i][key]) * f;
+  return { x: xPos(yr, data), y: yPos(val), val };
+}
+
+function renderChart() {
+  const container = document.getElementById('chartContainer');
+  const yearEl = document.getElementById('yearDisplay');
+  const noData = document.getElementById('noData');
+
+  if (!currentJournal || !allData[currentJournal] || allData[currentJournal].length === 0) {
+    container.innerHTML = '';
+    container.appendChild(noData);
+    noData.style.display = 'block';
+    noData.textContent = 'No data available for this journal';
+    yearEl.classList.remove('visible');
+    return;
+  }
+
+  noData.style.display = 'none';
+  const data = allData[currentJournal];
+  const clipW = margin.left + plotW * progress + 1;
+
+  // Year display
+  const idx = Math.min(Math.floor(progress * (data.length - 1)), data.length - 1);
+  yearEl.textContent = data[idx].year;
+  yearEl.classList.toggle('visible', progress > 0.005);
+
+  // Y ticks
+  let yTicksSvg = '';
+  for (let v = 0; v <= yMax; v += 10) {
+    const y = yPos(v);
+    yTicksSvg += `<line x1="${margin.left}" y1="${y}" x2="${W - margin.right}" y2="${y}" stroke="${v === 0 ? '#C4BAB0' : '#E8E2DB'}" stroke-width="${v === 0 ? 0.8 : 0.5}"/>`;
+    yTicksSvg += `<text x="${margin.left - 8}" y="${y}" text-anchor="end" dominant-baseline="middle" fill="#9E9389" font-size="10" font-family="'Source Serif 4',Georgia,serif">${v}%</text>`;
+  }
+
+  // X ticks — smart spacing
+  const xMinY = data[0].year;
+  const xMaxY = data[data.length - 1].year;
+  const span = xMaxY - xMinY;
+  const step = span <= 10 ? 1 : span <= 16 ? 2 : 4;
+  let xTicksSvg = '';
+  for (let yr = xMinY; yr <= xMaxY; yr += step) {
+    const x = xPos(yr, data);
+    xTicksSvg += `<line x1="${x}" y1="${yPos(0)}" x2="${x}" y2="${yPos(0) + 4}" stroke="#C4BAB0" stroke-width="0.5"/>`;
+    xTicksSvg += `<text x="${x}" y="${yPos(0) + 18}" text-anchor="middle" fill="#9E9389" font-size="9.5" font-family="'Source Serif 4',Georgia,serif">${yr}</text>`;
+  }
+  // Always show last year
+  if (xMaxY % step !== 0) {
+    const x = xPos(xMaxY, data);
+    xTicksSvg += `<line x1="${x}" y1="${yPos(0)}" x2="${x}" y2="${yPos(0) + 4}" stroke="#C4BAB0" stroke-width="0.5"/>`;
+    xTicksSvg += `<text x="${x}" y="${yPos(0) + 18}" text-anchor="middle" fill="#9E9389" font-size="9.5" font-family="'Source Serif 4',Georgia,serif">${xMaxY}</text>`;
+  }
+
+  // Paths
+  const firstPath = buildPath(data, 'first');
+  const lastPath = buildPath(data, 'last');
+  const areaPath = buildArea(data);
+
+  // Visible dots
+  let dotsSvg = '';
+  data.forEach((d, i) => {
+    if (progress >= i / (data.length - 1)) {
+      const xf = xPos(d.year, data), yf = yPos(d.first), yl = yPos(d.last);
+      dotsSvg += `<circle cx="${xf}" cy="${yf}" r="2.8" fill="#fff" stroke="#7B4F2E" stroke-width="1.6"/>`;
+      dotsSvg += `<circle cx="${xf}" cy="${yl}" r="2.8" fill="#fff" stroke="#A0724D" stroke-width="1.6"/>`;
+    }
+  });
+
+  // Tip
+  let tipSvg = '';
+  if (progress > 0.005) {
+    const ft = lerpPoint(data, 'first', Math.min(progress, 1));
+    const lt = lerpPoint(data, 'last', Math.min(progress, 1));
+
+    tipSvg += `<circle cx="${ft.x}" cy="${ft.y}" r="6.5" fill="#7B4F2E" opacity="0.14"/>`;
+    tipSvg += `<circle cx="${ft.x}" cy="${ft.y}" r="4" fill="#7B4F2E"/>`;
+    const ftAnchor = ft.x > W - margin.right - 50 ? 'end' : 'start';
+    const ftDx = ftAnchor === 'end' ? -10 : 10;
+    tipSvg += `<text x="${ft.x + ftDx}" y="${ft.y - 6}" fill="#7B4F2E" font-size="11.5" font-weight="bold" text-anchor="${ftAnchor}" font-family="'Source Serif 4',Georgia,serif">${ft.val.toFixed(1)}%</text>`;
+
+    tipSvg += `<circle cx="${lt.x}" cy="${lt.y}" r="6.5" fill="#A0724D" opacity="0.14"/>`;
+    tipSvg += `<circle cx="${lt.x}" cy="${lt.y}" r="4" fill="#A0724D"/>`;
+    const ltAnchor = lt.x > W - margin.right - 50 ? 'end' : 'start';
+    const ltDx = ltAnchor === 'end' ? -10 : 10;
+    tipSvg += `<text x="${lt.x + ltDx}" y="${lt.y + 16}" fill="#A0724D" font-size="11.5" font-weight="bold" text-anchor="${ltAnchor}" font-family="'Source Serif 4',Georgia,serif">${lt.val.toFixed(1)}%</text>`;
+  }
+
+  // End labels
+  let endLabels = '';
+  if (progress > 0.97) {
+    const lastD = data[data.length - 1];
+    endLabels += `<text x="${W - margin.right + 6}" y="${yPos(lastD.first)}" fill="#7B4F2E" font-size="9.5" font-weight="bold" dominant-baseline="middle" font-family="'Source Serif 4',Georgia,serif">1st</text>`;
+    endLabels += `<text x="${W - margin.right + 6}" y="${yPos(lastD.last)}" fill="#A0724D" font-size="9.5" font-weight="bold" dominant-baseline="middle" font-family="'Source Serif 4',Georgia,serif">Last</text>`;
+  }
+
+  // 50% reference
+  const ref50 = yPos(50) >= margin.top ? `<line x1="${margin.left}" y1="${yPos(50)}" x2="${W - margin.right}" y2="${yPos(50)}" stroke="#C4BAB0" stroke-width="0.5" stroke-dasharray="4 3"/>` : '';
+
+  container.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}">
+      <defs>
+        <clipPath id="reveal"><rect x="0" y="0" width="${clipW}" height="${H}"/></clipPath>
+      </defs>
+      ${yTicksSvg}
+      ${xTicksSvg}
+      ${ref50}
+      <path d="${areaPath}" fill="rgba(123,79,46,0.06)" clip-path="url(#reveal)"/>
+      <path d="${lastPath}" fill="none" stroke="#A0724D" stroke-width="2.2" stroke-dasharray="7 4" stroke-linecap="round" stroke-linejoin="round" clip-path="url(#reveal)"/>
+      <path d="${firstPath}" fill="none" stroke="#7B4F2E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" clip-path="url(#reveal)"/>
+      ${dotsSvg}
+      ${tipSvg}
+      ${endLabels}
+    </svg>`;
+}
+
+// ============================================================
+// ANIMATION
+// ============================================================
+function ease(t) { return 1 - Math.pow(1 - t, 2.5); }
+function easeInv(p) { return 1 - Math.pow(1 - p, 1 / 2.5); }
+
+function animFrame(ts) {
+  if (!startTime) startTime = ts;
+  const elapsed = ts - startTime;
+  const raw = Math.min((pausedProgress + elapsed) / DURATION, 1);
+  progress = ease(raw);
+  renderChart();
+  if (raw < 1 && playing) {
+    animId = requestAnimationFrame(animFrame);
+  } else if (raw >= 1) {
+    playing = false;
+    document.getElementById('playBtn').textContent = '▶ Play';
+  }
+}
+
+function startAnim() {
+  playing = true;
+  startTime = null;
+  document.getElementById('playBtn').textContent = '⏸ Pause';
+  animId = requestAnimationFrame(animFrame);
+}
+
+function stopAnim() {
+  playing = false;
+  if (animId) cancelAnimationFrame(animId);
+  animId = null;
+  document.getElementById('playBtn').textContent = '▶ Play';
+}
+
+function togglePlay() {
+  if (playing) {
+    stopAnim();
+    pausedProgress = easeInv(progress) * DURATION;
+  } else {
+    if (progress >= 0.999) {
+      progress = 0;
+      pausedProgress = 0;
+    }
+    startAnim();
+  }
+}
+
+function replay() {
+  stopAnim();
+  progress = 0;
+  pausedProgress = 0;
+  renderChart();
+  setTimeout(() => startAnim(), 200);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+loadData();
+</script>
+</body>
+</html>

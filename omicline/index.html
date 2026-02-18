@@ -1,0 +1,2106 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OmicLine — Tracing concordance across omics signatures</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ========== DESIGN TOKENS ========== */
+:root {
+  --font-primary: 'DM Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Layout */
+  --max-width: 1200px;
+  --content-width: 1040px;
+  --side-margin: 40px;
+  --panel-width: 340px;
+
+  /* Transitions */
+  --t-fast: 100ms ease;
+  --t-normal: 150ms ease;
+  --t-slow: 300ms ease;
+}
+
+/* Light Mode */
+[data-theme="light"] {
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F8F8F8;
+  --text-primary: #111111;
+  --text-secondary: #555555;
+  --text-tertiary: #999999;
+  --axis-line: #999999;
+  --ref-line: #CCCCCC;
+  --regression-line: #222222;
+  --color-up: #C21807;
+  --color-down: #1565C0;
+  --color-mid: #FFFFFF;
+  --tooltip-bg: rgba(255,255,255,0.96);
+  --tooltip-border: #DDDDDD;
+  --tooltip-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  --border-subtle: #E8E8E8;
+  --hover-bg: #F0F0F0;
+  --input-bg: #FFFFFF;
+  --input-border: #D0D0D0;
+  --btn-primary-bg: #111111;
+  --btn-primary-text: #FFFFFF;
+  --btn-secondary-bg: transparent;
+  --btn-secondary-border: #CCCCCC;
+  --btn-secondary-text: #333333;
+  --slider-track: #E0E0E0;
+  --slider-thumb: #333333;
+  --success: #2E7D32;
+  --error: #C21807;
+  --warning: #F57C00;
+  --point-alpha: 0.35;
+  --banner-bg: #FFFDE7;
+  --banner-border: #FFF59D;
+}
+
+/* Dark Mode */
+[data-theme="dark"] {
+  --bg-primary: #0F1115;
+  --bg-secondary: #1A1D24;
+  --text-primary: #F5F5F5;
+  --text-secondary: #B0B0B0;
+  --text-tertiary: #777777;
+  --axis-line: #666666;
+  --ref-line: #444444;
+  --regression-line: #E0E0E0;
+  --color-up: #FFD600;
+  --color-down: #4FC3F7;
+  --color-mid: #111111;
+  --tooltip-bg: rgba(20,20,20,0.96);
+  --tooltip-border: #444444;
+  --tooltip-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  --border-subtle: #2A2D35;
+  --hover-bg: #22252D;
+  --input-bg: #1A1D24;
+  --input-border: #3A3D45;
+  --btn-primary-bg: #F5F5F5;
+  --btn-primary-text: #111111;
+  --btn-secondary-bg: transparent;
+  --btn-secondary-border: #555555;
+  --btn-secondary-text: #CCCCCC;
+  --slider-track: #3A3D45;
+  --slider-thumb: #CCCCCC;
+  --success: #66BB6A;
+  --error: #EF5350;
+  --warning: #FFB74D;
+  --point-alpha: 0.5;
+  --banner-bg: #1A1A0F;
+  --banner-border: #3A3A20;
+}
+
+/* ========== RESET & BASE ========== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-primary);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  transition: background var(--t-slow), color var(--t-slow);
+  overflow-x: hidden;
+}
+
+a { color: var(--text-primary); text-decoration: none; }
+
+/* ========== SCROLLBAR ========== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--text-tertiary); border-radius: 3px; }
+
+/* ========== NAV ========== */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 56px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 var(--side-margin);
+  transition: background var(--t-slow), border-color var(--t-slow);
+}
+
+.nav-logo {
+  font-size: 18px; font-weight: 400; letter-spacing: -0.3px;
+  cursor: pointer;
+}
+.nav-logo strong { font-weight: 600; }
+
+.nav-links {
+  display: flex; align-items: center; gap: 20px;
+}
+
+.nav-link {
+  font-size: 13px; font-weight: 500; color: var(--text-secondary);
+  cursor: pointer; padding: 4px 0;
+  transition: color var(--t-fast);
+  background: none; border: none; font-family: inherit;
+}
+.nav-link:hover { color: var(--text-primary); }
+
+.theme-toggle {
+  width: 32px; height: 32px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: 1px solid var(--border-subtle);
+  cursor: pointer; color: var(--text-secondary);
+  transition: all var(--t-fast);
+  font-size: 14px;
+}
+.theme-toggle:hover { background: var(--hover-bg); color: var(--text-primary); }
+
+/* ========== PAGES ========== */
+.page { display: none; padding-top: 56px; min-height: 100vh; }
+.page.active { display: block; }
+
+/* ========== LANDING PAGE ========== */
+.landing {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 80px var(--side-margin) 60px;
+  display: flex; flex-direction: column; align-items: center;
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 64px;
+}
+
+.hero-title {
+  font-size: 52px; font-weight: 600; letter-spacing: -1.5px;
+  margin-bottom: 12px;
+  line-height: 1.1;
+}
+
+.hero-subtitle {
+  font-size: 17px; font-weight: 400; color: var(--text-secondary);
+  max-width: 520px; margin: 0 auto 28px;
+  line-height: 1.55;
+}
+
+.hero-figure {
+  width: 380px; height: 380px;
+  margin: 0 auto 0;
+  position: relative;
+  opacity: 0.85;
+}
+.hero-figure canvas { width: 100%; height: 100%; }
+
+.setup-section {
+  width: 100%;
+  max-width: 820px;
+  margin-bottom: 40px;
+}
+
+.setup-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-bottom: 36px;
+}
+
+.setup-block {
+  padding: 28px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  transition: background var(--t-slow), border-color var(--t-slow);
+}
+
+.setup-block-title {
+  font-size: 13px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.8px; color: var(--text-tertiary);
+  margin-bottom: 20px;
+}
+
+.upload-area {
+  border: 2px dashed var(--border-subtle);
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--t-fast);
+  margin-bottom: 18px;
+  position: relative;
+}
+.upload-area:hover { border-color: var(--text-tertiary); background: var(--hover-bg); }
+.upload-area.has-file { border-style: solid; border-color: var(--success); }
+.upload-area.has-error { border-style: solid; border-color: var(--error); }
+
+.upload-area input[type="file"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer;
+}
+
+.upload-icon { font-size: 22px; margin-bottom: 6px; color: var(--text-tertiary); }
+.upload-text { font-size: 13px; color: var(--text-secondary); }
+.upload-filename { font-size: 13px; font-weight: 500; color: var(--success); margin-top: 4px; }
+.upload-error { font-size: 12px; color: var(--error); margin-top: 4px; }
+
+.field-group { margin-bottom: 14px; }
+.field-label {
+  font-size: 12px; font-weight: 500; color: var(--text-secondary);
+  margin-bottom: 5px; display: block;
+}
+.field-input {
+  width: 100%; padding: 9px 12px;
+  background: var(--input-bg); border: 1px solid var(--input-border);
+  border-radius: 6px; font-size: 13px; color: var(--text-primary);
+  font-family: var(--font-primary);
+  transition: border-color var(--t-fast);
+  outline: none;
+}
+.field-input:focus { border-color: var(--text-secondary); }
+.field-input::placeholder { color: var(--text-tertiary); }
+
+.field-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+}
+
+.actions {
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  margin-bottom: 40px;
+}
+
+.btn-primary {
+  padding: 12px 32px; font-size: 14px; font-weight: 600;
+  background: var(--btn-primary-bg); color: var(--btn-primary-text);
+  border: none; border-radius: 8px; cursor: pointer;
+  font-family: var(--font-primary);
+  transition: all var(--t-fast);
+}
+.btn-primary:hover { opacity: 0.85; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-secondary {
+  padding: 12px 24px; font-size: 14px; font-weight: 500;
+  background: var(--btn-secondary-bg); color: var(--btn-secondary-text);
+  border: 1px solid var(--btn-secondary-border); border-radius: 8px;
+  cursor: pointer; font-family: var(--font-primary);
+  transition: all var(--t-fast);
+}
+.btn-secondary:hover { background: var(--hover-bg); }
+
+.trust-line {
+  text-align: center; font-size: 12px; color: var(--text-tertiary);
+  max-width: 500px;
+}
+
+/* ========== RESULTS PAGE ========== */
+.results-layout {
+  display: flex; flex-direction: column; height: calc(100vh - 56px);
+}
+
+.metrics-bar {
+  display: flex; align-items: center; gap: 24px;
+  padding: 12px var(--side-margin);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  overflow-x: auto;
+  min-height: 48px;
+  flex-wrap: wrap;
+}
+
+.metric-item {
+  display: flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+}
+.metric-label {
+  font-size: 11px; font-weight: 500; text-transform: uppercase;
+  letter-spacing: 0.4px; color: var(--text-tertiary);
+}
+.metric-value {
+  font-size: 13px; font-weight: 600; color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.metric-sep {
+  width: 1px; height: 20px; background: var(--border-subtle); flex-shrink: 0;
+}
+
+.banner {
+  padding: 8px var(--side-margin);
+  font-size: 12px; color: var(--warning);
+  background: var(--banner-bg);
+  border-bottom: 1px solid var(--banner-border);
+  display: none;
+}
+.banner.visible { display: block; }
+
+.selections-bar {
+  padding: 6px var(--side-margin);
+  display: none; align-items: center; gap: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 12px; color: var(--text-secondary);
+}
+.selections-bar.visible { display: flex; }
+.selection-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 4px;
+  background: var(--hover-bg); font-size: 12px; font-weight: 500;
+  cursor: pointer; border: 1px solid var(--border-subtle);
+}
+.selection-tag.active { border-color: var(--text-secondary); }
+.selection-tag .remove {
+  font-size: 14px; margin-left: 4px; cursor: pointer; opacity: 0.5;
+}
+.selection-tag .remove:hover { opacity: 1; }
+
+.plot-container {
+  flex: 1; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+
+#plot-canvas { cursor: crosshair; }
+
+.tooltip {
+  position: fixed; pointer-events: none;
+  background: var(--tooltip-bg); border: 1px solid var(--tooltip-border);
+  border-radius: 6px; padding: 12px;
+  box-shadow: var(--tooltip-shadow);
+  max-width: 280px; z-index: 50;
+  font-size: 12px;
+  display: none;
+  transition: opacity var(--t-fast);
+}
+.tooltip.visible { display: block; }
+
+.tooltip-gene {
+  font-size: 14px; font-weight: 600; margin-bottom: 8px;
+}
+.tooltip-row {
+  display: flex; justify-content: space-between; gap: 16px;
+  padding: 2px 0;
+}
+.tooltip-key { color: var(--text-secondary); }
+.tooltip-val { font-family: var(--font-mono); font-size: 11px; font-weight: 500; }
+.tooltip-class {
+  margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border-subtle);
+  font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;
+}
+
+/* ========== ADVANCED PANEL ========== */
+.advanced-overlay {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(0,0,0,0.2);
+  display: none;
+}
+.advanced-overlay.visible { display: block; }
+
+.advanced-panel {
+  position: fixed; top: 56px; right: 0; bottom: 0;
+  width: var(--panel-width);
+  background: var(--bg-primary);
+  border-left: 1px solid var(--border-subtle);
+  z-index: 90;
+  transform: translateX(100%);
+  transition: transform var(--t-slow);
+  overflow-y: auto;
+  padding: 24px;
+}
+.advanced-panel.open { transform: translateX(0); }
+
+.panel-section {
+  margin-bottom: 28px;
+}
+.panel-section-title {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.8px; color: var(--text-tertiary);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.panel-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.panel-label { font-size: 13px; color: var(--text-secondary); }
+.panel-value {
+  font-size: 12px; font-family: var(--font-mono); color: var(--text-primary);
+  min-width: 40px; text-align: right;
+}
+
+.panel-slider {
+  -webkit-appearance: none; width: 100%; height: 6px;
+  background: var(--slider-track); border-radius: 3px; outline: none;
+  margin-top: 6px;
+}
+.panel-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px;
+  background: var(--slider-thumb); border-radius: 50%; cursor: pointer;
+}
+
+.panel-select {
+  width: 100%; padding: 7px 10px;
+  background: var(--input-bg); border: 1px solid var(--input-border);
+  border-radius: 6px; font-size: 13px; color: var(--text-primary);
+  font-family: var(--font-primary); outline: none;
+  margin-top: 6px; cursor: pointer;
+}
+
+.panel-input-sm {
+  width: 80px; padding: 6px 8px;
+  background: var(--input-bg); border: 1px solid var(--input-border);
+  border-radius: 5px; font-size: 13px; color: var(--text-primary);
+  font-family: var(--font-mono); outline: none; text-align: right;
+}
+
+.panel-toggle {
+  position: relative; width: 36px; height: 20px;
+  background: var(--slider-track); border-radius: 10px;
+  cursor: pointer; transition: background var(--t-fast);
+  flex-shrink: 0;
+}
+.panel-toggle.on { background: var(--text-secondary); }
+.panel-toggle::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; background: var(--bg-primary);
+  border-radius: 50%; transition: transform var(--t-fast);
+}
+.panel-toggle.on::after { transform: translateX(16px); }
+
+.panel-export-btn {
+  width: 100%; padding: 10px; margin-bottom: 8px;
+  background: var(--bg-secondary); border: 1px solid var(--border-subtle);
+  border-radius: 6px; font-size: 13px; font-weight: 500;
+  color: var(--text-primary); cursor: pointer;
+  font-family: var(--font-primary);
+  transition: all var(--t-fast);
+  text-align: left;
+  display: flex; align-items: center; gap: 8px;
+}
+.panel-export-btn:hover { background: var(--hover-bg); }
+
+/* ========== HELP PAGE ========== */
+.help-content {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 60px var(--side-margin) 80px;
+}
+.help-title {
+  font-size: 32px; font-weight: 600; letter-spacing: -0.8px;
+  margin-bottom: 8px;
+}
+.help-subtitle {
+  font-size: 15px; color: var(--text-secondary); margin-bottom: 48px;
+}
+.help-section {
+  margin-bottom: 36px;
+}
+.help-section h3 {
+  font-size: 18px; font-weight: 600; margin-bottom: 10px;
+}
+.help-section p, .help-section li {
+  font-size: 14px; color: var(--text-secondary); line-height: 1.65;
+  margin-bottom: 8px;
+}
+.help-formula {
+  font-family: var(--font-mono); font-size: 13px;
+  background: var(--bg-secondary); padding: 10px 14px;
+  border-radius: 6px; margin: 10px 0;
+  border: 1px solid var(--border-subtle);
+  display: inline-block;
+}
+
+/* ========== SELECTION MODAL ========== */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.3);
+  display: none; align-items: center; justify-content: center;
+}
+.modal-overlay.visible { display: flex; }
+.modal-box {
+  background: var(--bg-primary); border: 1px solid var(--border-subtle);
+  border-radius: 10px; padding: 24px; width: 320px;
+  box-shadow: var(--tooltip-shadow);
+}
+.modal-title { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+.modal-input {
+  width: 100%; padding: 10px 12px; margin-bottom: 16px;
+  background: var(--input-bg); border: 1px solid var(--input-border);
+  border-radius: 6px; font-size: 14px; color: var(--text-primary);
+  font-family: var(--font-primary); outline: none;
+}
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+  :root { --side-margin: 20px; }
+  .setup-grid { grid-template-columns: 1fr; }
+  .hero-title { font-size: 36px; }
+  .hero-figure { width: 260px; height: 260px; }
+  .metrics-bar { gap: 12px; padding: 10px var(--side-margin); }
+}
+</style>
+</head>
+<body>
+
+<!-- ========== NAV ========== -->
+<nav class="nav">
+  <div class="nav-logo" onclick="showPage('landing')">Omic<strong>Line</strong></div>
+  <div class="nav-links">
+    <button class="nav-link" onclick="loadDemo()">Demo</button>
+    <button class="nav-link" onclick="showPage('help')">Help</button>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">☀</button>
+  </div>
+</nav>
+
+<!-- ========== LANDING PAGE ========== -->
+<div id="page-landing" class="page active">
+  <div class="landing">
+    <div class="hero">
+      <h1 class="hero-title">Omic<strong>Line</strong></h1>
+      <p class="hero-subtitle">A clean, client-side visual tool to compare two differential expression signatures across omics.</p>
+      <div class="hero-figure"><canvas id="hero-canvas"></canvas></div>
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-grid">
+        <!-- X Axis Block -->
+        <div class="setup-block">
+          <div class="setup-block-title">X Axis Dataset</div>
+          <div class="upload-area" id="upload-x">
+            <input type="file" accept=".csv,.tsv,.txt" onchange="handleUpload(this, 'x')">
+            <div class="upload-icon">↑</div>
+            <div class="upload-text">Upload GEO2R table</div>
+            <div class="upload-filename" id="fname-x"></div>
+            <div class="upload-error" id="err-x"></div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Axis label</label>
+            <input class="field-input" id="label-x" placeholder='e.g. "Survivor vs Deceased"'>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label">Up means</label>
+              <input class="field-input" id="up-x" placeholder="Higher in…">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Down means</label>
+              <input class="field-input" id="down-x" placeholder="Higher in…">
+            </div>
+          </div>
+        </div>
+
+        <!-- Y Axis Block -->
+        <div class="setup-block">
+          <div class="setup-block-title">Y Axis Dataset</div>
+          <div class="upload-area" id="upload-y">
+            <input type="file" accept=".csv,.tsv,.txt" onchange="handleUpload(this, 'y')">
+            <div class="upload-icon">↑</div>
+            <div class="upload-text">Upload GEO2R table</div>
+            <div class="upload-filename" id="fname-y"></div>
+            <div class="upload-error" id="err-y"></div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Axis label</label>
+            <input class="field-input" id="label-y" placeholder='e.g. "Infected vs Not infected"'>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label">Up means</label>
+              <input class="field-input" id="up-y" placeholder="Higher in…">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Down means</label>
+              <input class="field-input" id="down-y" placeholder="Higher in…">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-primary" id="btn-run" onclick="runAnalysis()" disabled>Run OmicLine</button>
+        <button class="btn-secondary" onclick="loadDemo()">View demo results</button>
+      </div>
+
+      <p class="trust-line">No server, no database, no uploads stored. Everything runs on your machine.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ========== RESULTS PAGE ========== -->
+<div id="page-results" class="page">
+  <div class="results-layout">
+    <div class="metrics-bar" id="metrics-bar"></div>
+    <div class="banner" id="truncation-banner"></div>
+    <div class="selections-bar" id="selections-bar">
+      <span style="font-weight:500;">Selections:</span>
+      <div id="selection-tags"></div>
+    </div>
+    <div class="plot-container" id="plot-container">
+      <canvas id="plot-canvas"></canvas>
+    </div>
+  </div>
+  <div class="tooltip" id="tooltip"></div>
+</div>
+
+<!-- ========== HELP PAGE ========== -->
+<div id="page-help" class="page">
+  <div class="help-content">
+    <h2 class="help-title">Help</h2>
+    <p class="help-subtitle">Technical reference for OmicLine decisions and definitions.</p>
+
+    <div class="help-section">
+      <h3>log2 Fold Change</h3>
+      <p>log2FC quantifies relative change between conditions. A value of 1 means a twofold increase; −1 means a twofold decrease. Values near zero indicate no meaningful change.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>Adjusted p-value (FDR)</h3>
+      <p>The adjusted p-value (padj) corrects for multiple testing, typically via the Benjamini-Hochberg procedure. OmicLine uses this as the significance threshold alongside log2FC to define differentially expressed genes.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>Integrated Score</h3>
+      <p>Combines magnitude and significance into a single metric:</p>
+      <div class="help-formula">score = log2FC × (−log₁₀(padj))</div>
+      <p>padj is floored at 1×10⁻¹⁰ before computation to prevent score inflation from extremely small p-values. This floor is applied silently and logged in the session file.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>DEG Definition</h3>
+      <p>A gene is considered a DEG (differentially expressed gene) if:</p>
+      <div class="help-formula">|log2FC| ≥ cutoff AND padj ≤ FDR cutoff</div>
+      <p>Default cutoffs: |log2FC| ≥ 1 and padj ≤ 0.05. Both must be met within a single condition.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>Analysis Universe</h3>
+      <p>Pearson correlation and visualization are computed over genes that are DEGs in at least one of the two conditions (OR logic). Genes that fail the DEG filter in both conditions are excluded from the plot and from the correlation.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>Pearson Correlation</h3>
+      <p>Pearson r measures linear concordance between log2FC values of the two conditions within the analysis universe. Values near +1 indicate strong concordance; values near −1 indicate inversion.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>Ranking</h3>
+      <p>The default ranking is radial distance from the origin:</p>
+      <div class="help-formula">R = √(log2FC₁² + log2FC₂²)</div>
+      <p>This prioritizes genes with large effect sizes in either or both conditions. Top 200 genes are shown by default; the maximum is 1000.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>Regression Line</h3>
+      <p>By default, the regression line is forced through the origin (intercept = 0). An option for free intercept is available in the advanced panel. The forced-zero model is appropriate when comparing the same type of measurement and expecting proportional scaling.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>Visual Truncation</h3>
+      <p>Axis limits are set at the 99th percentile of |log2FC| values to prevent extreme outliers from compressing the plot. Truncated points are still present in the data and in exports. A banner appears if truncation occurs.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>Deduplication</h3>
+      <p>When a gene symbol appears multiple times in a single table (e.g., multiple probes), OmicLine keeps the row with the highest absolute integrated score. The event is logged.</p>
+    </div>
+
+    <div class="help-section">
+      <h3>Limitations</h3>
+      <p>OmicLine does not reprocess raw data, normalize expression values, correct for inverted contrasts, compare more than two tables, or impute missing genes. It is a visualization and concordance tool for pre-computed differential results.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ========== ADVANCED PANEL ========== -->
+<div class="advanced-overlay" id="adv-overlay" onclick="toggleAdvanced()"></div>
+<div class="advanced-panel" id="adv-panel">
+  <div class="panel-section">
+    <div class="panel-section-title">Display</div>
+    <div class="panel-row">
+      <span class="panel-label">Max genes displayed</span>
+      <span class="panel-value" id="val-max-genes">200</span>
+    </div>
+    <input type="range" class="panel-slider" id="slider-max-genes" min="10" max="1000" value="200" step="10" oninput="onParamChange()">
+
+    <div class="panel-row" style="margin-top:16px">
+      <span class="panel-label">Ranking metric</span>
+    </div>
+    <select class="panel-select" id="select-ranking" onchange="onParamChange()">
+      <option value="radial_distance">Radial distance</option>
+      <option value="combined_magnitude">Combined magnitude</option>
+      <option value="delta">Difference between conditions</option>
+      <option value="mean_integrated_score">Mean integrated score</option>
+    </select>
+
+    <div class="panel-row" style="margin-top:16px">
+      <span class="panel-label">Point size</span>
+      <span class="panel-value" id="val-point-size">4.5</span>
+    </div>
+    <input type="range" class="panel-slider" id="slider-point-size" min="2" max="8" value="4.5" step="0.5" oninput="onParamChange()">
+
+    <div class="panel-row" style="margin-top:16px">
+      <span class="panel-label">Point alpha</span>
+      <span class="panel-value" id="val-point-alpha">—</span>
+    </div>
+    <input type="range" class="panel-slider" id="slider-point-alpha" min="0.1" max="1" value="0.35" step="0.05" oninput="onParamChange()">
+
+    <div class="panel-row" style="margin-top:16px">
+      <span class="panel-label">Labels (top N)</span>
+      <span class="panel-value" id="val-labels">0</span>
+    </div>
+    <input type="range" class="panel-slider" id="slider-labels" min="0" max="30" value="0" step="1" oninput="onParamChange()">
+  </div>
+
+  <div class="panel-section">
+    <div class="panel-section-title">DEG Filter</div>
+    <div class="panel-row">
+      <span class="panel-label">log2FC cutoff</span>
+      <input type="number" class="panel-input-sm" id="input-lfc" value="1" step="0.1" min="0" onchange="onFilterChange()">
+    </div>
+    <div class="panel-row">
+      <span class="panel-label">FDR cutoff</span>
+      <input type="number" class="panel-input-sm" id="input-fdr" value="0.05" step="0.01" min="0" max="1" onchange="onFilterChange()">
+    </div>
+  </div>
+
+  <div class="panel-section">
+    <div class="panel-section-title">Lines</div>
+    <div class="panel-row"><span class="panel-label">Show X = 0</span><div class="panel-toggle on" id="tog-x0" onclick="toggleToggle(this); onParamChange()"></div></div>
+    <div class="panel-row"><span class="panel-label">Show Y = 0</span><div class="panel-toggle on" id="tog-y0" onclick="toggleToggle(this); onParamChange()"></div></div>
+    <div class="panel-row"><span class="panel-label">Show Y = X</span><div class="panel-toggle on" id="tog-yx" onclick="toggleToggle(this); onParamChange()"></div></div>
+    <div class="panel-row"><span class="panel-label">Show regression</span><div class="panel-toggle on" id="tog-reg" onclick="toggleToggle(this); onParamChange()"></div></div>
+    <div class="panel-row" style="margin-top:8px">
+      <span class="panel-label">Regression intercept</span>
+    </div>
+    <select class="panel-select" id="select-intercept" onchange="onFilterChange()">
+      <option value="force_zero">Force zero</option>
+      <option value="free">Free intercept</option>
+    </select>
+  </div>
+
+  <div class="panel-section">
+    <div class="panel-section-title">Export</div>
+    <button class="panel-export-btn" onclick="exportSVG()">↓ Export SVG</button>
+    <button class="panel-export-btn" onclick="exportTable()">↓ Export merged table (CSV)</button>
+    <button class="panel-export-btn" onclick="exportLog()">↓ Export session log</button>
+    <button class="panel-export-btn" onclick="exportPNG()">↓ Export PNG</button>
+  </div>
+</div>
+
+<!-- ========== SELECTION MODAL ========== -->
+<div class="modal-overlay" id="sel-modal">
+  <div class="modal-box">
+    <div class="modal-title">Name this selection</div>
+    <input class="modal-input" id="sel-name-input" placeholder="e.g. AcuteSignature" autofocus>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="cancelSelection()">Cancel</button>
+      <button class="btn-primary" onclick="confirmSelection()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========================================================================
+// OMICLINE — Complete Client-Side Engine
+// ========================================================================
+
+// ---- State ----
+const S = {
+  rawX: null, rawY: null,
+  parsedX: null, parsedY: null,
+  merged: [], universe: [], displayRows: [],
+  labelX: '', labelY: '', upX: '', downX: '', upY: '', downY: '',
+  log: [],
+  pearson: { r: 0, slope: 0, intercept: 0, p: 0, n: 0 },
+  counts: { intersection: 0, universe: 0, displayed: 0, concordUp: 0, concordDown: 0, discordant: 0 },
+  params: {
+    log2fc_cutoff: 1.0, fdr_cutoff: 0.05, padj_floor: 1e-10,
+    max_display: 200, ranking: 'radial_distance',
+    point_size: 4.5, point_alpha: null, label_count: 0,
+    show_x0: true, show_y0: true, show_yx: true, show_reg: true,
+    intercept_type: 'force_zero',
+    truncate_pct: 0.99
+  },
+  selections: {},
+  selectionPending: null,
+  plotLimits: { min: -5, max: 5 },
+  truncatedCount: 0,
+  zoom: { scale: 1, tx: 0, ty: 0 },
+  isSelecting: false, selRect: null,
+  isDragging: false, dragStart: null,
+  hoveredGene: null,
+  dpr: window.devicePixelRatio || 1
+};
+
+// ---- Utilities ----
+function log(msg) { S.log.push(`[${new Date().toISOString()}] ${msg}`); }
+function percentile(arr, p) {
+  const s = arr.slice().sort((a,b) => a - b);
+  const i = (s.length - 1) * p;
+  const lo = Math.floor(i), hi = Math.ceil(i);
+  return s[lo] + (s[hi] - s[lo]) * (i - lo);
+}
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function integratedScore(log2fc, padj, floor) {
+  const pc = Math.max(padj, floor);
+  return log2fc * (-Math.log10(pc));
+}
+
+function isDEG(log2fc, padj, lfcCut, fdrCut) {
+  return Math.abs(log2fc) >= lfcCut && padj <= fdrCut;
+}
+
+// ---- Parsing ----
+function detectDelimiter(text) {
+  const first = text.split('\n')[0];
+  return first.split('\t').length > first.split(',').length ? '\t' : ',';
+}
+
+const GENE_COL_NAMES = ['gene.symbol','gene symbol','genesymbol','symbol','gene_symbol','gene','gene_name','genename'];
+const LFC_COL_NAMES = ['logfc','log2fc','log2foldchange','log2_fold_change','lfc','logfoldchange','log2(fold_change)'];
+const PADJ_COL_NAMES = ['adj.p.val','adj.p.value','padj','p.adjust','fdr','adjusted.p.value','adjusted_pvalue','adjpval','adj_pval','q.value','qvalue'];
+
+function matchCol(headers, candidates) {
+  const lower = headers.map(h => h.toLowerCase().replace(/["\s]/g,''));
+  for (const c of candidates) {
+    const idx = lower.indexOf(c.replace(/[\s]/g,''));
+    if (idx >= 0) return idx;
+  }
+  return -1;
+}
+
+function parseTable(text) {
+  const delim = detectDelimiter(text);
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  if (lines.length < 2) throw new Error('Table has fewer than 2 rows.');
+  const headers = lines[0].split(delim).map(h => h.replace(/^"|"$/g, '').trim());
+  const geneIdx = matchCol(headers, GENE_COL_NAMES);
+  if (geneIdx < 0) throw new Error('Gene symbol column not found.');
+  const lfcIdx = matchCol(headers, LFC_COL_NAMES);
+  if (lfcIdx < 0) throw new Error('log2FC column not found.');
+  const padjIdx = matchCol(headers, PADJ_COL_NAMES);
+  if (padjIdx < 0) throw new Error('Adjusted p-value column not found.');
+
+  const rows = [];
+  let multiSymbolCount = 0;
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(delim).map(c => c.replace(/^"|"$/g, '').trim());
+    if (cols.length <= Math.max(geneIdx, lfcIdx, padjIdx)) continue;
+    let gene = cols[geneIdx];
+    if (!gene || gene === '' || gene === 'NA' || gene === '---') continue;
+    // Handle multi-symbol: take first
+    if (gene.includes('///')) { gene = gene.split('///')[0].trim(); multiSymbolCount++; }
+    else if (gene.includes('//')) { gene = gene.split('//')[0].trim(); multiSymbolCount++; }
+    else if (gene.includes(';')) { gene = gene.split(';')[0].trim(); multiSymbolCount++; }
+
+    const lfc = parseFloat(cols[lfcIdx]);
+    const padj = parseFloat(cols[padjIdx]);
+    if (isNaN(lfc) || isNaN(padj)) continue;
+    rows.push({ gene: gene.toUpperCase(), log2fc: lfc, padj: padj });
+  }
+  return { rows, multiSymbolCount, colNames: { gene: headers[geneIdx], lfc: headers[lfcIdx], padj: headers[padjIdx] } };
+}
+
+// ---- Deduplication ----
+function dedup(rows, label) {
+  const map = {};
+  let dupCount = 0;
+  for (const r of rows) {
+    const s = Math.abs(integratedScore(r.log2fc, r.padj, S.params.padj_floor));
+    if (!map[r.gene] || s > map[r.gene]._absScore) {
+      if (map[r.gene]) dupCount++;
+      map[r.gene] = { ...r, _absScore: s, dedup: !!map[r.gene] };
+    } else { dupCount++; }
+  }
+  log(`${label}: ${dupCount} rows deduplicated, ${Object.keys(map).length} unique genes.`);
+  return map;
+}
+
+// ---- Core Pipeline ----
+function runPipeline() {
+  const p = S.params;
+  // Parse
+  const pX = parseTable(S.rawX);
+  const pY = parseTable(S.rawY);
+  log(`Parsed X: ${pX.rows.length} rows, ${pX.multiSymbolCount} multi-symbol.`);
+  log(`Parsed Y: ${pY.rows.length} rows, ${pY.multiSymbolCount} multi-symbol.`);
+
+  // Score
+  for (const r of pX.rows) r.score = integratedScore(r.log2fc, r.padj, p.padj_floor);
+  for (const r of pY.rows) r.score = integratedScore(r.log2fc, r.padj, p.padj_floor);
+
+  // Dedup
+  const dedX = dedup(pX.rows, 'X');
+  const dedY = dedup(pY.rows, 'Y');
+
+  // Merge intersection
+  const common = Object.keys(dedX).filter(g => dedY[g]);
+  log(`Intersection: ${common.length} genes.`);
+
+  S.merged = common.map(g => {
+    const rx = dedX[g], ry = dedY[g];
+    return {
+      gene: g,
+      log2fc_x: rx.log2fc, padj_x: rx.padj, score_x: rx.score, dedup_x: rx.dedup,
+      log2fc_y: ry.log2fc, padj_y: ry.padj, score_y: ry.score, dedup_y: ry.dedup,
+      deg_x: false, deg_y: false, cls: '', rank_value: 0
+    };
+  });
+  S.counts.intersection = S.merged.length;
+
+  computeUniverse();
+}
+
+function computeUniverse() {
+  const p = S.params;
+  // DEG flags
+  for (const r of S.merged) {
+    r.deg_x = isDEG(r.log2fc_x, r.padj_x, p.log2fc_cutoff, p.fdr_cutoff);
+    r.deg_y = isDEG(r.log2fc_y, r.padj_y, p.log2fc_cutoff, p.fdr_cutoff);
+  }
+
+  // Universe: DEG in at least one
+  S.universe = S.merged.filter(r => r.deg_x || r.deg_y);
+  S.counts.universe = S.universe.length;
+  log(`Universe (DEG OR): ${S.universe.length} genes.`);
+
+  // Classify
+  let cu = 0, cd = 0, dis = 0;
+  for (const r of S.universe) {
+    if (r.log2fc_x > 0 && r.log2fc_y > 0) { r.cls = 'concordant_up'; cu++; }
+    else if (r.log2fc_x < 0 && r.log2fc_y < 0) { r.cls = 'concordant_down'; cd++; }
+    else { r.cls = 'discordant'; dis++; }
+  }
+  S.counts.concordUp = cu;
+  S.counts.concordDown = cd;
+  S.counts.discordant = dis;
+
+  // Pearson & regression on full universe
+  computePearson();
+
+  // Rank & display subset
+  computeDisplay();
+}
+
+function computePearson() {
+  const u = S.universe;
+  const n = u.length;
+  if (n < 3) {
+    S.pearson = { r: NaN, slope: NaN, intercept: 0, p: NaN, n };
+    return;
+  }
+  const X = u.map(r => r.log2fc_x);
+  const Y = u.map(r => r.log2fc_y);
+  const mx = X.reduce((a,b)=>a+b,0)/n;
+  const my = Y.reduce((a,b)=>a+b,0)/n;
+  let sxx = 0, syy = 0, sxy = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = X[i] - mx, dy = Y[i] - my;
+    sxx += dx*dx; syy += dy*dy; sxy += dx*dy;
+  }
+  const r = sxy / Math.sqrt(sxx * syy);
+
+  let slope, intercept;
+  if (S.params.intercept_type === 'force_zero') {
+    let sumXY = 0, sumXX = 0;
+    for (let i = 0; i < n; i++) { sumXY += X[i]*Y[i]; sumXX += X[i]*X[i]; }
+    slope = sumXY / sumXX;
+    intercept = 0;
+  } else {
+    slope = sxy / sxx;
+    intercept = my - slope * mx;
+  }
+
+  // p-value approximation via t-distribution
+  const t = r * Math.sqrt((n-2)/(1-r*r));
+  // Simple approximation for two-tailed p
+  const df = n - 2;
+  const pval = 2 * (1 - tCDF(Math.abs(t), df));
+
+  S.pearson = { r, slope, intercept, p: pval, n };
+  log(`Pearson r=${r.toFixed(4)}, slope=${slope.toFixed(4)}, intercept=${intercept.toFixed(4)}, p=${pval.toExponential(2)}, n=${n}`);
+}
+
+// t-distribution CDF approximation (Abramowitz & Stegun)
+function tCDF(t, df) {
+  const x = df / (df + t*t);
+  return 1 - 0.5 * incompleteBeta(df/2, 0.5, x);
+}
+function incompleteBeta(a, b, x) {
+  // Simple continued fraction approximation
+  if (x === 0 || x === 1) return x;
+  const bt = Math.exp(
+    lnGamma(a+b) - lnGamma(a) - lnGamma(b) + a*Math.log(x) + b*Math.log(1-x)
+  );
+  if (x < (a+1)/(a+b+2)) return bt * betaCF(a, b, x) / a;
+  return 1 - bt * betaCF(b, a, 1-x) / b;
+}
+function betaCF(a, b, x) {
+  const maxIter = 100, eps = 1e-10;
+  let am = 1, bm = 1, az = 1;
+  const qab = a+b, qap = a+1, qam = a-1;
+  let bz = 1 - qab*x/qap;
+  for (let m = 1; m <= maxIter; m++) {
+    const em = m, tem = em+em;
+    let d = em*(b-m)*x/((qam+tem)*(a+tem));
+    const ap = az+d*am, bp = bz+d*bm;
+    d = -(a+em)*(qab+em)*x/((a+tem)*(qap+tem));
+    const app = ap+d*az, bpp = bp+d*bz;
+    const old = az;
+    am = ap/bpp; bm = bp/bpp; az = app/bpp; bz = 1;
+    if (Math.abs(az-old) < eps*Math.abs(az)) return az;
+  }
+  return az;
+}
+function lnGamma(x) {
+  const c = [76.18009172947146,-86.50532032941677,24.01409824083091,
+    -1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5];
+  let y = x, tmp = x + 5.5;
+  tmp -= (x+0.5)*Math.log(tmp);
+  let ser = 1.000000000190015;
+  for (let j = 0; j < 6; j++) ser += c[j]/++y;
+  return -tmp + Math.log(2.5066282746310005*ser/x);
+}
+
+function computeDisplay() {
+  const p = S.params;
+  const u = [...S.universe];
+
+  // Compute rank values
+  for (const r of u) {
+    switch (p.ranking) {
+      case 'radial_distance':
+        r.rank_value = Math.sqrt(r.log2fc_x**2 + r.log2fc_y**2); break;
+      case 'combined_magnitude':
+        r.rank_value = Math.abs(r.log2fc_x) + Math.abs(r.log2fc_y); break;
+      case 'delta':
+        r.rank_value = Math.abs(r.log2fc_y - r.log2fc_x); break;
+      case 'mean_integrated_score':
+        r.rank_value = Math.abs(r.score_x) + Math.abs(r.score_y); break;
+    }
+  }
+  u.sort((a,b) => b.rank_value - a.rank_value);
+
+  const n = Math.min(p.max_display, u.length);
+  S.displayRows = u.slice(0, n);
+  S.counts.displayed = S.displayRows.length;
+
+  // Plot limits from UNIVERSE (not just display)
+  const allAbs = S.universe.flatMap(r => [Math.abs(r.log2fc_x), Math.abs(r.log2fc_y)]);
+  if (allAbs.length > 0) {
+    const maxAbs = percentile(allAbs, p.truncate_pct);
+    const lim = Math.max(2, Math.ceil(maxAbs * 1.05));
+    S.plotLimits = { min: -lim, max: lim };
+    S.truncatedCount = allAbs.filter(v => v > maxAbs).length;
+  }
+
+  log(`Displaying ${S.counts.displayed} of ${S.counts.universe} DEGs.`);
+}
+
+// ---- Rendering ----
+let plotW, plotH, plotMargin, plotInnerW, plotInnerH;
+
+function renderResults() {
+  showPage('results');
+  resetZoom();
+  updateMetrics();
+  renderPlot();
+}
+
+function resetZoom() {
+  S.zoom = { scale: 1, tx: 0, ty: 0 };
+}
+
+function updateMetrics() {
+  const c = S.counts, p = S.pearson;
+  const bar = document.getElementById('metrics-bar');
+  const rStr = isNaN(p.r) ? '—' : p.r.toFixed(3);
+  bar.innerHTML = `
+    <div class="metric-item"><span class="metric-label">Intersection</span><span class="metric-value">${c.intersection}</span></div>
+    <div class="metric-sep"></div>
+    <div class="metric-item"><span class="metric-label">DEG filter</span><span class="metric-value">${c.universe}</span></div>
+    <div class="metric-sep"></div>
+    <div class="metric-item"><span class="metric-label">Displayed</span><span class="metric-value">${c.displayed}</span></div>
+    <div class="metric-sep"></div>
+    <div class="metric-item"><span class="metric-label">Pearson r</span><span class="metric-value">${rStr}</span></div>
+    <div class="metric-sep"></div>
+    <div class="metric-item"><span class="metric-label">Concordant ↑</span><span class="metric-value">${c.concordUp}</span></div>
+    <div class="metric-item"><span class="metric-label">Concordant ↓</span><span class="metric-value">${c.concordDown}</span></div>
+    <div class="metric-item"><span class="metric-label">Discordant</span><span class="metric-value">${c.discordant}</span></div>
+  `;
+
+  const banner = document.getElementById('truncation-banner');
+  if (S.truncatedCount > 0) {
+    banner.textContent = `Display truncated at 99th percentile. ${S.truncatedCount} extreme values clamped visually.`;
+    banner.classList.add('visible');
+  } else { banner.classList.remove('visible'); }
+}
+
+function renderPlot() {
+  const container = document.getElementById('plot-container');
+  const canvas = document.getElementById('plot-canvas');
+  const rect = container.getBoundingClientRect();
+  const size = Math.min(rect.width - 40, rect.height - 40, 800);
+
+  plotMargin = { top: 20, right: 20, bottom: 50, left: 60 };
+  plotW = size; plotH = size;
+  plotInnerW = plotW - plotMargin.left - plotMargin.right;
+  plotInnerH = plotH - plotMargin.top - plotMargin.bottom;
+
+  canvas.style.width = plotW + 'px';
+  canvas.style.height = plotH + 'px';
+  canvas.width = plotW * S.dpr;
+  canvas.height = plotH * S.dpr;
+
+  drawPlot();
+}
+
+function scaleX(v) {
+  const z = S.zoom;
+  const frac = (v - S.plotLimits.min) / (S.plotLimits.max - S.plotLimits.min);
+  return plotMargin.left + (frac * plotInnerW * z.scale + z.tx);
+}
+function scaleY(v) {
+  const z = S.zoom;
+  const frac = (v - S.plotLimits.min) / (S.plotLimits.max - S.plotLimits.min);
+  return plotMargin.top + plotInnerH - (frac * plotInnerH * z.scale + z.ty);
+}
+function invScaleX(px) {
+  const z = S.zoom;
+  const frac = (px - plotMargin.left - z.tx) / (plotInnerW * z.scale);
+  return S.plotLimits.min + frac * (S.plotLimits.max - S.plotLimits.min);
+}
+function invScaleY(py) {
+  const z = S.zoom;
+  const frac = (plotMargin.top + plotInnerH - py - z.ty) / (plotInnerH * z.scale);
+  return S.plotLimits.min + frac * (S.plotLimits.max - S.plotLimits.min);
+}
+
+function getPointColor(row, alpha) {
+  const theme = document.documentElement.dataset.theme;
+  const proj = (row.log2fc_x + row.log2fc_y) / Math.SQRT2;
+  const maxProj = (S.plotLimits.max * Math.SQRT2);
+  let t = clamp(proj / maxProj, -1, 1);
+
+  if (theme === 'light') {
+    if (t >= 0) {
+      const r = Math.round(255 - (255-194)*t);
+      const g = Math.round(255 - (255-24)*t);
+      const b = Math.round(255 - (255-7)*t);
+      return `rgba(${194 + (255-194)*(1-t)},${24 + (255-24)*(1-t)},${7 + (255-7)*(1-t)},${alpha})`;
+    } else {
+      const at = -t;
+      return `rgba(${21 + (255-21)*(1-at)},${101 + (255-101)*(1-at)},${192 + (255-192)*(1-at)},${alpha})`;
+    }
+  } else {
+    if (t >= 0) {
+      const r = Math.round(17 + (255-17)*t);
+      const g = Math.round(17 + (214-17)*t);
+      const b = Math.round(17 + (0-17)*t);
+      return `rgba(${r},${g},${Math.max(0,b)},${alpha})`;
+    } else {
+      const at = -t;
+      const r = Math.round(17 + (79-17)*at);
+      const g = Math.round(17 + (195-17)*at);
+      const b = Math.round(17 + (247-17)*at);
+      return `rgba(${r},${g},${b},${alpha})`;
+    }
+  }
+}
+
+function drawPlot() {
+  const canvas = document.getElementById('plot-canvas');
+  const ctx = canvas.getContext('2d');
+  const dpr = S.dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, plotW, plotH);
+
+  const theme = document.documentElement.dataset.theme;
+  const cs = getComputedStyle(document.documentElement);
+  const axisColor = cs.getPropertyValue('--axis-line').trim();
+  const refColor = cs.getPropertyValue('--ref-line').trim();
+  const regColor = cs.getPropertyValue('--regression-line').trim();
+  const textColor = cs.getPropertyValue('--text-primary').trim();
+  const textSecondary = cs.getPropertyValue('--text-secondary').trim();
+
+  // Clip plot area
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(plotMargin.left, plotMargin.top, plotInnerW, plotInnerH);
+  ctx.clip();
+
+  const lim = S.plotLimits;
+
+  // Reference lines
+  const p = S.params;
+
+  if (p.show_x0) {
+    const x0 = scaleX(0);
+    ctx.strokeStyle = refColor; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+    ctx.globalAlpha = 0.7;
+    ctx.beginPath(); ctx.moveTo(x0, plotMargin.top); ctx.lineTo(x0, plotMargin.top + plotInnerH); ctx.stroke();
+  }
+  if (p.show_y0) {
+    const y0 = scaleY(0);
+    ctx.strokeStyle = refColor; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+    ctx.globalAlpha = 0.7;
+    ctx.beginPath(); ctx.moveTo(plotMargin.left, y0); ctx.lineTo(plotMargin.left + plotInnerW, y0); ctx.stroke();
+  }
+  if (p.show_yx) {
+    ctx.strokeStyle = refColor; ctx.lineWidth = 1; ctx.setLineDash([6,6]);
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(scaleX(lim.min), scaleY(lim.min));
+    ctx.lineTo(scaleX(lim.max), scaleY(lim.max));
+    ctx.stroke();
+  }
+
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+
+  // Regression line
+  if (p.show_reg && !isNaN(S.pearson.slope)) {
+    const sl = S.pearson.slope, ic = S.pearson.intercept;
+    const x1 = lim.min, x2 = lim.max;
+    const y1 = sl * x1 + ic, y2 = sl * x2 + ic;
+    ctx.strokeStyle = regColor; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.9;
+    ctx.beginPath();
+    ctx.moveTo(scaleX(x1), scaleY(y1));
+    ctx.lineTo(scaleX(x2), scaleY(y2));
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Points
+  const alpha = p.point_alpha !== null ? p.point_alpha : (theme === 'light' ? 0.35 : 0.5);
+  const ptSize = p.point_size;
+
+  // Check active selection filter
+  let filterSel = null;
+  for (const [name, sel] of Object.entries(S.selections)) {
+    if (sel.active) { filterSel = sel.genes; break; }
+  }
+
+  for (const row of S.displayRows) {
+    if (filterSel && !filterSel.has(row.gene)) continue;
+    const cx = scaleX(clamp(row.log2fc_x, lim.min, lim.max));
+    const cy = scaleY(clamp(row.log2fc_y, lim.min, lim.max));
+    if (cx < plotMargin.left || cx > plotMargin.left + plotInnerW) continue;
+    if (cy < plotMargin.top || cy > plotMargin.top + plotInnerH) continue;
+
+    ctx.fillStyle = getPointColor(row, alpha);
+    ctx.beginPath();
+    ctx.arc(cx, cy, ptSize, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (row === S.hoveredGene) {
+      ctx.strokeStyle = textColor; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(cx, cy, ptSize + 1, 0, Math.PI*2); ctx.stroke();
+    }
+  }
+
+  // Labels
+  if (p.label_count > 0) {
+    const labelRows = S.displayRows.slice(0, p.label_count);
+    ctx.font = `500 11px ${cs.getPropertyValue('--font-primary').trim() || 'DM Sans'}`;
+    ctx.fillStyle = textColor;
+    ctx.textBaseline = 'middle';
+    for (const row of labelRows) {
+      if (filterSel && !filterSel.has(row.gene)) continue;
+      const cx = scaleX(clamp(row.log2fc_x, lim.min, lim.max));
+      const cy = scaleY(clamp(row.log2fc_y, lim.min, lim.max));
+      const offset = ptSize + 6;
+      const lx = cx + offset;
+      const ly = cy - offset;
+      ctx.globalAlpha = 0.6;
+      ctx.strokeStyle = textColor; ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(lx, ly); ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.fillText(row.gene, lx + 2, ly);
+    }
+  }
+
+  // Selection rectangle
+  if (S.isSelecting && S.selRect) {
+    const sr = S.selRect;
+    ctx.strokeStyle = textColor; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+    ctx.globalAlpha = 0.6;
+    ctx.strokeRect(sr.x, sr.y, sr.w, sr.h);
+    ctx.fillStyle = theme === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)';
+    ctx.fillRect(sr.x, sr.y, sr.w, sr.h);
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+  }
+
+  ctx.restore();
+
+  // Axes outside clip
+  // Y axis
+  ctx.strokeStyle = axisColor; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(plotMargin.left, plotMargin.top);
+  ctx.lineTo(plotMargin.left, plotMargin.top + plotInnerH);
+  ctx.stroke();
+  // X axis
+  ctx.beginPath();
+  ctx.moveTo(plotMargin.left, plotMargin.top + plotInnerH);
+  ctx.lineTo(plotMargin.left + plotInnerW, plotMargin.top + plotInnerH);
+  ctx.stroke();
+
+  // Ticks
+  const tickCount = 6;
+  const range = lim.max - lim.min;
+  const step = niceStep(range / tickCount);
+  ctx.font = `400 12px ${cs.getPropertyValue('--font-mono').trim() || 'JetBrains Mono'}`;
+  ctx.fillStyle = textSecondary; ctx.textBaseline = 'top'; ctx.textAlign = 'center';
+
+  for (let v = Math.ceil(lim.min / step) * step; v <= lim.max; v += step) {
+    const x = scaleX(v);
+    if (x >= plotMargin.left && x <= plotMargin.left + plotInnerW) {
+      ctx.beginPath(); ctx.moveTo(x, plotMargin.top + plotInnerH);
+      ctx.lineTo(x, plotMargin.top + plotInnerH + 6); ctx.stroke();
+      ctx.fillText(formatTick(v), x, plotMargin.top + plotInnerH + 10);
+    }
+  }
+
+  ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
+  for (let v = Math.ceil(lim.min / step) * step; v <= lim.max; v += step) {
+    const y = scaleY(v);
+    if (y >= plotMargin.top && y <= plotMargin.top + plotInnerH) {
+      ctx.beginPath(); ctx.moveTo(plotMargin.left - 6, y);
+      ctx.lineTo(plotMargin.left, y); ctx.stroke();
+      ctx.fillText(formatTick(v), plotMargin.left - 10, y);
+    }
+  }
+
+  // Axis labels
+  ctx.font = `500 14px ${cs.getPropertyValue('--font-primary').trim() || 'DM Sans'}`;
+  ctx.fillStyle = textColor;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  const xLabel = S.labelX || 'log₂FC (X)';
+  ctx.fillText(xLabel, plotMargin.left + plotInnerW / 2, plotMargin.top + plotInnerH + 34);
+
+  ctx.save();
+  ctx.translate(14, plotMargin.top + plotInnerH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+  const yLabel = S.labelY || 'log₂FC (Y)';
+  ctx.fillText(yLabel, 0, 0);
+  ctx.restore();
+}
+
+function niceStep(rough) {
+  const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+  const norm = rough / mag;
+  if (norm <= 1.5) return mag;
+  if (norm <= 3) return 2 * mag;
+  if (norm <= 7) return 5 * mag;
+  return 10 * mag;
+}
+
+function formatTick(v) {
+  return Math.abs(v) < 0.001 ? '0' : (Number.isInteger(v) ? v.toString() : v.toFixed(1));
+}
+
+// ---- Interaction ----
+function setupPlotInteraction() {
+  const canvas = document.getElementById('plot-canvas');
+
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.15 : 1/1.15;
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    const px = mx - plotMargin.left;
+    const py = my - plotMargin.top;
+
+    S.zoom.tx = px - factor * (px - S.zoom.tx);
+    S.zoom.ty = (plotInnerH - py) - factor * ((plotInnerH - py) - S.zoom.ty);
+    S.zoom.scale *= factor;
+    S.zoom.scale = clamp(S.zoom.scale, 0.5, 20);
+    drawPlot();
+  }, { passive: false });
+
+  canvas.addEventListener('mousedown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    if (e.shiftKey) {
+      S.isSelecting = true;
+      S.selRect = { x: mx, y: my, w: 0, h: 0 };
+    } else {
+      S.isDragging = true;
+      S.dragStart = { x: mx, y: my, tx: S.zoom.tx, ty: S.zoom.ty };
+    }
+  });
+
+  canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    if (S.isDragging && S.dragStart) {
+      const dx = mx - S.dragStart.x;
+      const dy = -(my - S.dragStart.y);
+      S.zoom.tx = S.dragStart.tx + dx;
+      S.zoom.ty = S.dragStart.ty + dy;
+      drawPlot();
+      return;
+    }
+
+    if (S.isSelecting && S.selRect) {
+      S.selRect.w = mx - S.selRect.x;
+      S.selRect.h = my - S.selRect.y;
+      drawPlot();
+      return;
+    }
+
+    // Hover
+    showTooltipForPoint(mx, my, e.clientX, e.clientY);
+  });
+
+  canvas.addEventListener('mouseup', (e) => {
+    if (S.isSelecting && S.selRect) {
+      S.isSelecting = false;
+      const sr = S.selRect;
+      const x1 = Math.min(sr.x, sr.x + sr.w);
+      const x2 = Math.max(sr.x, sr.x + sr.w);
+      const y1 = Math.min(sr.y, sr.y + sr.h);
+      const y2 = Math.max(sr.y, sr.y + sr.h);
+
+      if (Math.abs(sr.w) > 5 && Math.abs(sr.h) > 5) {
+        const genes = new Set();
+        for (const row of S.displayRows) {
+          const cx = scaleX(clamp(row.log2fc_x, S.plotLimits.min, S.plotLimits.max));
+          const cy = scaleY(clamp(row.log2fc_y, S.plotLimits.min, S.plotLimits.max));
+          if (cx >= x1 && cx <= x2 && cy >= y1 && cy <= y2) genes.add(row.gene);
+        }
+        if (genes.size > 0) {
+          S.selectionPending = genes;
+          const modal = document.getElementById('sel-modal');
+          modal.classList.add('visible');
+          document.getElementById('sel-name-input').value = '';
+          setTimeout(() => document.getElementById('sel-name-input').focus(), 50);
+        }
+      }
+      S.selRect = null;
+      drawPlot();
+    }
+    S.isDragging = false;
+    S.dragStart = null;
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    S.hoveredGene = null;
+    document.getElementById('tooltip').classList.remove('visible');
+  });
+
+  canvas.addEventListener('dblclick', () => { resetZoom(); drawPlot(); });
+}
+
+function showTooltipForPoint(mx, my, cx, cy) {
+  const tip = document.getElementById('tooltip');
+  let closest = null, minDist = Infinity;
+  const ptSize = S.params.point_size;
+  const hitRadius = ptSize + 4;
+
+  for (const row of S.displayRows) {
+    const px = scaleX(clamp(row.log2fc_x, S.plotLimits.min, S.plotLimits.max));
+    const py = scaleY(clamp(row.log2fc_y, S.plotLimits.min, S.plotLimits.max));
+    const d = Math.sqrt((mx-px)**2 + (my-py)**2);
+    if (d < hitRadius && d < minDist) { closest = row; minDist = d; }
+  }
+
+  // Check regression line hover
+  if (!closest && S.params.show_reg && !isNaN(S.pearson.slope)) {
+    const dataX = invScaleX(mx);
+    const expectedY = S.pearson.slope * dataX + S.pearson.intercept;
+    const screenExpY = scaleY(expectedY);
+    if (Math.abs(my - screenExpY) < 8 && mx > plotMargin.left && mx < plotMargin.left + plotInnerW) {
+      const pr = S.pearson;
+      tip.innerHTML = `
+        <div class="tooltip-gene">Regression</div>
+        <div class="tooltip-row"><span class="tooltip-key">Pearson r</span><span class="tooltip-val">${pr.r.toFixed(4)}</span></div>
+        <div class="tooltip-row"><span class="tooltip-key">Slope</span><span class="tooltip-val">${pr.slope.toFixed(4)}</span></div>
+        <div class="tooltip-row"><span class="tooltip-key">Intercept</span><span class="tooltip-val">${pr.intercept.toFixed(4)}</span></div>
+        <div class="tooltip-row"><span class="tooltip-key">p-value</span><span class="tooltip-val">${pr.p.toExponential(2)}</span></div>
+        <div class="tooltip-row"><span class="tooltip-key">N</span><span class="tooltip-val">${pr.n}</span></div>
+      `;
+      tip.style.left = (cx + 14) + 'px';
+      tip.style.top = (cy - 10) + 'px';
+      tip.classList.add('visible');
+      S.hoveredGene = null;
+      drawPlot();
+      return;
+    }
+  }
+
+  if (closest) {
+    S.hoveredGene = closest;
+    const r = closest;
+    const clsLabel = r.cls === 'concordant_up' ? 'Concordant ↑' : r.cls === 'concordant_down' ? 'Concordant ↓' : 'Discordant';
+    const flags = [];
+    if (r.dedup_x) flags.push('Deduplicated in X');
+    if (r.dedup_y) flags.push('Deduplicated in Y');
+    tip.innerHTML = `
+      <div class="tooltip-gene">${r.gene}</div>
+      <div class="tooltip-row"><span class="tooltip-key">log₂FC X</span><span class="tooltip-val">${r.log2fc_x.toFixed(3)}</span></div>
+      <div class="tooltip-row"><span class="tooltip-key">padj X</span><span class="tooltip-val">${r.padj_x.toExponential(2)}</span></div>
+      <div class="tooltip-row"><span class="tooltip-key">Score X</span><span class="tooltip-val">${r.score_x.toFixed(2)}</span></div>
+      <div class="tooltip-row"><span class="tooltip-key">log₂FC Y</span><span class="tooltip-val">${r.log2fc_y.toFixed(3)}</span></div>
+      <div class="tooltip-row"><span class="tooltip-key">padj Y</span><span class="tooltip-val">${r.padj_y.toExponential(2)}</span></div>
+      <div class="tooltip-row"><span class="tooltip-key">Score Y</span><span class="tooltip-val">${r.score_y.toFixed(2)}</span></div>
+      <div class="tooltip-class" style="color:${r.cls === 'discordant' ? 'var(--warning)' : r.cls === 'concordant_up' ? 'var(--color-up)' : 'var(--color-down)'}">${clsLabel}</div>
+      ${flags.length ? `<div style="font-size:11px;color:var(--text-tertiary);margin-top:4px">${flags.join(', ')}</div>` : ''}
+    `;
+    tip.style.left = (cx + 14) + 'px';
+    tip.style.top = (cy - 10) + 'px';
+    tip.classList.add('visible');
+    drawPlot();
+  } else {
+    S.hoveredGene = null;
+    tip.classList.remove('visible');
+  }
+}
+
+// ---- Selection Modal ----
+function confirmSelection() {
+  const name = document.getElementById('sel-name-input').value.trim().replace(/\s+/g, '_') || `Selection_${Object.keys(S.selections).length + 1}`;
+  if (S.selectionPending) {
+    S.selections[name] = { genes: S.selectionPending, active: false };
+    S.selectionPending = null;
+    updateSelectionsUI();
+  }
+  document.getElementById('sel-modal').classList.remove('visible');
+}
+function cancelSelection() {
+  S.selectionPending = null;
+  document.getElementById('sel-modal').classList.remove('visible');
+  drawPlot();
+}
+function updateSelectionsUI() {
+  const bar = document.getElementById('selections-bar');
+  const tags = document.getElementById('selection-tags');
+  const names = Object.keys(S.selections);
+  if (names.length === 0) { bar.classList.remove('visible'); return; }
+  bar.classList.add('visible');
+  tags.innerHTML = names.map(n => {
+    const active = S.selections[n].active;
+    return `<span class="selection-tag ${active ? 'active' : ''}" onclick="toggleSelection('${n}')">${n} (${S.selections[n].genes.size})<span class="remove" onclick="event.stopPropagation(); removeSelection('${n}')">×</span></span>`;
+  }).join('');
+}
+function toggleSelection(name) {
+  // Toggle active, only one at a time
+  const wasActive = S.selections[name].active;
+  for (const k of Object.keys(S.selections)) S.selections[k].active = false;
+  if (!wasActive) S.selections[name].active = true;
+  updateSelectionsUI();
+  drawPlot();
+}
+function removeSelection(name) {
+  delete S.selections[name];
+  updateSelectionsUI();
+  drawPlot();
+}
+
+// ---- Advanced Panel ----
+function toggleAdvanced() {
+  const panel = document.getElementById('adv-panel');
+  const overlay = document.getElementById('adv-overlay');
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open');
+  overlay.classList.toggle('visible');
+}
+
+function toggleToggle(el) {
+  el.classList.toggle('on');
+}
+
+function onParamChange() {
+  const p = S.params;
+  p.max_display = parseInt(document.getElementById('slider-max-genes').value);
+  document.getElementById('val-max-genes').textContent = p.max_display;
+
+  p.ranking = document.getElementById('select-ranking').value;
+  p.point_size = parseFloat(document.getElementById('slider-point-size').value);
+  document.getElementById('val-point-size').textContent = p.point_size;
+
+  p.point_alpha = parseFloat(document.getElementById('slider-point-alpha').value);
+  document.getElementById('val-point-alpha').textContent = p.point_alpha.toFixed(2);
+
+  p.label_count = parseInt(document.getElementById('slider-labels').value);
+  document.getElementById('val-labels').textContent = p.label_count;
+
+  p.show_x0 = document.getElementById('tog-x0').classList.contains('on');
+  p.show_y0 = document.getElementById('tog-y0').classList.contains('on');
+  p.show_yx = document.getElementById('tog-yx').classList.contains('on');
+  p.show_reg = document.getElementById('tog-reg').classList.contains('on');
+
+  computeDisplay();
+  updateMetrics();
+  drawPlot();
+}
+
+function onFilterChange() {
+  S.params.log2fc_cutoff = parseFloat(document.getElementById('input-lfc').value) || 1;
+  S.params.fdr_cutoff = parseFloat(document.getElementById('input-fdr').value) || 0.05;
+  S.params.intercept_type = document.getElementById('select-intercept').value;
+
+  computeUniverse();
+  updateMetrics();
+  drawPlot();
+}
+
+// ---- Upload Handling ----
+function handleUpload(input, axis) {
+  const file = input.files[0];
+  if (!file) return;
+  const uploadEl = document.getElementById(`upload-${axis}`);
+  const fnameEl = document.getElementById(`fname-${axis}`);
+  const errEl = document.getElementById(`err-${axis}`);
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const text = e.target.result;
+      const parsed = parseTable(text);
+      if (axis === 'x') S.rawX = text;
+      else S.rawY = text;
+
+      uploadEl.classList.remove('has-error');
+      uploadEl.classList.add('has-file');
+      fnameEl.textContent = `✓ ${file.name} — ${parsed.rows.length} rows, Gene symbol detected`;
+      errEl.textContent = '';
+      checkRunButton();
+    } catch (err) {
+      uploadEl.classList.remove('has-file');
+      uploadEl.classList.add('has-error');
+      fnameEl.textContent = '';
+      errEl.textContent = err.message;
+      if (axis === 'x') S.rawX = null;
+      else S.rawY = null;
+      checkRunButton();
+    }
+  };
+  reader.readAsText(file);
+}
+
+function checkRunButton() {
+  document.getElementById('btn-run').disabled = !(S.rawX && S.rawY);
+}
+
+// ---- Run ----
+function runAnalysis() {
+  S.log = [];
+  S.selections = {};
+  S.labelX = document.getElementById('label-x').value || 'log₂FC (X)';
+  S.labelY = document.getElementById('label-y').value || 'log₂FC (Y)';
+  S.upX = document.getElementById('up-x').value;
+  S.downX = document.getElementById('down-x').value;
+  S.upY = document.getElementById('up-y').value;
+  S.downY = document.getElementById('down-y').value;
+
+  log(`OmicLine session started.`);
+  log(`X label: ${S.labelX}, Y label: ${S.labelY}`);
+
+  try {
+    runPipeline();
+    renderResults();
+  } catch (err) {
+    alert('Error: ' + err.message);
+    console.error(err);
+  }
+}
+
+// ---- Demo ----
+function generateDemoData() {
+  const genes = [];
+  const geneNames = [];
+  // Generate realistic gene names
+  const prefixes = ['TNF','IL','CXCL','CCL','MMP','STAT','JAK','MAPK','TP','BRCA','EGFR','VEGF','FGF','TGF','SOX','HOX','WNT','NOTCH','CDK','BCL','CASP','AKT','MTOR','PIK3','KRAS','NRAS','BRAF','MYC','JUN','FOS','HIF','NF','IRF','IFNG','CD','HLA','GATA','FOXP','RUNX','PAX','ETS','SMAD','RB','PTEN','VHL','APC','MLH','MSH','KIT','MET','RET','ALK','ROS','ERBB','PDGF','CSF','EPO','TPO','GH','IGF','INS','LEP','ADIPOQ','APOE','APOB','LDLR','HMGCR','CYP','UGT','SULT','NAT','GST','SOD','CAT','GPX','PRDX','TXN','NQO','ABCB','SLC','KCNJ','SCN','CACN','GRIN','GABA','HTR','DRD','CHRN','OPRM','ADRA','ADRB','GLP','SGLT','PPAR','NR3C','ESR','AR','PGR'];
+  for (let i = 0; i < 5000; i++) {
+    const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+    const suffix = Math.random() < 0.5 ? String(Math.floor(Math.random()*20)+1) : String.fromCharCode(65+Math.floor(Math.random()*4)) + (Math.random() < 0.3 ? String(Math.floor(Math.random()*3)+1) : '');
+    const name = prefix + suffix;
+    if (!geneNames.includes(name)) {
+      geneNames.push(name);
+    }
+  }
+
+  // Create correlated data with some discordance
+  const rows = [];
+  for (const gene of geneNames) {
+    const base = (Math.random() - 0.5) * 6;
+    const noise1 = (Math.random() - 0.5) * 2;
+    const noise2 = (Math.random() - 0.5) * 2;
+    const lfc_x = base + noise1;
+    const lfc_y = base * 0.8 + noise2 + (Math.random() < 0.1 ? (Math.random()-0.5)*8 : 0);
+    const padj_x = Math.pow(10, -(Math.abs(lfc_x) * (1 + Math.random()*3)));
+    const padj_y = Math.pow(10, -(Math.abs(lfc_y) * (1 + Math.random()*3)));
+    rows.push({
+      gene, lfc_x: lfc_x.toFixed(4), padj_x: Math.max(1e-300, Math.min(1, padj_x)).toExponential(4),
+      lfc_y: lfc_y.toFixed(4), padj_y: Math.max(1e-300, Math.min(1, padj_y)).toExponential(4)
+    });
+  }
+
+  const headerX = 'Gene.symbol\tlogFC\tadj.P.Val';
+  const headerY = 'Gene.symbol\tlogFC\tadj.P.Val';
+  const bodyX = rows.map(r => `${r.gene}\t${r.lfc_x}\t${r.padj_x}`).join('\n');
+  const bodyY = rows.map(r => `${r.gene}\t${r.lfc_y}\t${r.padj_y}`).join('\n');
+
+  return {
+    textX: headerX + '\n' + bodyX,
+    textY: headerY + '\n' + bodyY
+  };
+}
+
+function loadDemo() {
+  const demo = generateDemoData();
+  S.rawX = demo.textX;
+  S.rawY = demo.textY;
+  S.log = [];
+  S.selections = {};
+
+  document.getElementById('label-x').value = 'Survivor vs Deceased';
+  document.getElementById('label-y').value = 'Infected vs Control';
+  document.getElementById('up-x').value = 'Higher in Deceased';
+  document.getElementById('down-x').value = 'Higher in Survivor';
+  document.getElementById('up-y').value = 'Higher in Infected';
+  document.getElementById('down-y').value = 'Higher in Control';
+
+  S.labelX = 'Survivor vs Deceased';
+  S.labelY = 'Infected vs Control';
+  S.upX = 'Higher in Deceased';
+  S.downX = 'Higher in Survivor';
+  S.upY = 'Higher in Infected';
+  S.downY = 'Higher in Control';
+
+  log('Demo data loaded.');
+  runPipeline();
+  renderResults();
+}
+
+// ---- Export Functions ----
+function exportSVG() {
+  const lim = S.plotLimits;
+  const w = 600, h = 600;
+  const m = { top: 20, right: 20, bottom: 50, left: 60 };
+  const iw = w - m.left - m.right, ih = h - m.top - m.bottom;
+  const theme = document.documentElement.dataset.theme;
+  const bgColor = theme === 'light' ? '#FFFFFF' : '#0F1115';
+  const axColor = theme === 'light' ? '#999999' : '#666666';
+  const refCol = theme === 'light' ? '#CCCCCC' : '#444444';
+  const regCol = theme === 'light' ? '#222222' : '#E0E0E0';
+  const txtCol = theme === 'light' ? '#111111' : '#F5F5F5';
+
+  function sx(v) { return m.left + ((v-lim.min)/(lim.max-lim.min))*iw; }
+  function sy(v) { return m.top + ih - ((v-lim.min)/(lim.max-lim.min))*ih; }
+
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">\n`;
+  svg += `<rect width="${w}" height="${h}" fill="${bgColor}"/>\n`;
+
+  // Reference lines
+  svg += `<g id="reference-lines">\n`;
+  if (S.params.show_x0) svg += `<line x1="${sx(0)}" y1="${m.top}" x2="${sx(0)}" y2="${m.top+ih}" stroke="${refCol}" stroke-width="1" stroke-dasharray="4,4" opacity="0.7"/>\n`;
+  if (S.params.show_y0) svg += `<line x1="${m.left}" y1="${sy(0)}" x2="${m.left+iw}" y2="${sy(0)}" stroke="${refCol}" stroke-width="1" stroke-dasharray="4,4" opacity="0.7"/>\n`;
+  if (S.params.show_yx) svg += `<line x1="${sx(lim.min)}" y1="${sy(lim.min)}" x2="${sx(lim.max)}" y2="${sy(lim.max)}" stroke="${refCol}" stroke-width="1" stroke-dasharray="6,6" opacity="0.5"/>\n`;
+  if (S.params.show_reg && !isNaN(S.pearson.slope)) {
+    const sl = S.pearson.slope, ic = S.pearson.intercept;
+    svg += `<line x1="${sx(lim.min)}" y1="${sy(sl*lim.min+ic)}" x2="${sx(lim.max)}" y2="${sy(sl*lim.max+ic)}" stroke="${regCol}" stroke-width="1.5" opacity="0.9"/>\n`;
+  }
+  svg += `</g>\n`;
+
+  // Points
+  const alpha = S.params.point_alpha !== null ? S.params.point_alpha : (theme === 'light' ? 0.35 : 0.5);
+  svg += `<g id="points">\n`;
+  for (const row of S.displayRows) {
+    const cx = sx(clamp(row.log2fc_x, lim.min, lim.max));
+    const cy = sy(clamp(row.log2fc_y, lim.min, lim.max));
+    const col = getPointColorHex(row, alpha, theme);
+    svg += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${S.params.point_size}" fill="${col}" opacity="${alpha}"/>\n`;
+  }
+  svg += `</g>\n`;
+
+  // Labels
+  if (S.params.label_count > 0) {
+    svg += `<g id="labels">\n`;
+    const labelRows = S.displayRows.slice(0, S.params.label_count);
+    for (const row of labelRows) {
+      const cx = sx(clamp(row.log2fc_x, lim.min, lim.max));
+      const cy = sy(clamp(row.log2fc_y, lim.min, lim.max));
+      const lx = cx + S.params.point_size + 6;
+      const ly = cy - S.params.point_size - 6;
+      svg += `<line x1="${cx.toFixed(1)}" y1="${cy.toFixed(1)}" x2="${lx.toFixed(1)}" y2="${ly.toFixed(1)}" stroke="${txtCol}" stroke-width="0.8" opacity="0.6"/>\n`;
+      svg += `<text x="${(lx+2).toFixed(1)}" y="${ly.toFixed(1)}" fill="${txtCol}" font-family="DM Sans, Helvetica, sans-serif" font-size="11" dominant-baseline="middle">${row.gene}</text>\n`;
+    }
+    svg += `</g>\n`;
+  }
+
+  // Axes
+  svg += `<g id="axes">\n`;
+  svg += `<line x1="${m.left}" y1="${m.top}" x2="${m.left}" y2="${m.top+ih}" stroke="${axColor}" stroke-width="1"/>\n`;
+  svg += `<line x1="${m.left}" y1="${m.top+ih}" x2="${m.left+iw}" y2="${m.top+ih}" stroke="${axColor}" stroke-width="1"/>\n`;
+  // Ticks
+  const range = lim.max - lim.min;
+  const step = niceStep(range / 6);
+  for (let v = Math.ceil(lim.min / step) * step; v <= lim.max; v += step) {
+    svg += `<line x1="${sx(v).toFixed(1)}" y1="${(m.top+ih).toFixed(1)}" x2="${sx(v).toFixed(1)}" y2="${(m.top+ih+6).toFixed(1)}" stroke="${axColor}" stroke-width="1"/>\n`;
+    svg += `<text x="${sx(v).toFixed(1)}" y="${(m.top+ih+18).toFixed(1)}" fill="${txtCol}" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle">${formatTick(v)}</text>\n`;
+    svg += `<line x1="${(m.left-6).toFixed(1)}" y1="${sy(v).toFixed(1)}" x2="${m.left}" y2="${sy(v).toFixed(1)}" stroke="${axColor}" stroke-width="1"/>\n`;
+    svg += `<text x="${(m.left-10).toFixed(1)}" y="${sy(v).toFixed(1)}" fill="${txtCol}" font-family="JetBrains Mono, monospace" font-size="11" text-anchor="end" dominant-baseline="middle">${formatTick(v)}</text>\n`;
+  }
+  // Labels
+  svg += `<text x="${(m.left+iw/2).toFixed(1)}" y="${(m.top+ih+40).toFixed(1)}" fill="${txtCol}" font-family="DM Sans, sans-serif" font-size="14" font-weight="500" text-anchor="middle">${escapeXml(S.labelX || 'log₂FC (X)')}</text>\n`;
+  svg += `<text x="14" y="${(m.top+ih/2).toFixed(1)}" fill="${txtCol}" font-family="DM Sans, sans-serif" font-size="14" font-weight="500" text-anchor="middle" transform="rotate(-90,14,${(m.top+ih/2).toFixed(1)})">${escapeXml(S.labelY || 'log₂FC (Y)')}</text>\n`;
+  svg += `</g>\n`;
+
+  svg += `</svg>`;
+
+  downloadFile(svg, 'omicline_plot.svg', 'image/svg+xml');
+}
+
+function getPointColorHex(row, alpha, theme) {
+  const proj = (row.log2fc_x + row.log2fc_y) / Math.SQRT2;
+  const maxProj = (S.plotLimits.max * Math.SQRT2);
+  let t = clamp(proj / maxProj, -1, 1);
+
+  if (theme === 'light') {
+    if (t >= 0) {
+      const r = Math.round(255 - (255-194)*t);
+      const g = Math.round(255 - (255-24)*t);
+      const b = Math.round(255 - (255-7)*t);
+      return `rgb(${r},${g},${b})`;
+    } else {
+      const at = -t;
+      return `rgb(${Math.round(255-(255-21)*at)},${Math.round(255-(255-101)*at)},${Math.round(255-(255-192)*at)})`;
+    }
+  } else {
+    if (t >= 0) {
+      return `rgb(${Math.round(17+(255-17)*t)},${Math.round(17+(214-17)*t)},${Math.round(Math.max(0,17-17*t))})`;
+    } else {
+      const at = -t;
+      return `rgb(${Math.round(17+(79-17)*at)},${Math.round(17+(195-17)*at)},${Math.round(17+(247-17)*at)})`;
+    }
+  }
+}
+
+function escapeXml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function exportTable() {
+  const selNames = Object.keys(S.selections);
+  let csv = 'Gene.symbol,log2FC_X,padj_X,score_X,DEG_X,log2FC_Y,padj_Y,score_Y,DEG_Y,class,rank_value,dedup_X,dedup_Y';
+  for (const sn of selNames) csv += `,${sn}`;
+  csv += '\n';
+
+  for (const r of S.merged) {
+    const inUniverse = S.universe.includes(r);
+    csv += `${r.gene},${r.log2fc_x},${r.padj_x},${r.score_x.toFixed(4)},${r.deg_x?1:0},${r.log2fc_y},${r.padj_y},${r.score_y.toFixed(4)},${r.deg_y?1:0},${inUniverse?r.cls:''},${inUniverse?r.rank_value.toFixed(4):''},${r.dedup_x?1:0},${r.dedup_y?1:0}`;
+    for (const sn of selNames) csv += `,${S.selections[sn].genes.has(r.gene)?1:0}`;
+    csv += '\n';
+  }
+  downloadFile(csv, 'omicline_merged.csv', 'text/csv');
+}
+
+function exportLog() {
+  const p = S.params, pr = S.pearson, c = S.counts;
+  let text = `OmicLine Session Log\n${'='.repeat(50)}\n`;
+  text += `Date: ${new Date().toISOString()}\n\n`;
+  text += `Parameters:\n`;
+  text += `  log2FC cutoff: ${p.log2fc_cutoff}\n`;
+  text += `  FDR cutoff: ${p.fdr_cutoff}\n`;
+  text += `  padj floor: ${p.padj_floor}\n`;
+  text += `  Ranking: ${p.ranking}\n`;
+  text += `  Max display: ${p.max_display}\n`;
+  text += `  Intercept: ${p.intercept_type}\n`;
+  text += `  Visual truncation percentile: ${p.truncate_pct}\n\n`;
+  text += `Counts:\n`;
+  text += `  Genes in intersection: ${c.intersection}\n`;
+  text += `  Genes passing DEG filter: ${c.universe}\n`;
+  text += `  Genes displayed: ${c.displayed}\n`;
+  text += `  Concordant up: ${c.concordUp}\n`;
+  text += `  Concordant down: ${c.concordDown}\n`;
+  text += `  Discordant: ${c.discordant}\n`;
+  text += `  Truncated visually: ${S.truncatedCount}\n\n`;
+  text += `Pearson:\n`;
+  text += `  r: ${isNaN(pr.r)?'N/A':pr.r.toFixed(6)}\n`;
+  text += `  slope: ${isNaN(pr.slope)?'N/A':pr.slope.toFixed(6)}\n`;
+  text += `  intercept: ${pr.intercept.toFixed(6)}\n`;
+  text += `  p-value: ${isNaN(pr.p)?'N/A':pr.p.toExponential(4)}\n`;
+  text += `  N: ${pr.n}\n\n`;
+  text += `Labels:\n`;
+  text += `  X: ${S.labelX}\n`;
+  text += `  Y: ${S.labelY}\n\n`;
+  text += `Processing Log:\n`;
+  for (const l of S.log) text += `  ${l}\n`;
+
+  downloadFile(text, 'omicline_session.txt', 'text/plain');
+}
+
+function exportPNG() {
+  const canvas = document.getElementById('plot-canvas');
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'omicline_plot.png'; a.click();
+    URL.revokeObjectURL(url);
+  });
+}
+
+function downloadFile(content, filename, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ---- Navigation ----
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+
+  // Show/hide advanced button in nav
+  const navLinks = document.querySelector('.nav-links');
+  const existingAdv = document.getElementById('nav-adv-btn');
+  if (name === 'results') {
+    if (!existingAdv) {
+      const btn = document.createElement('button');
+      btn.className = 'nav-link'; btn.id = 'nav-adv-btn';
+      btn.textContent = '+'; btn.style.fontSize = '18px'; btn.style.fontWeight = '300';
+      btn.onclick = toggleAdvanced;
+      navLinks.insertBefore(btn, navLinks.firstChild);
+    }
+    // Also add Export button
+    if (!document.getElementById('nav-export-btn')) {
+      const btn = document.createElement('button');
+      btn.className = 'nav-link'; btn.id = 'nav-export-btn';
+      btn.textContent = 'Export';
+      btn.onclick = () => { toggleAdvanced(); /* scroll to export section */ };
+      navLinks.insertBefore(btn, navLinks.firstChild);
+    }
+  } else {
+    if (existingAdv) existingAdv.remove();
+    const expBtn = document.getElementById('nav-export-btn');
+    if (expBtn) expBtn.remove();
+    // Close advanced panel
+    document.getElementById('adv-panel').classList.remove('open');
+    document.getElementById('adv-overlay').classList.remove('visible');
+  }
+
+  if (name === 'results') {
+    requestAnimationFrame(() => renderPlot());
+  }
+}
+
+// ---- Theme ----
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.dataset.theme;
+  html.dataset.theme = current === 'light' ? 'dark' : 'light';
+  document.querySelector('.theme-toggle').textContent = html.dataset.theme === 'light' ? '☀' : '☾';
+  // Re-sync alpha slider default
+  if (S.params.point_alpha === null) {
+    const def = html.dataset.theme === 'light' ? 0.35 : 0.5;
+    document.getElementById('slider-point-alpha').value = def;
+    document.getElementById('val-point-alpha').textContent = def.toFixed(2);
+  }
+  if (document.getElementById('page-results').classList.contains('active')) {
+    drawPlot();
+  }
+  drawHeroCanvas();
+}
+
+// ---- Hero Canvas ----
+function drawHeroCanvas() {
+  const canvas = document.getElementById('hero-canvas');
+  if (!canvas) return;
+  const size = 380;
+  const dpr = S.dpr;
+  canvas.width = size * dpr;
+  canvas.height = size * dpr;
+  canvas.style.width = size + 'px';
+  canvas.style.height = size + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, size, size);
+
+  const theme = document.documentElement.dataset.theme;
+  const m = 40;
+  const iw = size - 2*m;
+
+  // Reference lines
+  const refCol = theme === 'light' ? '#E0E0E0' : '#333333';
+  ctx.strokeStyle = refCol; ctx.lineWidth = 0.8; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(m + iw/2, m); ctx.lineTo(m + iw/2, m + iw); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(m, m + iw/2); ctx.lineTo(m + iw, m + iw/2); ctx.stroke();
+  ctx.setLineDash([6,6]);
+  ctx.beginPath(); ctx.moveTo(m, m+iw); ctx.lineTo(m+iw, m); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Generate scattered points
+  const rng = (seed) => {
+    let s = seed;
+    return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+  };
+  const rand = rng(42);
+
+  for (let i = 0; i < 300; i++) {
+    const base = (rand() - 0.5) * 2;
+    const x = base + (rand()-0.5) * 0.8;
+    const y = base * 0.85 + (rand()-0.5) * 0.8;
+    const px = m + (x + 1) / 2 * iw;
+    const py = m + iw - (y + 1) / 2 * iw;
+
+    const proj = (x + y) / Math.SQRT2;
+    const t = clamp(proj / Math.SQRT2, -1, 1);
+
+    let col;
+    if (theme === 'light') {
+      if (t >= 0) col = `rgba(${Math.round(194+61*(1-t))},${Math.round(24+231*(1-t))},${Math.round(7+248*(1-t))},0.3)`;
+      else { const at = -t; col = `rgba(${Math.round(255-234*at)},${Math.round(255-154*at)},${Math.round(255-63*at)},0.3)`; }
+    } else {
+      if (t >= 0) col = `rgba(${Math.round(17+238*t)},${Math.round(17+197*t)},${Math.round(Math.max(0,17-17*t))},0.4)`;
+      else { const at = -t; col = `rgba(${Math.round(17+62*at)},${Math.round(17+178*at)},${Math.round(17+230*at)},0.4)`; }
+    }
+
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(px, py, 3.5, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Regression line
+  const regCol2 = theme === 'light' ? 'rgba(34,34,34,0.6)' : 'rgba(224,224,224,0.6)';
+  ctx.strokeStyle = regCol2; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(m, m + iw - iw * 0.075); ctx.lineTo(m + iw, m + iw * 0.075); ctx.stroke();
+}
+
+// ---- Resize handling ----
+window.addEventListener('resize', () => {
+  if (document.getElementById('page-results').classList.contains('active')) {
+    renderPlot();
+  }
+});
+
+// ---- Init ----
+document.addEventListener('DOMContentLoaded', () => {
+  drawHeroCanvas();
+  setupPlotInteraction();
+
+  // Sync alpha display
+  const theme = document.documentElement.dataset.theme;
+  document.getElementById('val-point-alpha').textContent = (theme === 'light' ? 0.35 : 0.5).toFixed(2);
+  document.getElementById('slider-point-alpha').value = theme === 'light' ? 0.35 : 0.5;
+
+  // Enter key in selection modal
+  document.getElementById('sel-name-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') confirmSelection();
+    if (e.key === 'Escape') cancelSelection();
+  });
+});
+</script>
+</body>
+</html>

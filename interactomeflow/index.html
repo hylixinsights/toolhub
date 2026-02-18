@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InteractomeFlow — PPI Network Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+/* ===== CSS VARIABLES & THEME ===== */
+:root {
+  --font-primary: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-float: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+[data-theme="dark"] {
+  --bg-primary: #0a0c10;
+  --bg-secondary: #12151c;
+  --bg-tertiary: #1a1e28;
+  --bg-canvas: #0d0f14;
+  --bg-glass: rgba(18, 21, 28, 0.85);
+  --bg-glass-hover: rgba(26, 30, 40, 0.92);
+  --text-primary: #e8eaf0;
+  --text-secondary: #8b90a0;
+  --text-tertiary: #5a5f72;
+  --border: rgba(255,255,255,0.06);
+  --border-hover: rgba(255,255,255,0.12);
+  --accent: #4ecdc4;
+  --accent-glow: rgba(78, 205, 196, 0.15);
+  --accent-dim: rgba(78, 205, 196, 0.08);
+  --up-color: #ff6b6b;
+  --down-color: #4dabf7;
+  --node-border: rgba(255,255,255,0.15);
+  --edge-color: rgba(255,255,255,0.08);
+  --edge-hover: rgba(255,255,255,0.25);
+  --overlay-bg: rgba(0,0,0,0.6);
+  --scrollbar-track: #12151c;
+  --scrollbar-thumb: #2a2e3a;
+  --input-bg: #1a1e28;
+  --tag-bg: rgba(78,205,196,0.1);
+  --canvas-dot: rgba(255,255,255,0.03);
+}
+
+[data-theme="light"] {
+  --bg-primary: #f5f6f8;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #ebedf2;
+  --bg-canvas: #f0f1f4;
+  --bg-glass: rgba(255, 255, 255, 0.88);
+  --bg-glass-hover: rgba(255, 255, 255, 0.95);
+  --text-primary: #1a1c24;
+  --text-secondary: #5a5e70;
+  --text-tertiary: #9498a8;
+  --border: rgba(0,0,0,0.07);
+  --border-hover: rgba(0,0,0,0.14);
+  --accent: #2ba89e;
+  --accent-glow: rgba(43, 168, 158, 0.12);
+  --accent-dim: rgba(43, 168, 158, 0.06);
+  --up-color: #e03131;
+  --down-color: #1971c2;
+  --node-border: rgba(0,0,0,0.12);
+  --edge-color: rgba(0,0,0,0.06);
+  --edge-hover: rgba(0,0,0,0.2);
+  --overlay-bg: rgba(0,0,0,0.35);
+  --scrollbar-track: #ebedf2;
+  --scrollbar-thumb: #c8cad2;
+  --input-bg: #ebedf2;
+  --tag-bg: rgba(43,168,158,0.08);
+  --canvas-dot: rgba(0,0,0,0.04);
+}
+
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-primary);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background var(--transition), color var(--transition);
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 10px; }
+
+button { cursor: pointer; font-family: inherit; border: none; outline: none; }
+input, select { font-family: inherit; outline: none; }
+
+/* ===== LANDING PAGE ===== */
+#landing {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+#landing.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.landing-content {
+  max-width: 640px;
+  padding: 2rem;
+  text-align: center;
+  animation: fadeUp 0.8s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.landing-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 1.5rem;
+  border-radius: 14px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 24px var(--accent-glow);
+}
+
+.landing-icon svg { width: 28px; height: 28px; color: var(--accent); }
+
+.landing-title {
+  font-size: 2.4rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin-bottom: 0.3rem;
+}
+
+.landing-title span { color: var(--accent); }
+
+.landing-subtitle {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.landing-desc {
+  font-size: 0.88rem;
+  color: var(--text-tertiary);
+  line-height: 1.7;
+  margin-bottom: 2rem;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.landing-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.5rem;
+  background: var(--accent);
+  color: #0a0c10;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 0.88rem;
+  transition: all var(--transition);
+  letter-spacing: -0.01em;
+}
+.btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 20px var(--accent-glow); }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.5rem;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-radius: var(--radius);
+  font-weight: 500;
+  font-size: 0.88rem;
+  border: 1px solid var(--border);
+  transition: all var(--transition);
+}
+.btn-secondary:hover { background: var(--bg-glass-hover); border-color: var(--border-hover); }
+
+.landing-tags {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.tag {
+  padding: 0.35rem 0.75rem;
+  background: var(--tag-bg);
+  color: var(--accent);
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  font-family: var(--font-mono);
+}
+
+/* ===== MAIN APPLICATION LAYER ===== */
+#app-layer {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Canvas container */
+#cy-container {
+  flex: 1;
+  position: relative;
+  background: var(--bg-canvas);
+  transition: background var(--transition);
+  background-image: radial-gradient(var(--canvas-dot) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+#cy { width: 100%; height: 100%; }
+
+/* ===== FLOATING TOP BAR ===== */
+.top-bar {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.top-bar > * { pointer-events: auto; }
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: -0.02em;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.brand:hover { border-color: var(--border-hover); }
+.brand svg { width: 18px; height: 18px; color: var(--accent); }
+
+.top-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  transition: all var(--transition);
+}
+.icon-btn:hover { color: var(--text-primary); border-color: var(--border-hover); background: var(--bg-glass-hover); }
+.icon-btn svg { width: 18px; height: 18px; }
+.icon-btn.active { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+
+/* ===== FLOATING STATUS ===== */
+.status-pill {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.85rem;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  transition: all var(--transition);
+  opacity: 0;
+  transform: translateY(8px);
+}
+.status-pill.visible { opacity: 1; transform: translateY(0); }
+.status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  animation: pulse 2s ease infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ===== LEGEND ===== */
+.legend-bar {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.legend-bar.visible { opacity: 1; }
+.legend-gradient {
+  width: 100px;
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(to right, var(--down-color), #888, var(--up-color));
+}
+.legend-labels { display: flex; justify-content: space-between; width: 100px; font-family: var(--font-mono); font-size: 0.65rem; }
+
+/* ===== SIDE PANEL ===== */
+.side-panel {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  bottom: 14px;
+  width: 340px;
+  z-index: 200;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(calc(100% + 20px));
+  opacity: 0;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+.side-panel.open { transform: translateX(0); opacity: 1; }
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+}
+.panel-header h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.2rem;
+}
+
+.form-group {
+  margin-bottom: 1.2rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 0.4rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+}
+
+.form-input, .form-select {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  transition: all var(--transition);
+}
+.form-input:focus, .form-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.form-select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b90a0' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px; }
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.slider-row input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  outline: none;
+}
+.slider-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid var(--bg-secondary);
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+
+.slider-value {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent);
+  min-width: 36px;
+  text-align: right;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+}
+
+.toggle-label {
+  font-size: 0.82rem;
+  color: var(--text-primary);
+}
+
+.toggle {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: var(--bg-tertiary);
+  border-radius: 11px;
+  cursor: pointer;
+  transition: background var(--transition);
+  border: 1px solid var(--border);
+}
+.toggle.on { background: var(--accent); border-color: var(--accent); }
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: white;
+  transition: transform var(--transition);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.toggle.on::after { transform: translateX(18px); }
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 1rem 0;
+}
+
+.btn-block {
+  width: 100%;
+  padding: 0.65rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.82rem;
+  transition: all var(--transition);
+}
+
+/* ===== UPLOAD DROP ZONE ===== */
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem 1rem;
+  text-align: center;
+  transition: all var(--transition);
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.drop-zone svg { margin-bottom: 0.5rem; color: var(--text-tertiary); }
+.drop-zone p { font-size: 0.8rem; color: var(--text-secondary); }
+.drop-zone .small { font-size: 0.7rem; color: var(--text-tertiary); margin-top: 0.3rem; }
+
+/* ===== NODE INFO TOOLTIP ===== */
+.node-tooltip {
+  position: absolute;
+  z-index: 300;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.85rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  min-width: 160px;
+}
+.node-tooltip.visible { opacity: 1; }
+.node-tooltip .tt-gene { font-weight: 600; font-size: 0.85rem; margin-bottom: 0.2rem; }
+.node-tooltip .tt-fc { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary); }
+
+/* ===== LOADING OVERLAY ===== */
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--overlay-bg);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+.loading-overlay.visible { opacity: 1; visibility: visible; }
+
+.spinner-wrap {
+  text-align: center;
+}
+
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 0.75rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.spinner-text {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+/* ===== NOTIFICATION TOAST ===== */
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100px);
+  z-index: 9999;
+  padding: 0.65rem 1.2rem;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.error { border-color: var(--up-color); }
+.toast.success { border-color: var(--accent); }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 700px) {
+  .side-panel { width: calc(100% - 28px); }
+  .landing-title { font-size: 1.8rem; }
+  .landing-subtitle { font-size: 0.92rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== LANDING PAGE ===== -->
+<div id="landing">
+  <div class="landing-content">
+    <div class="landing-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/>
+        <line x1="12" y1="7" x2="5" y2="17"/><line x1="12" y1="7" x2="19" y2="17"/><line x1="5" y1="19" x2="19" y2="19"/>
+      </svg>
+    </div>
+    <h1 class="landing-title">Interactome<span>Flow</span></h1>
+    <p class="landing-subtitle">Visualize Biological Networks from DEG Data.</p>
+    <p class="landing-desc">
+      Seamless integration with the STRING database to map your significant genes into functional interaction networks. InteractomeFlow takes your isolated list of differentially expressed genes and reveals their functional connectivity — identifying critical hub genes and biological clusters directly in your browser.
+    </p>
+    <div class="landing-actions">
+      <button class="btn-primary" onclick="enterApp()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Upload DEG Table
+      </button>
+      <button class="btn-secondary" onclick="loadDemo()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        View Sample Network
+      </button>
+    </div>
+    <div class="landing-tags">
+      <span class="tag">Cytoscape.js</span>
+      <span class="tag">STRING DB</span>
+      <span class="tag">Client-side</span>
+      <span class="tag">PPI Networks</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAIN APPLICATION ===== -->
+<div id="app-layer">
+  <div id="cy-container">
+    <div id="cy"></div>
+
+    <!-- Top bar -->
+    <div class="top-bar">
+      <div class="brand" onclick="goHome()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/>
+          <line x1="12" y1="7" x2="5" y2="17"/><line x1="12" y1="7" x2="19" y2="17"/><line x1="5" y1="19" x2="19" y2="19"/>
+        </svg>
+        InteractomeFlow
+      </div>
+      <div class="top-actions">
+        <button class="icon-btn" id="btn-upload" title="Upload data" onclick="triggerUpload()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-fit" title="Fit to screen" onclick="fitGraph()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-export" title="Export PNG" onclick="exportPNG()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-theme" title="Toggle theme" onclick="toggleTheme()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <button class="icon-btn" id="btn-settings" title="Settings" onclick="togglePanel()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Status pill -->
+    <div class="status-pill" id="status-pill">
+      <span class="status-dot"></span>
+      <span id="status-text">Ready</span>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend-bar" id="legend-bar">
+      <span>Down</span>
+      <div>
+        <div class="legend-gradient"></div>
+        <div class="legend-labels"><span>−FC</span><span>+FC</span></div>
+      </div>
+      <span>Up</span>
+    </div>
+
+    <!-- Node tooltip -->
+    <div class="node-tooltip" id="node-tooltip">
+      <div class="tt-gene" id="tt-gene"></div>
+      <div class="tt-fc" id="tt-fc"></div>
+    </div>
+
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loading">
+      <div class="spinner-wrap">
+        <div class="spinner"></div>
+        <div class="spinner-text" id="loading-text">Querying STRING database...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Side Panel -->
+  <div class="side-panel" id="side-panel">
+    <div class="panel-header">
+      <h3>⚙ Network Settings</h3>
+      <button class="icon-btn" onclick="togglePanel()" style="width:30px;height:30px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="panel-body">
+
+      <!-- Upload zone -->
+      <div class="drop-zone" id="drop-zone">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <p>Drop CSV / TSV here</p>
+        <p class="small">or click to browse</p>
+      </div>
+      <input type="file" id="file-input" accept=".csv,.tsv,.txt" hidden>
+
+      <div class="divider"></div>
+
+      <!-- STRING confidence -->
+      <div class="form-group">
+        <label class="form-label">Confidence Score</label>
+        <div class="slider-row">
+          <input type="range" id="confidence" min="0" max="1000" value="400" step="50">
+          <span class="slider-value" id="confidence-val">0.400</span>
+        </div>
+      </div>
+
+      <!-- Max genes -->
+      <div class="form-group">
+        <label class="form-label">Max Genes</label>
+        <div class="slider-row">
+          <input type="range" id="max-genes" min="20" max="500" value="100" step="10">
+          <span class="slider-value" id="max-genes-val">100</span>
+        </div>
+      </div>
+
+      <!-- Layout -->
+      <div class="form-group">
+        <label class="form-label">Layout Algorithm</label>
+        <select class="form-select" id="layout-select">
+          <option value="cose">Force-directed (CoSE)</option>
+          <option value="circle">Circular</option>
+          <option value="grid">Grid</option>
+          <option value="breadthfirst">Hierarchical</option>
+          <option value="concentric">Concentric</option>
+          <option value="random">Random</option>
+        </select>
+      </div>
+
+      <!-- Gene filter -->
+      <div class="form-group">
+        <label class="form-label">Filter By Gene</label>
+        <input class="form-input" id="gene-filter" type="text" placeholder="e.g. TP53, EGFR">
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Toggles -->
+      <div class="form-group">
+        <div class="toggle-row">
+          <span class="toggle-label">Show Labels</span>
+          <div class="toggle on" id="toggle-labels" onclick="toggleLabels(this)"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <div class="toggle-row">
+          <span class="toggle-label">Animate Layout</span>
+          <div class="toggle on" id="toggle-animate" onclick="toggleSwitch(this)"></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Action buttons -->
+      <button class="btn-primary btn-block" id="btn-requery" onclick="requery()" style="margin-bottom:0.5rem;">Re-query STRING</button>
+      <button class="btn-secondary btn-block" onclick="resetGraph()">Reset View</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== GLOBALS =====
+let cy = null;
+let currentData = null; // parsed gene data
+let panelOpen = false;
+let labelsVisible = true;
+let animateLayout = true;
+
+// ===== THEME =====
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  if (cy) updateCytoscapeStyle();
+}
+
+// ===== TOAST =====
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ===== STATUS =====
+function setStatus(text, show = true) {
+  document.getElementById('status-text').textContent = text;
+  document.getElementById('status-pill').classList.toggle('visible', show);
+}
+
+// ===== LOADING =====
+function showLoading(text = 'Querying STRING database...') {
+  document.getElementById('loading-text').textContent = text;
+  document.getElementById('loading').classList.add('visible');
+}
+function hideLoading() {
+  document.getElementById('loading').classList.remove('visible');
+}
+
+// ===== NAVIGATION =====
+function enterApp() {
+  document.getElementById('landing').classList.add('hidden');
+  togglePanel(true);
+}
+
+function goHome() {
+  document.getElementById('landing').classList.remove('hidden');
+}
+
+// ===== PANEL =====
+function togglePanel(forceOpen) {
+  const panel = document.getElementById('side-panel');
+  const btn = document.getElementById('btn-settings');
+  panelOpen = forceOpen === true ? true : !panelOpen;
+  panel.classList.toggle('open', panelOpen);
+  btn.classList.toggle('active', panelOpen);
+  // rotate + to x
+  if (panelOpen) {
+    btn.querySelector('svg').innerHTML = '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>';
+  } else {
+    btn.querySelector('svg').innerHTML = '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>';
+  }
+}
+
+// ===== TOGGLE HELPERS =====
+function toggleSwitch(el) { el.classList.toggle('on'); animateLayout = el.classList.contains('on'); }
+function toggleLabels(el) {
+  el.classList.toggle('on');
+  labelsVisible = el.classList.contains('on');
+  if (cy) updateCytoscapeStyle();
+}
+
+// ===== SLIDER BINDINGS =====
+document.getElementById('confidence').addEventListener('input', e => {
+  document.getElementById('confidence-val').textContent = (e.target.value / 1000).toFixed(3);
+});
+document.getElementById('max-genes').addEventListener('input', e => {
+  document.getElementById('max-genes-val').textContent = e.target.value;
+});
+
+// ===== LAYOUT CHANGE =====
+document.getElementById('layout-select').addEventListener('change', () => {
+  if (cy && cy.elements().length > 0) runLayout();
+});
+
+// ===== GENE FILTER =====
+document.getElementById('gene-filter').addEventListener('input', e => {
+  if (!cy) return;
+  const query = e.target.value.trim().toUpperCase();
+  if (!query) {
+    cy.elements().removeClass('faded');
+    return;
+  }
+  const terms = query.split(/[,;\s]+/).filter(Boolean);
+  cy.nodes().forEach(n => {
+    const gene = (n.data('label') || '').toUpperCase();
+    const match = terms.some(t => gene.includes(t));
+    if (match) {
+      n.removeClass('faded');
+      n.connectedEdges().removeClass('faded');
+      n.neighborhood('node').removeClass('faded');
+    } else {
+      n.addClass('faded');
+    }
+  });
+});
+
+// ===== FILE HANDLING =====
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => { if (e.target.files.length) processFile(e.target.files[0]); });
+
+function triggerUpload() { fileInput.click(); }
+
+function processFile(file) {
+  showToast(`Parsing ${file.name}...`, 'success');
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    dynamicTyping: true,
+    complete: results => {
+      try {
+        const data = normalizeData(results.data, results.meta.fields);
+        currentData = data;
+        showToast(`Loaded ${data.length} genes`, 'success');
+        querySTRING(data);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    },
+    error: () => showToast('Failed to parse file', 'error')
+  });
+}
+
+function normalizeData(rows, fields) {
+  // Find gene column
+  const fieldsLower = fields.map(f => f.toLowerCase());
+  const geneColIdx = fieldsLower.findIndex(f =>
+    ['gene', 'gene_symbol', 'genesymbol', 'symbol', 'gene_name', 'genename', 'name', 'id', 'gene_id'].includes(f)
+  );
+  // Find log2fc column
+  const fcColIdx = fieldsLower.findIndex(f =>
+    ['log2foldchange', 'log2fc', 'logfc', 'lfc', 'log2_fold_change', 'foldchange', 'fc'].includes(f)
+  );
+  // Find pvalue column
+  const pColIdx = fieldsLower.findIndex(f =>
+    ['pvalue', 'p_value', 'pval', 'padj', 'p.value', 'fdr', 'adj.p.val', 'p_adj', 'adjusted_pvalue'].includes(f)
+  );
+
+  if (geneColIdx === -1) throw new Error('Could not find a gene symbol column. Ensure your file has a column named "Gene", "Symbol", or similar.');
+
+  const geneCol = fields[geneColIdx];
+  const fcCol = fcColIdx !== -1 ? fields[fcColIdx] : null;
+  const pCol = pColIdx !== -1 ? fields[pColIdx] : null;
+
+  let data = rows
+    .filter(r => r[geneCol] && String(r[geneCol]).trim())
+    .map(r => ({
+      gene: String(r[geneCol]).trim().toUpperCase(),
+      log2fc: fcCol ? parseFloat(r[fcCol]) || 0 : 0,
+      pvalue: pCol ? parseFloat(r[pCol]) || 1 : 1,
+    }));
+
+  // Remove duplicates
+  const seen = new Set();
+  data = data.filter(d => {
+    if (seen.has(d.gene)) return false;
+    seen.add(d.gene);
+    return true;
+  });
+
+  // Sort by absolute fold change (or p-value if available)
+  if (pCol) {
+    data.sort((a, b) => a.pvalue - b.pvalue);
+  } else {
+    data.sort((a, b) => Math.abs(b.log2fc) - Math.abs(a.log2fc));
+  }
+
+  return data;
+}
+
+// ===== STRING API =====
+async function querySTRING(data) {
+  const maxGenes = parseInt(document.getElementById('max-genes').value);
+  const confidence = parseInt(document.getElementById('confidence').value);
+  const subset = data.slice(0, maxGenes);
+  const identifiers = subset.map(d => d.gene).join('%0d');
+
+  document.getElementById('landing').classList.add('hidden');
+  showLoading('Querying STRING database...');
+  setStatus(`Querying ${subset.length} genes...`);
+
+  try {
+    const url = `https://string-db.org/api/json/network?identifiers=${identifiers}&species=9606&required_score=${confidence}&network_type=functional&caller_identity=interactomeflow`;
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`STRING API returned ${resp.status}`);
+    const edges = await resp.json();
+
+    if (!edges.length) {
+      hideLoading();
+      showToast('No interactions found. Try lowering confidence or adding more genes.', 'error');
+      setStatus('No interactions found', true);
+      return;
+    }
+
+    buildNetwork(subset, edges);
+    hideLoading();
+    setStatus(`${cy.nodes().length} nodes · ${cy.edges().length} edges`, true);
+    document.getElementById('legend-bar').classList.add('visible');
+    showToast(`Network loaded: ${cy.nodes().length} nodes, ${cy.edges().length} edges`, 'success');
+  } catch (err) {
+    hideLoading();
+    showToast(`STRING query failed: ${err.message}`, 'error');
+    setStatus('Query failed', true);
+  }
+}
+
+function requery() {
+  if (!currentData) {
+    showToast('No data loaded. Upload a file first.', 'error');
+    return;
+  }
+  querySTRING(currentData);
+}
+
+// ===== BUILD NETWORK =====
+function buildNetwork(geneData, stringEdges) {
+  // Create fc lookup
+  const fcMap = {};
+  geneData.forEach(d => { fcMap[d.gene] = d.log2fc; });
+
+  // Collect unique nodes from edges
+  const nodeSet = new Set();
+  stringEdges.forEach(e => {
+    nodeSet.add(e.preferredName_A);
+    nodeSet.add(e.preferredName_B);
+  });
+
+  const nodes = Array.from(nodeSet).map(gene => ({
+    data: {
+      id: gene,
+      label: gene,
+      log2fc: fcMap[gene.toUpperCase()] ?? fcMap[gene] ?? 0,
+    }
+  }));
+
+  const edgeElements = stringEdges.map((e, i) => ({
+    data: {
+      id: `e${i}`,
+      source: e.preferredName_A,
+      target: e.preferredName_B,
+      score: e.score,
+    }
+  }));
+
+  initCytoscape(nodes, edgeElements);
+}
+
+// ===== CYTOSCAPE =====
+function getCyStyle() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  return [
+    {
+      selector: 'node',
+      style: {
+        'label': labelsVisible ? 'data(label)' : '',
+        'font-size': '9px',
+        'font-family': 'DM Sans, sans-serif',
+        'font-weight': 500,
+        'color': isDark ? '#c8cad4' : '#3a3c48',
+        'text-valign': 'bottom',
+        'text-margin-y': 6,
+        'text-outline-width': 2,
+        'text-outline-color': isDark ? '#0d0f14' : '#f0f1f4',
+        'width': 'mapData(log2fc, -4, 4, 18, 38)',
+        'height': 'mapData(log2fc, -4, 4, 18, 38)',
+        'background-color': 'mapData(log2fc, -4, 4, #4dabf7, #ff6b6b)',
+        'border-width': 2,
+        'border-color': isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)',
+        'overlay-padding': 4,
+        'transition-property': 'background-color, border-color, width, height',
+        'transition-duration': '0.3s',
+      }
+    },
+    {
+      selector: 'node:active',
+      style: {
+        'overlay-color': isDark ? '#4ecdc4' : '#2ba89e',
+        'overlay-opacity': 0.15,
+      }
+    },
+    {
+      selector: 'edge',
+      style: {
+        'width': 'mapData(score, 0.15, 1, 0.8, 3)',
+        'line-color': isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+        'curve-style': 'bezier',
+        'opacity': 0.7,
+        'transition-property': 'line-color, opacity',
+        'transition-duration': '0.3s',
+      }
+    },
+    {
+      selector: 'node.highlighted',
+      style: {
+        'border-color': isDark ? '#4ecdc4' : '#2ba89e',
+        'border-width': 3,
+        'z-index': 10,
+      }
+    },
+    {
+      selector: 'edge.highlighted',
+      style: {
+        'line-color': isDark ? 'rgba(78,205,196,0.5)' : 'rgba(43,168,158,0.5)',
+        'opacity': 1,
+        'z-index': 10,
+      }
+    },
+    {
+      selector: '.faded',
+      style: {
+        'opacity': 0.12,
+      }
+    },
+  ];
+}
+
+function initCytoscape(nodes, edges) {
+  if (cy) cy.destroy();
+
+  cy = cytoscape({
+    container: document.getElementById('cy'),
+    elements: { nodes, edges },
+    style: getCyStyle(),
+    minZoom: 0.15,
+    maxZoom: 5,
+    wheelSensitivity: 0.3,
+  });
+
+  runLayout();
+
+  // Hover highlighting
+  cy.on('mouseover', 'node', evt => {
+    const node = evt.target;
+    node.addClass('highlighted');
+    node.connectedEdges().addClass('highlighted');
+    node.neighborhood('node').addClass('highlighted');
+
+    // Show tooltip
+    const pos = evt.renderedPosition;
+    const tt = document.getElementById('node-tooltip');
+    document.getElementById('tt-gene').textContent = node.data('label');
+    const fc = node.data('log2fc');
+    document.getElementById('tt-fc').textContent = `Log2FC: ${fc >= 0 ? '+' : ''}${fc.toFixed(3)}`;
+    tt.style.left = (pos.x + 20) + 'px';
+    tt.style.top = (pos.y - 10) + 'px';
+    tt.classList.add('visible');
+  });
+
+  cy.on('mouseout', 'node', () => {
+    cy.elements().removeClass('highlighted');
+    document.getElementById('node-tooltip').classList.remove('visible');
+  });
+}
+
+function updateCytoscapeStyle() {
+  if (!cy) return;
+  cy.style(getCyStyle()).update();
+}
+
+function runLayout() {
+  if (!cy) return;
+  const name = document.getElementById('layout-select').value;
+  const opts = {
+    name,
+    animate: animateLayout,
+    animationDuration: 600,
+    fit: true,
+    padding: 50,
+  };
+  if (name === 'cose') {
+    opts.nodeRepulsion = () => 8000;
+    opts.idealEdgeLength = () => 80;
+    opts.edgeElasticity = () => 100;
+    opts.gravity = 0.25;
+    opts.numIter = 1000;
+  }
+  if (name === 'concentric') {
+    opts.concentric = n => n.degree();
+    opts.levelWidth = () => 2;
+  }
+  cy.layout(opts).run();
+}
+
+function fitGraph() { if (cy) cy.fit(50); }
+
+function resetGraph() {
+  if (cy) {
+    cy.elements().removeClass('faded highlighted');
+    document.getElementById('gene-filter').value = '';
+    cy.fit(50);
+  }
+}
+
+function exportPNG() {
+  if (!cy) { showToast('No network to export', 'error'); return; }
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const png = cy.png({ scale: 2, bg: isDark ? '#0d0f14' : '#f0f1f4', full: true });
+  const a = document.createElement('a');
+  a.href = png;
+  a.download = 'interactomeflow_network.png';
+  a.click();
+  showToast('PNG exported', 'success');
+}
+
+// ===== DEMO DATA =====
+function loadDemo() {
+  document.getElementById('landing').classList.add('hidden');
+  showLoading('Loading sample MAPK signaling network...');
+  setStatus('Loading demo...');
+
+  // Hardcoded MAPK signaling pathway demo
+  const demoGenes = [
+    { gene: 'EGFR', log2fc: 2.1 }, { gene: 'GRB2', log2fc: 0.8 },
+    { gene: 'SOS1', log2fc: 1.2 }, { gene: 'HRAS', log2fc: 1.9 },
+    { gene: 'KRAS', log2fc: 2.4 }, { gene: 'NRAS', log2fc: -0.5 },
+    { gene: 'BRAF', log2fc: 3.1 }, { gene: 'RAF1', log2fc: 1.5 },
+    { gene: 'MAP2K1', log2fc: 1.8 }, { gene: 'MAP2K2', log2fc: 0.9 },
+    { gene: 'MAPK1', log2fc: 2.0 }, { gene: 'MAPK3', log2fc: 1.4 },
+    { gene: 'JUN', log2fc: 2.7 }, { gene: 'FOS', log2fc: 3.3 },
+    { gene: 'MYC', log2fc: 2.9 }, { gene: 'TP53', log2fc: -2.1 },
+    { gene: 'AKT1', log2fc: 1.6 }, { gene: 'PIK3CA', log2fc: 1.3 },
+    { gene: 'MTOR', log2fc: 0.7 }, { gene: 'RB1', log2fc: -1.8 },
+    { gene: 'CDKN1A', log2fc: -1.4 }, { gene: 'MDM2', log2fc: 1.1 },
+    { gene: 'PTEN', log2fc: -2.5 }, { gene: 'ERBB2', log2fc: 2.8 },
+    { gene: 'SRC', log2fc: 1.0 }, { gene: 'STAT3', log2fc: 1.7 },
+    { gene: 'JAK2', log2fc: 0.6 }, { gene: 'CCND1', log2fc: 2.2 },
+    { gene: 'CDK4', log2fc: 1.3 }, { gene: 'E2F1', log2fc: -0.8 },
+  ];
+
+  currentData = demoGenes;
+  querySTRING(demoGenes);
+}
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+  // nothing needed on initial load
+});
+</script>
+</body>
+</html>
