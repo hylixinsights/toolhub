@@ -790,11 +790,32 @@
       font-size: 0.9rem;
     }
 
-    .modal-success.show {
-      display: block;
+    .footer-buttons {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    textarea.modal-input {
+      border-radius: 20px;
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    select.modal-input {
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%2f%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 20px center;
+      background-size: 16px;
+      padding-right: 40px;
+      cursor: pointer;
     }
 
     /* ─── Scroll to Top ─── */
+
     .scroll-top-btn {
       position: fixed;
       bottom: 32px;
@@ -997,6 +1018,41 @@
   <!-- Cards Grid -->
   <div class="grid-container" id="cardsGrid">
 
+    <!-- Card: PyraPlot -->
+    <div class="tool-card" data-id="pyraplot" data-category="Visualization"
+      data-keywords="volcano plot,omics,differential expression,visualization,client-side" data-created="2026-02-19">
+      <div class="card-img-wrapper">
+        <span class="category-badge badge-visualization">Visualization</span>
+        <img src="assets/pyraplot-cover.png" class="card-img" alt="PyraPlot Preview">
+      </div>
+      <div class="card-content">
+        <h3 class="tool-title">PyraPlot</h3>
+        <p class="tool-desc">
+          A clean client-side volcano plot for differential omics signatures. PyraPlot visualizes effect size and
+          statistical strength using dual diagonal gradients and transparency encoding. All computation runs locally.
+        </p>
+        <div class="keywords-container">
+          <!-- Populated by JS -->
+        </div>
+        <div class="card-footer">
+          <a href="/pyraplot/" class="tool-link">
+            Launch Tool
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </a>
+          <button class="like-btn" data-id="pyraplot">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            <span class="like-count">0</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Card 1 -->
     <div class="tool-card" data-id="pubmed-timeline" data-category="Visualization"
       data-keywords="pubmed,timeline,journals,publications,bibliometrics" data-created="2025-11-15">
@@ -1081,14 +1137,23 @@
 
   <!-- Footer -->
   <div class="footer">
-    <button class="subscribe-btn" id="subscribeBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-        stroke-linejoin="round">
-        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-        <polyline points="22,6 12,13 2,6" />
-      </svg>
-      Subscribe for Updates
-    </button>
+    <div class="footer-buttons">
+      <button class="subscribe-btn" id="subscribeBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+          <polyline points="22,6 12,13 2,6" />
+        </svg>
+        Subscribe for Updates
+      </button>
+      <button class="subscribe-btn" id="suggestionBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        Give Suggestion
+      </button>
+    </div>
     <span>Powered by <a href="https://hylix.app" target="_blank">Hylix Insights</a></span>
   </div>
 
@@ -1112,6 +1177,33 @@
     </div>
   </div>
 
+  <!-- Suggestion Modal -->
+  <div class="modal-overlay" id="suggestionModal">
+    <div class="modal-box" style="position: relative;">
+      <button class="modal-close" id="suggestionClose">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+      <h2>Make a Suggestion</h2>
+      <p>Help us improve Hylix Tool Hub.</p>
+      <div class="modal-form" style="display: flex; flex-direction: column; gap: 16px;">
+        <input type="text" class="modal-input" id="suggestionName" placeholder="Your Name" style="width: 100%;">
+        <select class="modal-input" id="suggestionTool" style="width: 100%;">
+          <option value="" disabled selected>Select a tool (optional)</option>
+          <option value="General">General Suggestion</option>
+          <!-- Populated by JS -->
+        </select>
+        <textarea class="modal-input" id="suggestionText" placeholder="Your suggestion..."
+          style="width: 100%;"></textarea>
+        <button class="modal-submit" id="submitSuggestion" style="width: 100%;">Send Suggestion</button>
+      </div>
+      <div class="modal-success" id="suggestionSuccess">✓ Thanks for your suggestion!</div>
+    </div>
+  </div>
+
   <!-- Scroll to Top Button -->
   <button class="scroll-top-btn" id="scrollTopBtn" aria-label="Scroll to top">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
@@ -1126,6 +1218,34 @@
       const cards = document.querySelectorAll('.tool-card[data-id]');
       const grid = document.getElementById('cardsGrid');
       const noResults = document.getElementById('noResults');
+
+      // CONFIGURATION: Replace this with your Web App URL
+      const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzrUx_AEx9tNyoVoMaJtGRGgU9fnFw0_U5Egqhc1LPFgD1QNQUWhUSxvmgelNCVNBNN/exec';
+
+      // ─── Helper: Send to Google Sheet ───
+      async function sendToSheet(data) {
+        if (GOOGLE_SCRIPT_URL.includes('INSERT_YOUR')) {
+          // Mock success for testing before URL is set
+          console.log('Mock Data Sent:', data);
+          return new Promise(resolve => setTimeout(() => resolve({ result: 'success' }), 500));
+        }
+
+        const params = new URLSearchParams();
+        for (const key in data) {
+          params.append(key, data[key]);
+        }
+
+        try {
+          const response = await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            body: params
+          });
+          return await response.json();
+        } catch (error) {
+          console.error('Error:', error);
+          return { result: 'error' };
+        }
+      }
 
       // ─── 1. Like Buttons ───
       function getLikes() {
@@ -1408,6 +1528,11 @@
         subscribeModal.classList.remove('open');
         modalSuccess.classList.remove('show');
         submitEmail.style.display = '';
+
+        // Reset suggestion modal too
+        suggestionModal.classList.remove('open');
+        document.getElementById('suggestionSuccess').classList.remove('show');
+        document.getElementById('submitSuggestion').style.display = '';
       }
 
       modalClose.addEventListener('click', closeModal);
@@ -1415,12 +1540,26 @@
         if (e.target === subscribeModal) closeModal();
       });
 
-      submitEmail.addEventListener('click', () => {
+      submitEmail.addEventListener('click', async () => {
         const email = emailInput.value.trim();
         if (email && email.includes('@')) {
+          // Disable button while sending
+          submitEmail.disabled = true;
+          submitEmail.textContent = 'Joining...';
+
+          await sendToSheet({ type: 'subscribe', email: email });
+
           localStorage.setItem('toolhub_email', email);
           modalSuccess.classList.add('show');
           submitEmail.style.display = 'none';
+
+          // Auto-close after 2 seconds
+          setTimeout(() => {
+            closeModal();
+            // Reset button state after closing
+            submitEmail.disabled = false;
+            submitEmail.textContent = 'Subscribe';
+          }, 2000);
         } else {
           emailInput.style.borderColor = 'rgba(255, 107, 138, 0.5)';
           setTimeout(() => emailInput.style.borderColor = '', 1500);
@@ -1431,7 +1570,88 @@
         if (e.key === 'Enter') submitEmail.click();
       });
 
-      // ─── 8. Scroll to Top ───
+      // ─── 8. Suggestion Feature ───
+      const suggestionBtn = document.getElementById('suggestionBtn');
+      const suggestionModal = document.getElementById('suggestionModal');
+      const suggestionClose = document.getElementById('suggestionClose');
+      const suggestionTool = document.getElementById('suggestionTool');
+      const submitSuggestion = document.getElementById('submitSuggestion');
+      const suggestionSuccess = document.getElementById('suggestionSuccess');
+
+      // Populate Tool Dropdown
+      function populateToolDropdown() {
+        // Clear existing (except first)
+        while (suggestionTool.options.length > 2) {
+          suggestionTool.remove(2);
+        }
+
+        const titles = [];
+        cards.forEach(card => {
+          titles.push(card.querySelector('.tool-title').textContent);
+        });
+
+        titles.sort().forEach(title => {
+          const opt = document.createElement('option');
+          opt.value = title;
+          opt.textContent = title;
+          suggestionTool.appendChild(opt);
+        });
+      }
+
+      populateToolDropdown();
+
+      suggestionBtn.addEventListener('click', () => {
+        suggestionModal.classList.add('open');
+      });
+
+      suggestionClose.addEventListener('click', closeModal);
+      suggestionModal.addEventListener('click', (e) => {
+        if (e.target === suggestionModal) closeModal();
+      });
+
+      submitSuggestion.addEventListener('click', async () => {
+        const name = document.getElementById('suggestionName').value.trim();
+        const tool = suggestionTool.value;
+        const suggestion = document.getElementById('suggestionText').value.trim();
+
+        if (name && suggestion) {
+          submitSuggestion.disabled = true;
+          submitSuggestion.textContent = 'Sending...';
+
+          await sendToSheet({
+            type: 'suggestion',
+            name: name,
+            tool: tool || 'General',
+            suggestion: suggestion
+          });
+
+          suggestionSuccess.classList.add('show');
+          submitSuggestion.style.display = 'none';
+
+          // Auto-close after 2 seconds
+          setTimeout(() => {
+            closeModal();
+            // Clear form
+            document.getElementById('suggestionName').value = '';
+            document.getElementById('suggestionText').value = '';
+            suggestionTool.value = '';
+
+            submitSuggestion.disabled = false;
+            submitSuggestion.textContent = 'Send Suggestion';
+          }, 2000);
+        } else {
+          if (!name) highlightInput('suggestionName');
+          if (!suggestion) highlightInput('suggestionText');
+        }
+      });
+
+      function highlightInput(id) {
+        const el = document.getElementById(id);
+        el.style.borderColor = 'rgba(255, 107, 138, 0.5)';
+        setTimeout(() => el.style.borderColor = '', 1500);
+      }
+
+      // ─── 9. Scroll to Top ───
       const scrollTopBtn = document.getElementById('scrollTopBtn');
 
       window.addEventListener('scroll', () => {
