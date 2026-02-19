@@ -755,6 +755,51 @@
             font-weight: 800;
             color: var(--grama-escura)
         }
+
+        /* Loading Spinner */
+        #loading-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            backdrop-filter: blur(2px);
+        }
+
+        #loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--cinza-barra);
+            border-top: 4px solid var(--grama-escura);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 12px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            font-weight: 700;
+            color: var(--marrom-escuro);
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
     </style>
 </head>
 
@@ -860,8 +905,14 @@
         </div>
     </div>
 
+    <!-- Tela de carregamento enquanto salva no Google Sheets -->
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Salvando...</div>
+    </div>
+
     <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxckymWZ2WC6ZMTp7DI5qEdeiIaJ7sy4qlChzEkSAxASJTNCFtt1Fe8ltrDGbmRf0WO/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQi0pUR-l4AdzJvTi7I9zCWEyjzWQgZVXNefqyURD_0SpvKjHltcGrjZI5To5z9LOS/exec';
 
         const HIST = [
             { data: '06/02/2026', c: 16, a: 2 }, { data: '30/01/2026', c: 14, a: 1 },
@@ -887,30 +938,43 @@
                 const res = await fetch(SCRIPT_URL);
                 const json = await res.json();
                 if (json.status === 'success') {
-                    const dataRowKeys = Object.keys(json.data[0] || {}).reverse();
+                    // Pega a primeira linha de dados para analisar os nomes das colunas (Ex: Nome, Ponta Firmeza, Presenças)
+                    const dataRowKeys = Object.keys(json.data[0] || {});
 
-                    // Encontra chaves que podem ser convertidas em data válida (ignorando colunas de texto puras como Nome, Desde, Celular)
-                    const dateKeys = dataRowKeys.filter(key => {
-                        return key !== 'Nome' && key !== 'nome' && key !== 'Desde' && key !== 'desde' && key !== 'Celular' && key !== 'celular' && !isNaN(Date.parse(key));
-                    });
+                    // Em um formato simples 3-colunas, a terceira (índice 2) é o status
+                    const statusColumnKey = dataRowKeys.length >= 3 ? dataRowKeys[2] : dataRowKeys[dataRowKeys.length - 1];
 
-                    // Pega a primeira data (assumindo que a planilha está cronológica da esquerda pra direita e nós demos reverse)
-                    const recentDateKey = dateKeys[0];
+                    E.m = [];
+                    E.a = [];
 
-                    E.m = json.data.map(row => {
+                    json.data.forEach(row => {
+                        const nomeBruto = row.Nome || row.nome || '';
+                        if (!nomeBruto) return;
 
-                        // Determina status baseado na coluna da data mais recente (ex: 1=confirmado, 0=ausente)
-                        let status = 'pendente';
-                        if (recentDateKey) {
-                            const statusVal = row[recentDateKey];
-                            if (statusVal === 1 || statusVal === '1') status = 'confirmado';
-                            else if (statusVal === 0 || statusVal === '0') status = 'ausente';
+                        // Verifica se é avulso pela tag ou asterisco
+                        const isAvulso = nomeBruto.toLowerCase().includes('avulso') || nomeBruto.startsWith('*');
+                        const nomeLimpo = nomeBruto.replace(/\(avulso\)/i, '').replace('*', '').trim();
+
+                        let statusDesc = 'pendente';
+                        if (statusColumnKey) {
+                            const val = row[statusColumnKey];
+                            const valStr = val?.toString().toLowerCase().trim() || '';
+                            if (valStr === '1' || valStr === 'x' || valStr === 'sim') statusDesc = 'confirmado';
+                            else if (valStr === '0' || valStr === 'não') statusDesc = 'ausente';
                         }
 
-                        return {
-                            nome: row.Nome || row.nome || 'Desconhecido',
-                            pf: row['Desde'] || row['desde'] || '', // Exibe desde quando membro
-                            status: status
+                        if (isAvulso) {
+                            // Se estiver marcado como confirmado, vai pra lista de avulsos
+                            if (statusDesc === 'confirmado') {
+                                E.a.push({ nome: nomeLimpo, por: 'Alguém' });
+                            }
+                        } else {
+                            // Mensalista
+                            E.m.push({
+                                nome: nomeLimpo,
+                                pf: row['Ponta Firmeza'] || row['Desde'] || row['desde'] || row[dataRowKeys[1]] || '',
+                                status: statusDesc
+                            });
                         }
                     });
 
@@ -989,22 +1053,74 @@
             else tag.style.display = 'none';
         }
 
-        function renderAvu() {
-            const sec = document.getElementById('secao-avu'), ul = document.getElementById('lista-avu');
-            ul.innerHTML = '';
-            if (!E.a.length) { sec.style.display = 'none'; return }
-            sec.style.display = 'block'; document.getElementById('count-avu').textContent = E.a.length;
-            E.a.forEach((a, i) => {
-                const li = document.createElement('li'); li.className = 'jogador confirmado';
-                li.innerHTML = `<div class="jogador-avatar" style="background:var(--amarelo);color:var(--marrom-escuro);border-color:#E65100">👤</div><div class="jogador-info"><div class="jogador-nome">${a.nome} <span style="font-weight:400;color:var(--texto-muted);font-size:.8rem">(convidado)</span></div><div class="jogador-pf">Trazido por ${a.por || '—'}</div></div><button class="btn-remover" onclick="event.stopPropagation();rmAvu(${i})">✕</button>`;
-                ul.appendChild(li);
-            });
+        function showLoading(show) {
+            document.getElementById('loading-overlay').classList.toggle('active', show);
         }
 
-        function toggle(i) { const c = { pendente: 'confirmado', confirmado: 'ausente', ausente: 'pendente' }; E.m[i].status = c[E.m[i].status]; render() }
-        function addAvulso() { const n = prompt('Nome do convidado:'); if (n && n.trim()) { const p = prompt('Quem está trazendo? (opcional)') || ''; E.a.push({ nome: n.trim(), por: p.trim() }); render() } }
-        function rmAvu(i) { if (confirm('Remover convidado?')) { E.a.splice(i, 1); render() } }
-        document.getElementById('btnForm').addEventListener('click', () => alert('Aqui abrirá o Google Forms semanal.\n\nPor enquanto, toque no nome de cada jogador para alternar o status.'));
+        async function sendPostUpdate(action, nome, status) {
+            try {
+                showLoading(true);
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    // Envia text/plain para evitar o Preflight Options Error no Apps Script
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: action, nome: nome, status: status })
+                });
+                const result = await res.json();
+                showLoading(false);
+                if (result.status !== 'success') {
+                    throw new Error(result.message);
+                }
+                return true;
+            } catch (error) {
+                showLoading(false);
+                alert("Erro ao salvar no Google Sheets: " + error.message);
+                return false;
+            }
+        }
+
+        async function toggle(i) {
+            const curStatus = E.m[i].status;
+            const nome = E.m[i].nome;
+            const newStatus = curStatus === 'pendente' ? 'confirmado' : (curStatus === 'confirmado' ? 'ausente' : 'pendente');
+
+            // Traduz a interface visual pendente/confirmado/ausente para 1 (vai) e 0 (não vai) ou vazio na planilha
+            // Se "pendente", vai limpar (null/vazio), senão 1 ou 0
+            const sheetStatus = newStatus === 'confirmado' ? 1 : (newStatus === 'ausente' ? 0 : '');
+
+            // Envia para o Backend
+            const success = await sendPostUpdate('update_status', nome, sheetStatus);
+            if (success) {
+                E.m[i].status = newStatus;
+                render();
+            }
+        }
+
+        async function addAvulso() {
+            const n = prompt('Nome do convidado:');
+            if (n && n.trim()) {
+                const p = prompt('Quem está trazendo? (opcional)') || '';
+                // Envia para o Backend
+                const success = await sendPostUpdate('add_avulso', n.trim(), 1);
+                if (success) {
+                    E.a.push({ nome: n.trim(), por: p.trim() });
+                    render();
+                }
+            }
+        }
+
+        async function rmAvu(i) {
+            if (confirm('Remover convidado?')) {
+                const nomeAvulso = E.a[i].nome;
+                const success = await sendPostUpdate('remove_avulso', nomeAvulso, 0);
+                if (success) {
+                    E.a.splice(i, 1);
+                    render();
+                }
+            }
+        }
+
+        document.getElementById('btnForm').addEventListener('click', () => alert('Basta tocar no seu nome na lista abaixo para alternar o seu status!\nO aplicativo salva automaticamente.'));
 
         function abrirHist() {
             document.getElementById('hist-lista').innerHTML = HIST.map(h => `<div class="historico-item"><div class="hi-data">📅 ${h.data}</div><div class="hi-count">${h.c + h.a} peladeiros</div></div>`).join('');
