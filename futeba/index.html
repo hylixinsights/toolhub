@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tradiça — Futebol de Quinta</title>
+    <meta name="theme-color" content="#1a1612">
+    <meta property="og:title" content="Tradiça — Futebol de Quinta">
+    <meta property="og:description" content="Confirme sua presença na pelada de quinta!">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --marrom-escuro: #3E2723;
+            --marrom-medio: #5D4037;
+            --marrom-claro: #8D6E63;
+            --grama: #4CAF50;
+            --grama-escura: #388E3C;
+            --cinza-barra: #D7CCC8;
+            --cinza-fundo: #EFEBE9;
+            --vermelho: #C62828;
+            --amarelo: #F9A825;
+            --bg: #FAF7F4;
+            --card: #FFFFFF;
+            --texto: #3E2723;
+            --texto-sec: #8D6E63;
+            --texto-muted: #BCAAA4;
+            --borda: rgba(62, 39, 35, 0.08);
+            --sombra: 0 2px 20px rgba(62, 39, 35, 0.07);
+            --sombra-forte: 0 8px 32px rgba(62, 39, 35, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent
+        }
+
+        body {
+            font-family: 'Barlow', sans-serif;
+            background: var(--bg);
+            color: var(--texto);
+            min-height: 100dvh;
+            padding: 12px
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto
+        }
+
+        .badge-topo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 0 8px
+        }
+
+        .escudo {
+            width: 44px;
+            height: 44px;
+            background: var(--marrom-escuro);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 2px 8px rgba(62, 39, 35, 0.25)
+        }
+
+        .titulo-grupo h1 {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.65rem;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--marrom-escuro);
+            line-height: 1
+        }
+
+        .titulo-grupo .subtit {
+            font-size: .72rem;
+            color: var(--texto-sec);
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase
+        }
+
+        .data-card {
+            background: var(--marrom-escuro);
+            color: #fff;
+            border-radius: 20px;
+            padding: 22px 24px 18px;
+            margin: 12px 0 16px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--sombra-forte)
+        }
+
+        .data-card::before {
+            content: '';
+            position: absolute;
+            top: -30px;
+            right: -30px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 50%
+        }
+
+        .data-label {
+            font-size: .7rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            opacity: .5;
+            font-weight: 600;
+            margin-bottom: 2px
+        }
+
+        .data-row {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            position: relative;
+            z-index: 1
+        }
+
+        .data-dia {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 4.2rem;
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: -2px
+        }
+
+        .data-mes {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.35rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: .85;
+            line-height: 1.1
+        }
+
+        .data-ano {
+            font-size: .8rem;
+            opacity: .45;
+            font-weight: 500
+        }
+
+        .data-quinta {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 3px 10px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 6px;
+            font-size: .7rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase
+        }
+
+        .hero-peladeiros {
+            text-align: center;
+            padding: 20px 0 8px
+        }
+
+        .hero-numero {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 6rem;
+            font-weight: 900;
+            line-height: 1;
+            color: var(--grama-escura);
+            letter-spacing: -3px;
+            display: inline-block
+        }
+
+        .hero-numero.lotado {
+            color: var(--vermelho)
+        }
+
+        .hero-legenda {
+            font-size: .85rem;
+            font-weight: 600;
+            color: var(--texto-sec);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: -2px
+        }
+
+        /* ═══ CAMPO DE FUTEBOL ═══ */
+        .campo-section {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 16px 18px;
+            margin: 12px 0;
+            box-shadow: var(--sombra);
+            border: 1px solid var(--borda)
+        }
+
+        .campo-labels {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px
+        }
+
+        .campo-labels .ll {
+            font-size: .75rem;
+            font-weight: 700;
+            color: var(--texto-sec);
+            text-transform: uppercase;
+            letter-spacing: 1px
+        }
+
+        .campo-labels .lr {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: .78rem;
+            font-weight: 600
+        }
+
+        .tag-avulso {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(249, 168, 37, 0.15);
+            color: #E65100;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: .75rem
+        }
+
+        .campo-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100px;
+            background: #cfd8dc;
+            border-radius: 10px;
+            border: 3px solid #b0bec5;
+            overflow: hidden
+        }
+
+        .campo-grama {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background: repeating-linear-gradient(90deg, var(--grama-escura) 0px, var(--grama-escura) 18px, var(--grama) 18px, var(--grama) 36px);
+            transition: width .8s cubic-bezier(.22, 1, .36, 1);
+            z-index: 1
+        }
+
+        .campo-grama.lotado {
+            background: repeating-linear-gradient(90deg, #C62828 0px, #C62828 18px, #D32F2F 18px, #D32F2F 36px)
+        }
+
+        .campo-linhas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none
+        }
+
+        .campo-linhas .lm {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: rgba(255, 255, 255, .55);
+            transform: translateX(-50%)
+        }
+
+        .campo-linhas .cm {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 44px;
+            height: 44px;
+            border: 2px solid rgba(255, 255, 255, .55);
+            border-radius: 50%;
+            transform: translate(-50%, -50%)
+        }
+
+        .campo-linhas .pm {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, .55);
+            border-radius: 50%;
+            transform: translate(-50%, -50%)
+        }
+
+        .campo-linhas .area {
+            position: absolute;
+            top: 50%;
+            width: 14%;
+            height: 55%;
+            border: 2px solid rgba(255, 255, 255, .55);
+            transform: translateY(-50%)
+        }
+
+        .campo-linhas .area.e {
+            left: 0;
+            border-left: none
+        }
+
+        .campo-linhas .area.d {
+            right: 0;
+            border-right: none
+        }
+
+        .campo-linhas .pa {
+            position: absolute;
+            top: 50%;
+            width: 6%;
+            height: 30%;
+            border: 2px solid rgba(255, 255, 255, .45);
+            transform: translateY(-50%)
+        }
+
+        .campo-linhas .pa.e {
+            left: 0;
+            border-left: none
+        }
+
+        .campo-linhas .pa.d {
+            right: 0;
+            border-right: none
+        }
+
+        .campo-linhas .co {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, .4);
+            border-radius: 50%
+        }
+
+        .campo-linhas .co.tl {
+            top: -7px;
+            left: -7px
+        }
+
+        .campo-linhas .co.tr {
+            top: -7px;
+            right: -7px
+        }
+
+        .campo-linhas .co.bl {
+            bottom: -7px;
+            left: -7px
+        }
+
+        .campo-linhas .co.br {
+            bottom: -7px;
+            right: -7px
+        }
+
+        .campo-numero {
+            position: absolute;
+            z-index: 3;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, .4);
+            line-height: 1
+        }
+
+        .campo-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+            font-size: .68rem;
+            color: var(--texto-muted);
+            font-weight: 500
+        }
+
+        .acoes-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 16px 0
+        }
+
+        .btn-acao {
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: none;
+            font-family: 'Barlow', sans-serif;
+            font-size: .85rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: transform .1s
+        }
+
+        .btn-acao:active {
+            transform: scale(.97)
+        }
+
+        .btn-confirmar {
+            background: var(--grama);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(76, 175, 80, .3)
+        }
+
+        .btn-avulso {
+            background: var(--amarelo);
+            color: var(--marrom-escuro);
+            box-shadow: 0 4px 14px rgba(249, 168, 37, .3)
+        }
+
+        .clima-strip {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, #1565C0, #42A5F5);
+            border-radius: 14px;
+            color: #fff;
+            margin: 0 0 20px;
+            box-shadow: 0 4px 16px rgba(21, 101, 192, .2)
+        }
+
+        .clima-icone {
+            font-size: 1.8rem;
+            flex-shrink: 0
+        }
+
+        .clima-temp {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 800
+        }
+
+        .clima-detalhe {
+            font-size: .72rem;
+            opacity: .8;
+            font-weight: 500
+        }
+
+        .secao-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            padding: 0 4px
+        }
+
+        .secao-titulo {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: .85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--texto-muted)
+        }
+
+        .secao-count {
+            font-size: .75rem;
+            font-weight: 700;
+            color: var(--texto-sec);
+            background: var(--cinza-fundo);
+            padding: 2px 10px;
+            border-radius: 10px
+        }
+
+        .lista {
+            list-style: none;
+            background: var(--card);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--sombra);
+            border: 1px solid var(--borda);
+            margin-bottom: 20px
+        }
+
+        .lista:empty {
+            display: none
+        }
+
+        .jogador {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            gap: 14px;
+            border-bottom: 1px solid rgba(62, 39, 35, .05);
+            cursor: pointer;
+            transition: background .15s;
+            -webkit-user-select: none;
+            user-select: none
+        }
+
+        .jogador:last-child {
+            border-bottom: none
+        }
+
+        .jogador:active {
+            background: rgba(62, 39, 35, .03)
+        }
+
+        .jogador-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 800;
+            flex-shrink: 0;
+            transition: all .3s cubic-bezier(.175, .885, .32, 1.275)
+        }
+
+        .jogador.pendente .jogador-avatar {
+            background: var(--cinza-fundo);
+            color: var(--texto-muted);
+            border: 2px dashed var(--cinza-barra)
+        }
+
+        .jogador.confirmado .jogador-avatar {
+            background: var(--grama);
+            color: #fff;
+            border: 2px solid var(--grama-escura);
+            box-shadow: 0 2px 8px rgba(76, 175, 80, .3)
+        }
+
+        .jogador.ausente .jogador-avatar {
+            background: #FFEBEE;
+            color: var(--vermelho);
+            border: 2px solid #FFCDD2
+        }
+
+        .jogador.ausente .jogador-nome {
+            text-decoration: line-through;
+            color: var(--texto-muted)
+        }
+
+        .jogador-info {
+            flex: 1;
+            min-width: 0
+        }
+
+        .jogador-nome {
+            font-size: .95rem;
+            font-weight: 600;
+            color: var(--texto);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis
+        }
+
+        .jogador-pf {
+            font-size: .7rem;
+            color: var(--texto-muted);
+            font-weight: 500;
+            margin-top: 1px
+        }
+
+        .jogador-pf strong {
+            color: var(--marrom-claro);
+            font-weight: 700
+        }
+
+        .btn-remover {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: #FFEBEE;
+            color: var(--vermelho);
+            font-size: .85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0
+        }
+
+        .btn-remover:active {
+            transform: scale(.9)
+        }
+
+        .historico-link {
+            text-align: center;
+            padding: 20px 0 12px
+        }
+
+        .historico-link a {
+            color: var(--marrom-claro);
+            text-decoration: none;
+            font-size: .8rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 20px;
+            border: 1px solid var(--borda);
+            border-radius: 12px;
+            background: var(--card)
+        }
+
+        .historico-link a:active {
+            background: var(--cinza-fundo);
+            transform: scale(.98)
+        }
+
+        .rodape {
+            text-align: center;
+            padding: 16px 0 20px;
+            font-size: .68rem;
+            color: var(--texto-muted);
+            letter-spacing: .5px
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .an1 {
+            animation: slideUp .4s ease-out .05s both
+        }
+
+        .an2 {
+            animation: slideUp .4s ease-out .12s both
+        }
+
+        .an3 {
+            animation: slideUp .4s ease-out .2s both
+        }
+
+        .an4 {
+            animation: slideUp .4s ease-out .28s both
+        }
+
+        .an5 {
+            animation: slideUp .4s ease-out .35s both
+        }
+
+        .an6 {
+            animation: slideUp .4s ease-out .42s both
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(62, 39, 35, .5);
+            z-index: 100;
+            align-items: flex-end;
+            justify-content: center;
+            backdrop-filter: blur(4px)
+        }
+
+        .modal-overlay.open {
+            display: flex
+        }
+
+        .modal-sheet {
+            background: var(--card);
+            border-radius: 24px 24px 0 0;
+            padding: 24px 20px 32px;
+            width: 100%;
+            max-width: 480px;
+            max-height: 70vh;
+            overflow-y: auto;
+            animation: sheetUp .3s ease-out
+        }
+
+        @keyframes sheetUp {
+            from {
+                transform: translateY(100%)
+            }
+
+            to {
+                transform: translateY(0)
+            }
+        }
+
+        .modal-handle {
+            width: 36px;
+            height: 4px;
+            background: var(--cinza-barra);
+            border-radius: 2px;
+            margin: 0 auto 16px
+        }
+
+        .modal-titulo {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--marrom-escuro);
+            margin-bottom: 16px;
+            text-align: center
+        }
+
+        .historico-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            background: var(--cinza-fundo);
+            border-radius: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background .15s
+        }
+
+        .historico-item:active {
+            background: var(--cinza-barra)
+        }
+
+        .hi-data {
+            font-weight: 700;
+            font-size: .9rem
+        }
+
+        .hi-count {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--grama-escura)
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <div class="badge-topo an1">
+            <div class="escudo">⚽</div>
+            <div class="titulo-grupo">
+                <h1>Tradiça</h1>
+                <div class="subtit">Futebol de Quinta</div>
+            </div>
+        </div>
+
+        <div class="data-card an2">
+            <div class="data-label">Próxima pelada</div>
+            <div class="data-row">
+                <div class="data-dia" id="display-dia">--</div>
+                <div>
+                    <div class="data-mes" id="display-mes">---</div>
+                    <div class="data-ano" id="display-ano">----</div>
+                </div>
+            </div>
+            <div class="data-quinta">Quinta-feira · 22h</div>
+        </div>
+
+        <div class="hero-peladeiros an3">
+            <div class="hero-numero" id="hero-num">0</div>
+            <div class="hero-legenda">peladeiros confirmados</div>
+        </div>
+
+        <div class="campo-section an3">
+            <div class="campo-labels">
+                <div class="ll">Lotação</div>
+                <div class="lr">
+                    <span id="campo-frac" style="color:var(--marrom-medio);font-weight:800">0 / 18</span>
+                    <span class="tag-avulso" id="tag-avulsos" style="display:none">+ <span id="num-avulsos-tag">0</span>
+                        avulsos</span>
+                </div>
+            </div>
+            <div class="campo-wrapper">
+                <div class="campo-grama" id="campo-grama"></div>
+                <div class="campo-linhas">
+                    <div class="co tl"></div>
+                    <div class="co tr"></div>
+                    <div class="co bl"></div>
+                    <div class="co br"></div>
+                    <div class="area e"></div>
+                    <div class="area d"></div>
+                    <div class="pa e"></div>
+                    <div class="pa d"></div>
+                    <div class="lm"></div>
+                    <div class="cm"></div>
+                    <div class="pm"></div>
+                </div>
+                <div class="campo-numero" id="campo-numero">0</div>
+            </div>
+            <div class="campo-meta"><span>0</span><span>Ideal: 14</span><span>Max: 18</span></div>
+        </div>
+
+        <div class="acoes-row an4">
+            <button class="btn-acao btn-confirmar" id="btnForm">📋 Confirmar presença</button>
+            <button class="btn-acao btn-avulso" onclick="addAvulso()">➕ Trazer convidado</button>
+        </div>
+
+        <div id="clima-container" class="an4">
+            <div class="clima-strip" id="clima-box" style="background:linear-gradient(135deg,#78909C,#90A4AE)">
+                <div class="clima-icone">⏳</div>
+                <div class="clima-texto">
+                    <div class="clima-temp">Consultando São Pedro...</div>
+                    <div class="clima-detalhe">Previsão para quinta à noite · Butantã</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="an5">
+            <div class="secao-header">
+                <div class="secao-titulo">Mensalistas</div>
+                <div class="secao-count" id="count-men">0</div>
+            </div>
+            <ul class="lista" id="lista-men"></ul>
+        </div>
+
+        <div class="an6" id="secao-avu" style="display:none">
+            <div class="secao-header">
+                <div class="secao-titulo">Convidados</div>
+                <div class="secao-count" id="count-avu">0</div>
+            </div>
+            <ul class="lista" id="lista-avu"></ul>
+        </div>
+
+        <div class="historico-link an6">
+            <a href="#" onclick="abrirHist();return false">📅 Ver quintas anteriores</a>
+        </div>
+        <div class="rodape">Tradiça FC · Butantã, São Paulo · Nenhum dado sai do seu navegador</div>
+    </div>
+
+    <div class="modal-overlay" id="modal-hist" onclick="fecharHist(event)">
+        <div class="modal-sheet" onclick="event.stopPropagation()">
+            <div class="modal-handle"></div>
+            <div class="modal-titulo">📅 Quintas Anteriores</div>
+            <div id="hist-lista"></div>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxckymWZ2WC6ZMTp7DI5qEdeiIaJ7sy4qlChzEkSAxASJTNCFtt1Fe8ltrDGbmRf0WO/exec';
+
+        const HIST = [
+            { data: '06/02/2026', c: 16, a: 2 }, { data: '30/01/2026', c: 14, a: 1 },
+            { data: '23/01/2026', c: 12, a: 0 }, { data: '16/01/2026', c: 15, a: 3 }
+        ];
+
+        const CAP = 18;
+        const E = {
+            dj: null,
+            m: [], // A ser preenchido pela planilha
+            a: []
+        };
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            calcData();
+            await loadData();
+            render();
+            clima();
+        });
+
+        async function loadData() {
+            try {
+                const res = await fetch(SCRIPT_URL);
+                const json = await res.json();
+                if (json.status === 'success') {
+                    const dataRowKeys = Object.keys(json.data[0] || {}).reverse();
+
+                    // Encontra chaves que podem ser convertidas em data válida (ignorando colunas de texto puras como Nome, Desde, Celular)
+                    const dateKeys = dataRowKeys.filter(key => {
+                        return key !== 'Nome' && key !== 'nome' && key !== 'Desde' && key !== 'desde' && key !== 'Celular' && key !== 'celular' && !isNaN(Date.parse(key));
+                    });
+
+                    // Pega a primeira data (assumindo que a planilha está cronológica da esquerda pra direita e nós demos reverse)
+                    const recentDateKey = dateKeys[0];
+
+                    E.m = json.data.map(row => {
+
+                        // Determina status baseado na coluna da data mais recente (ex: 1=confirmado, 0=ausente)
+                        let status = 'pendente';
+                        if (recentDateKey) {
+                            const statusVal = row[recentDateKey];
+                            if (statusVal === 1 || statusVal === '1') status = 'confirmado';
+                            else if (statusVal === 0 || statusVal === '0') status = 'ausente';
+                        }
+
+                        return {
+                            nome: row.Nome || row.nome || 'Desconhecido',
+                            pf: row['Desde'] || row['desde'] || '', // Exibe desde quando membro
+                            status: status
+                        }
+                    });
+
+                } else {
+                    console.error("Erro na planilha:", json.message);
+                }
+            } catch (e) {
+                console.error("Erro ao carregar dados:", e);
+            }
+        }
+
+        function calcData() {
+            const h = new Date(), dow = h.getDay();
+            let d = (4 - dow + 7) % 7;
+            if (d === 0 && h.getHours() >= 23) d = 7;
+            const q = new Date(h); q.setDate(h.getDate() + d); E.dj = q;
+            const ms = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            document.getElementById('display-dia').textContent = String(q.getDate()).padStart(2, '0');
+            document.getElementById('display-mes').textContent = ms[q.getMonth()];
+            document.getElementById('display-ano').textContent = q.getFullYear();
+        }
+
+        async function clima() {
+            const b = document.getElementById('clima-box');
+            if (!E.dj) return;
+            const d = E.dj, ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=-23.57&longitude=-46.71&hourly=temperature_2m,precipitation_probability,weathercode&timezone=America/Sao_Paulo&start_date=${ds}&end_date=${ds}`;
+            try {
+                const r = await fetch(url); if (!r.ok) throw new Error(r.status);
+                const j = await r.json(), i = 22;
+                const t = Math.round(j.hourly.temperature_2m[i]), ch = j.hourly.precipitation_probability[i], wc = j.hourly.weathercode[i];
+                const ic = wc <= 1 ? '🌙' : wc <= 3 ? '☁️' : (wc >= 51 && wc <= 67) ? '🌧️' : (wc >= 80 && wc <= 82) ? '🌦️' : wc >= 95 ? '⛈️' : ch > 50 ? '🌧️' : '🌙';
+                const dd = String(d.getDate()).padStart(2, '0'), mm = String(d.getMonth() + 1).padStart(2, '0');
+                document.getElementById('clima-container').innerHTML = `
+            <div class="clima-strip">
+                <div class="clima-icone">${ic}</div>
+                <div class="clima-texto">
+                    <div class="clima-temp">${t}°C</div>
+                    <div class="clima-detalhe">Quinta ${dd}/${mm} às 22h · Chuva: ${ch}%</div>
+                </div>
+            </div>`;
+            } catch (e) {
+                console.warn('Clima:', e);
+                b.style.background = 'linear-gradient(135deg,#78909C,#90A4AE)';
+                b.querySelector('.clima-temp').textContent = '--°C';
+                b.querySelector('.clima-detalhe').textContent = 'Previsão indisponível · Butantã, SP';
+                b.querySelector('.clima-icone').textContent = '🌙';
+            }
+        }
+
+        function render() { renderList(); renderCampo(); renderAvu() }
+
+        function renderList() {
+            const ul = document.getElementById('lista-men'); ul.innerHTML = '';
+            const ord = { confirmado: 0, pendente: 1, ausente: 2 };
+            const s = [...E.m].sort((a, b) => ord[a.status] - ord[b.status]);
+            s.forEach(m => {
+                const oi = E.m.indexOf(m), li = document.createElement('li');
+                li.className = `jogador ${m.status}`; li.onclick = () => toggle(oi);
+                const av = m.status === 'confirmado' ? '✓' : m.status === 'ausente' ? '✕' : '?';
+                li.innerHTML = `<div class="jogador-avatar">${av}</div><div class="jogador-info"><div class="jogador-nome">${m.nome}</div><div class="jogador-pf">Ponta firmeza: <strong>${m.pf} jogos</strong></div></div>`;
+                ul.appendChild(li);
+            });
+            document.getElementById('count-men').textContent = E.m.length;
+        }
+
+        function renderCampo() {
+            const cf = E.m.filter(m => m.status === 'confirmado').length, tot = cf + E.a.length;
+            const h = document.getElementById('hero-num'); h.textContent = tot; h.classList.toggle('lotado', tot > CAP);
+            const pct = Math.min((tot / CAP) * 100, 100), g = document.getElementById('campo-grama');
+            g.style.width = pct + '%'; g.classList.toggle('lotado', tot > CAP);
+            document.getElementById('campo-numero').textContent = tot;
+            document.getElementById('campo-frac').textContent = `${tot} / ${CAP}`;
+            const tag = document.getElementById('tag-avulsos');
+            if (E.a.length > 0) { tag.style.display = 'inline-flex'; document.getElementById('num-avulsos-tag').textContent = E.a.length }
+            else tag.style.display = 'none';
+        }
+
+        function renderAvu() {
+            const sec = document.getElementById('secao-avu'), ul = document.getElementById('lista-avu');
+            ul.innerHTML = '';
+            if (!E.a.length) { sec.style.display = 'none'; return }
+            sec.style.display = 'block'; document.getElementById('count-avu').textContent = E.a.length;
+            E.a.forEach((a, i) => {
+                const li = document.createElement('li'); li.className = 'jogador confirmado';
+                li.innerHTML = `<div class="jogador-avatar" style="background:var(--amarelo);color:var(--marrom-escuro);border-color:#E65100">👤</div><div class="jogador-info"><div class="jogador-nome">${a.nome} <span style="font-weight:400;color:var(--texto-muted);font-size:.8rem">(convidado)</span></div><div class="jogador-pf">Trazido por ${a.por || '—'}</div></div><button class="btn-remover" onclick="event.stopPropagation();rmAvu(${i})">✕</button>`;
+                ul.appendChild(li);
+            });
+        }
+
+        function toggle(i) { const c = { pendente: 'confirmado', confirmado: 'ausente', ausente: 'pendente' }; E.m[i].status = c[E.m[i].status]; render() }
+        function addAvulso() { const n = prompt('Nome do convidado:'); if (n && n.trim()) { const p = prompt('Quem está trazendo? (opcional)') || ''; E.a.push({ nome: n.trim(), por: p.trim() }); render() } }
+        function rmAvu(i) { if (confirm('Remover convidado?')) { E.a.splice(i, 1); render() } }
+        document.getElementById('btnForm').addEventListener('click', () => alert('Aqui abrirá o Google Forms semanal.\n\nPor enquanto, toque no nome de cada jogador para alternar o status.'));
+
+        function abrirHist() {
+            document.getElementById('hist-lista').innerHTML = HIST.map(h => `<div class="historico-item"><div class="hi-data">📅 ${h.data}</div><div class="hi-count">${h.c + h.a} peladeiros</div></div>`).join('');
+            document.getElementById('modal-hist').classList.add('open');
+        }
+        function fecharHist(e) { if (e.target === e.currentTarget) document.getElementById('modal-hist').classList.remove('open') }
+    </script>
+</body>
+
+</html>
