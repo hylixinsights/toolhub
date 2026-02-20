@@ -1283,41 +1283,79 @@
       }
 
       // ─── 1. Like Buttons ───
-      function getLikes() {
+      let clientIP = 'unknown';
+
+      async function initClientIP() {
+        try {
+          const response = await fetch('https://api.ipify.org?format=json');
+          const data = await response.json();
+          clientIP = data.ip;
+        } catch (e) {
+          console.error('Could not fetch IP:', e);
+        }
+      }
+
+      function getLocalLikes() {
         try { return JSON.parse(localStorage.getItem('toolhub_likes') || '{}'); }
         catch { return {}; }
       }
 
-      function saveLikes(likes) {
+      function saveLocalLikes(likes) {
         localStorage.setItem('toolhub_likes', JSON.stringify(likes));
       }
 
+      async function fetchGlobalLikes() {
+        try {
+          const response = await sendToSheet({ type: 'get_likes' });
+          if (response.result === 'success' && response.likes) {
+            document.querySelectorAll('.like-btn').forEach(btn => {
+              const id = btn.dataset.id;
+              if (response.likes[id] !== undefined) {
+                btn.querySelector('.like-count').textContent = response.likes[id];
+              }
+            });
+            if (currentSort === 'likes') sortCards();
+          }
+        } catch (e) {
+          console.error('Failed to fetch global likes', e);
+        }
+      }
+
       function initLikes() {
-        const likes = getLikes();
+        const localLikes = getLocalLikes();
         document.querySelectorAll('.like-btn').forEach(btn => {
           const id = btn.dataset.id;
-          const count = likes[id]?.count || 0;
-          const liked = likes[id]?.liked || false;
-          btn.querySelector('.like-count').textContent = count;
-          if (liked) btn.classList.add('liked');
-          btn.querySelector('svg').setAttribute('fill', liked ? 'currentColor' : 'none');
+          const liked = localLikes[id]?.liked || false;
+
+          if (liked) {
+            btn.classList.add('liked');
+            btn.querySelector('svg').setAttribute('fill', 'currentColor');
+          } else {
+            btn.classList.remove('liked');
+            btn.querySelector('svg').setAttribute('fill', 'none');
+          }
         });
       }
 
       document.querySelectorAll('.like-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const id = btn.dataset.id;
-          const likes = getLikes();
-          if (!likes[id]) likes[id] = { count: 0, liked: false };
+          const localLikes = getLocalLikes();
+          if (!localLikes[id]) localLikes[id] = { liked: false };
 
-          if (likes[id].liked) {
-            likes[id].count = Math.max(0, likes[id].count - 1);
-            likes[id].liked = false;
+          let actionType = 'like';
+          let countSpan = btn.querySelector('.like-count');
+          let currentCount = parseInt(countSpan.textContent) || 0;
+
+          if (localLikes[id].liked) {
+            localLikes[id].liked = false;
+            countSpan.textContent = Math.max(0, currentCount - 1);
             btn.classList.remove('liked');
             btn.querySelector('svg').setAttribute('fill', 'none');
+            actionType = 'unlike';
           } else {
-            likes[id].count += 1;
-            likes[id].liked = true;
+            localLikes[id].liked = true;
+            countSpan.textContent = currentCount + 1;
             btn.classList.add('liked');
             btn.querySelector('svg').setAttribute('fill', 'currentColor');
             btn.classList.remove('pop');
@@ -1325,12 +1363,14 @@
             btn.classList.add('pop');
           }
 
-          btn.querySelector('.like-count').textContent = likes[id].count;
-          saveLikes(likes);
+          saveLocalLikes(localLikes);
+          sendToSheet({ type: actionType, ip: clientIP, toolId: id });
         });
       });
 
+      initClientIP();
       initLikes();
+      fetchGlobalLikes();
 
       // ─── 2. Hashtag Keywords ───
       cards.forEach(card => {
@@ -1392,12 +1432,11 @@
 
       function sortCards() {
         const cardsArr = Array.from(cards);
-        const likes = getLikes();
 
         cardsArr.sort((a, b) => {
           if (currentSort === 'likes') {
-            const aLikes = likes[a.dataset.id]?.count || 0;
-            const bLikes = likes[b.dataset.id]?.count || 0;
+            const aLikes = parseInt(a.querySelector('.like-count').textContent) || 0;
+            const bLikes = parseInt(b.querySelector('.like-count').textContent) || 0;
             return bLikes - aLikes;
           } else {
             return new Date(b.dataset.created) - new Date(a.dataset.created);
