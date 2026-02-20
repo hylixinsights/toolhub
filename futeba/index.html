@@ -823,7 +823,7 @@
                     <div class="data-ano" id="display-ano">----</div>
                 </div>
             </div>
-            <div class="data-quinta">Quinta-feira · 22h</div>
+            <div class="hero-detail">QUINTA-FEIRA · 21H30</div>
         </div>
 
         <div class="hero-peladeiros an3">
@@ -912,7 +912,7 @@
     </div>
 
     <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwEdTm-Hm4E3pT-cA04dL9o8bF3Orztalzbf0SZIr2jXmVXHUeYkGnQREZ36vG3G8_p/exec';
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxDmiSgh01xl2bbNlLVWibKOI_9ndIOb0lmfWcSpiJHM3jtquO20IhDCleIsV39oseT/exec';
 
         const HIST = [
             { data: '06/02/2026', c: 16, a: 2 }, { data: '30/01/2026', c: 14, a: 1 },
@@ -938,11 +938,9 @@
                 const res = await fetch(SCRIPT_URL);
                 const json = await res.json();
                 if (json.status === 'success') {
-                    // Pega a primeira linha de dados para analisar os nomes das colunas (Ex: Nome, Ponta Firmeza, Presenças)
-                    const dataRowKeys = Object.keys(json.data[0] || {});
-
-                    // Em um formato simples 3-colunas, a terceira (índice 2) é o status
-                    const statusColumnKey = dataRowKeys.length >= 3 ? dataRowKeys[2] : dataRowKeys[dataRowKeys.length - 1];
+                    // String da próxima quinta formatada igual ao cabeçalho (ex: "26/02")
+                    const dj = E.dj;
+                    const ds = String(dj.getDate()).padStart(2, '0') + '/' + String(dj.getMonth() + 1).padStart(2, '0');
 
                     E.m = [];
                     E.a = [];
@@ -956,23 +954,27 @@
                         const nomeLimpo = nomeBruto.replace(/\(avulso\)/i, '').replace('*', '').trim();
 
                         let statusDesc = 'pendente';
-                        if (statusColumnKey) {
-                            const val = row[statusColumnKey];
-                            const valStr = val?.toString().toLowerCase().trim() || '';
-                            if (valStr === '1' || valStr === 'x' || valStr === 'sim') statusDesc = 'confirmado';
-                            else if (valStr === '0' || valStr === 'não') statusDesc = 'ausente';
+                        let rawVal = row[ds]; // Obtém a célula do jogo correspondente
+
+                        if (rawVal) {
+                            // Exemplo: "1 (26/02 10:00) | 0 (26/02 11:00)"
+                            let parts = rawVal.toString().split('|');
+                            let lastPart = parts[parts.length - 1].trim(); // Pega a última ação registrada
+
+                            if (lastPart.startsWith('1')) statusDesc = 'confirmado';
+                            else if (lastPart.startsWith('0')) statusDesc = 'ausente';
                         }
 
                         if (isAvulso) {
-                            // Se estiver marcado como confirmado, vai pra lista de avulsos
+                            // Só lista avulsos que confirmaram PRESENÇA alguma hora do dia
                             if (statusDesc === 'confirmado') {
-                                E.a.push({ nome: nomeLimpo, por: 'Alguém' });
+                                E.a.push({ nome: nomeLimpo, por: '' });
                             }
                         } else {
                             // Mensalista
                             E.m.push({
                                 nome: nomeLimpo,
-                                pf: row['Ponta Firmeza'] || row['Desde'] || row['desde'] || row[dataRowKeys[1]] || '',
+                                pf: row['Ponta Firmeza'] || '',
                                 status: statusDesc
                             });
                         }
@@ -1004,7 +1006,7 @@
             const url = `https://api.open-meteo.com/v1/forecast?latitude=-23.57&longitude=-46.71&hourly=temperature_2m,precipitation_probability,weathercode&timezone=America/Sao_Paulo&start_date=${ds}&end_date=${ds}`;
             try {
                 const r = await fetch(url); if (!r.ok) throw new Error(r.status);
-                const j = await r.json(), i = 22;
+                const j = await r.json(), i = 21; // 21:00 representa o período das 21h30
                 const t = Math.round(j.hourly.temperature_2m[i]), ch = j.hourly.precipitation_probability[i], wc = j.hourly.weathercode[i];
                 const ic = wc <= 1 ? '🌙' : wc <= 3 ? '☁️' : (wc >= 51 && wc <= 67) ? '🌧️' : (wc >= 80 && wc <= 82) ? '🌦️' : wc >= 95 ? '⛈️' : ch > 50 ? '🌧️' : '🌙';
                 const dd = String(d.getDate()).padStart(2, '0'), mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -1013,7 +1015,7 @@
                 <div class="clima-icone">${ic}</div>
                 <div class="clima-texto">
                     <div class="clima-temp">${t}°C</div>
-                    <div class="clima-detalhe">Quinta ${dd}/${mm} às 22h · Chuva: ${ch}%</div>
+                    <div class="clima-detalhe">Quinta ${dd}/${mm} às 21h30 · Chuva: ${ch}%</div>
                 </div>
             </div>`;
             } catch (e) {
@@ -1025,7 +1027,7 @@
             }
         }
 
-        function render() { renderList(); renderCampo(); renderAvu() }
+        function render() { renderList(); renderCampo(); renderAvu(); }
 
         function renderList() {
             const ul = document.getElementById('lista-men'); ul.innerHTML = '';
@@ -1053,18 +1055,37 @@
             else tag.style.display = 'none';
         }
 
+        // Esta função havia sumido causando o bug do tempo e renderização
+        function renderAvu() {
+            const sec = document.getElementById('secao-avu'), ul = document.getElementById('lista-avu');
+            ul.innerHTML = '';
+            if (!E.a.length) { sec.style.display = 'none'; return; }
+            sec.style.display = 'block';
+            document.getElementById('count-avu').textContent = E.a.length;
+
+            E.a.forEach((a, i) => {
+                const li = document.createElement('li');
+                li.className = 'jogador confirmado';
+                li.innerHTML = `<div class="jogador-avatar" style="background:var(--amarelo);color:var(--marrom-escuro);border-color:#E65100">👤</div><div class="jogador-info"><div class="jogador-nome">${a.nome} <span style="font-weight:400;color:var(--texto-muted);font-size:.8rem">(convidado)</span></div></div><button class="btn-remover" onclick="event.stopPropagation();rmAvu(${i})">✕</button>`;
+                ul.appendChild(li);
+            });
+        }
+
         function showLoading(show) {
             document.getElementById('loading-overlay').classList.toggle('active', show);
         }
 
         async function sendPostUpdate(action, nome, status) {
+            const dj = E.dj;
+            const ds = String(dj.getDate()).padStart(2, '0') + '/' + String(dj.getMonth() + 1).padStart(2, '0');
+
             try {
                 showLoading(true);
                 const res = await fetch(SCRIPT_URL, {
                     method: 'POST',
                     // Envia text/plain para evitar o Preflight Options Error no Apps Script
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: action, nome: nome, status: status })
+                    body: JSON.stringify({ action: action, nome: nome, status: status, dateColumn: ds })
                 });
                 const result = await res.json();
                 showLoading(false);
