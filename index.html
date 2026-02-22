@@ -457,6 +457,11 @@
       color: #a78bfa;
     }
 
+    .badge-omics {
+      background: rgba(236, 72, 153, 0.2);
+      color: #f472b6;
+    }
+
     .card-content {
       padding: 32px;
       flex-grow: 1;
@@ -1019,11 +1024,47 @@
   <!-- Cards Grid -->
   <div class="grid-container" id="cardsGrid">
 
+    <!-- Card: ScholarScope -->
+    <div class="tool-card" data-id="scholarscope" data-category="Bibliometrics"
+      data-keywords="scientometrics,bibliometrics,dataviz,researchimpact" data-created="2026-02-22">
+      <div class="card-img-wrapper">
+        <span class="category-badge badge-analysis">Bibliometrics</span>
+        <img src="assets/scholarscope_card.png" class="card-img" alt="ScholarScope Preview">
+      </div>
+      <div class="card-content">
+        <h3 class="tool-title">ScholarScope</h3>
+        <p class="tool-desc">
+          Dive deep into scientific impact. Visualize citation timelines, top publication venues, and research focus
+          through interactive dashboards powered by Semantic Scholar data.
+        </p>
+        <div class="keywords-container">
+          <!-- Populated by JS -->
+        </div>
+        <div class="card-footer">
+          <a href="scholarscope/" class="tool-link">
+            Open Tool
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </a>
+          <button class="like-btn" aria-label="Like tool" data-id="scholarscope">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            <span class="like-count">0</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Card: NeuralDigit -->
-    <div class="tool-card" data-id="neuraldigit" data-category="AI"
+    <div class="tool-card" data-id="neuraldigit" data-category="Interaction"
       data-keywords="ai,neural-network,machine-learning,cnn,interactive,client-side" data-created="2026-02-20">
       <div class="card-img-wrapper">
-        <span class="category-badge badge-interactive">INTERACTIVE AI</span>
+        <span class="category-badge badge-interactive">Interaction</span>
         <img src="neuraldigit/card_image.png" class="card-img" alt="NeuralDigit Preview">
       </div>
       <div class="card-content">
@@ -1055,10 +1096,10 @@
     </div>
 
     <!-- Card: PyraPlot -->
-    <div class="tool-card" data-id="pyraplot" data-category="Visualization"
+    <div class="tool-card" data-id="pyraplot" data-category="Omics"
       data-keywords="volcano plot,omics,differential expression,visualization,client-side" data-created="2026-02-19">
       <div class="card-img-wrapper">
-        <span class="category-badge badge-visualization">Visualization</span>
+        <span class="category-badge badge-omics">Omics</span>
         <img src="assets/pyraplot-cover.png" class="card-img" alt="PyraPlot Preview">
       </div>
       <div class="card-content">
@@ -1090,10 +1131,10 @@
     </div>
 
     <!-- Card 1 -->
-    <div class="tool-card" data-id="pubmed-timeline" data-category="Visualization"
+    <div class="tool-card" data-id="pubmed-timeline" data-category="Bibliometrics"
       data-keywords="pubmed,timeline,journals,publications,bibliometrics" data-created="2025-11-15">
       <div class="card-img-wrapper">
-        <span class="category-badge badge-visualization">Visualization</span>
+        <span class="category-badge badge-analysis">Bibliometrics</span>
         <img src="assets/pubmed-timeline-cover.png" class="card-img" alt="PubMed Timeline Preview">
       </div>
       <div class="card-content">
@@ -1125,10 +1166,10 @@
     </div>
 
     <!-- Card 2 -->
-    <div class="tool-card" data-id="3d-face-morphing" data-category="Interactive"
+    <div class="tool-card" data-id="3d-face-morphing" data-category="Interaction"
       data-keywords="3d,particles,face,morphing,gestures,webcam" data-created="2026-01-20">
       <div class="card-img-wrapper">
-        <span class="category-badge badge-interactive">Interactive</span>
+        <span class="category-badge badge-interactive">Interaction</span>
         <img src="particles3d-interactive/assets/particles-cover.png" class="card-img" alt="3D Face Morphing Preview">
       </div>
       <div class="card-content">
