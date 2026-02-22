@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PubMed Network Visualizer</title>
+    <script src="sampleData.js"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link
@@ -551,17 +552,20 @@
 
         svg text {
             font-family: 'DM Sans', sans-serif;
-            fill: var(--text-muted);
+            fill: #ffffff;
+            stroke: var(--bg-primary);
+            stroke-width: 4px;
+            paint-order: stroke fill;
             pointer-events: none;
             text-anchor: middle;
-            font-size: 10px;
-            opacity: 0.8;
+            font-weight: 600;
+            opacity: 0.9;
         }
 
         svg text.highlighted {
-            fill: var(--text-primary);
-            font-weight: bold;
-            font-size: 12px;
+            fill: #ffffff;
+            font-weight: 700;
+            stroke-width: 6px;
             opacity: 1;
         }
 
@@ -640,8 +644,7 @@
         <header>
             <h1>PubMed Network Visualizer</h1>
             <p class="subtitle">Visualize paper-MeSH and co-authorship networks</p>
-            <p class="developer-credit">Developed by Helder Nakaya (<a href="https://csbiology.org"
-                    target="_blank">CSBL</a>)</p>
+            <p class="developer-credit">Developed by <a href="https://hylix.app/" target="_blank">Hylix Insights</a></p>
         </header>
 
         <div class="main-content">
@@ -649,8 +652,27 @@
                 <div class="upload-icon">📁</div>
                 <h2>Upload PubMed Data</h2>
                 <p style="margin: 15px 0; color: var(--text-secondary);">Drag and drop your PubMed text file here</p>
+                <div
+                    style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 15px; margin: 0 auto 20px; max-width: 80%; text-align: left;">
+                    <h3 style="font-size: 1rem; margin-bottom: 8px; color: var(--text-primary);"><span
+                            style="color: var(--accent);">💡</span> How to generate input data</h3>
+                    <ol style="color: var(--text-secondary); font-size: 0.9rem; margin-left: 20px; line-height: 1.5;">
+                        <li>Search on <a href="https://pubmed.ncbi.nlm.nih.gov/" target="_blank"
+                                style="color: var(--accent); text-decoration: none;">PubMed</a></li>
+                        <li>Click <strong>Save</strong> (under the search bar)</li>
+                        <li>Selection: Choose what you want to export (e.g., <strong>All results</strong>)</li>
+                        <li>Format: Select <strong>PubMed</strong></li>
+                        <li>Click <strong>Create file</strong></li>
+                    </ol>
+                </div>
                 <input type="file" id="fileInput" accept=".txt" />
                 <button class="upload-btn" onclick="document.getElementById('fileInput').click()">Choose File</button>
+                <div style="margin-top: 15px;">
+                    <span style="color: var(--text-secondary); font-size: 0.9rem;">Or test with our example: </span>
+                    <button class="btn btn-secondary" onclick="loadSampleData()"
+                        style="padding: 6px 12px; font-size: 0.8rem; text-transform: none; letter-spacing: normal;">Load
+                        PubMed Sample (Helder Nakaya)</button>
+                </div>
                 <p style="margin-top: 20px; font-size: 0.8rem; color: var(--text-muted);">Supports .txt files</p>
             </div>
 
@@ -679,6 +701,12 @@
                         <div class="control-group"><label>Size:</label><input type="range" id="nodeSizePaperMesh"
                                 min="3" max="15" value="8"><span id="nodeSizeValuePM"
                                 style="color:var(--text-secondary); font-size:0.9rem;">8</span></div>
+                        <div class="control-group"><label>Top Labels:</label><input type="range" id="topLabelsPaperMesh"
+                                min="0" max="250" value="30"><span id="topLabelsValuePM"
+                                style="color:var(--text-secondary); font-size:0.9rem;">30</span></div>
+                        <div class="control-group"><label>Min Papers:</label><input type="range" id="minPapersPM"
+                                min="1" max="10" value="1"><span id="minPapersValuePM"
+                                style="color:var(--text-secondary); font-size:0.9rem;">1</span></div>
                         <div class="control-group"><label>Layout:</label><select id="layoutPaperMesh">
                                 <option value="force">Force</option>
                                 <option value="circular">Circular</option>
@@ -687,7 +715,18 @@
                         <button class="btn btn-clear" onclick="clearSelection('paper-mesh')">Clear</button>
                         <button class="btn btn-secondary" onclick="downloadNetwork('paper-mesh')">Excel</button>
                     </div>
-                    <div class="svg-container"><svg id="svgPaperMesh" width="100%" height="100%"></svg></div>
+                    <div class="svg-container" style="position: relative;">
+                        <svg id="svgPaperMesh" width="100%" height="100%"></svg>
+                        <div
+                            style="position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px;">
+                            <button class="btn btn-secondary"
+                                style="width: 40px; height: 40px; border-radius: 50%; padding: 0; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; background: var(--bg-card); color: var(--text-primary); border-color: var(--border-subtle);"
+                                onclick="zoomNetwork('paper-mesh', 1.5)">+</button>
+                            <button class="btn btn-secondary"
+                                style="width: 40px; height: 40px; border-radius: 50%; padding: 0; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; background: var(--bg-card); color: var(--text-primary); border-color: var(--border-subtle);"
+                                onclick="zoomNetwork('paper-mesh', 0.66)">-</button>
+                        </div>
+                    </div>
                     <div class="legend">
                         <div class="legend-title">Legend</div>
                         <div class="legend-item">
@@ -713,6 +752,9 @@
                         <div class="control-group"><label>Size:</label><input type="range" id="nodeSizeCoauthorship"
                                 min="3" max="15" value="8"><span id="nodeSizeValueCA"
                                 style="color:var(--text-secondary); font-size:0.9rem;">8</span></div>
+                        <div class="control-group"><label>Top Labels:</label><input type="range"
+                                id="topLabelsCoauthorship" min="0" max="250" value="30"><span id="topLabelsValueCA"
+                                style="color:var(--text-secondary); font-size:0.9rem;">30</span></div>
                         <div class="control-group"><label>Layout:</label><select id="layoutCoauthorship">
                                 <option value="force">Force</option>
                                 <option value="circular">Circular</option>
@@ -724,7 +766,18 @@
                         <button class="btn btn-clear" onclick="clearSelection('coauthorship')">Clear</button>
                         <button class="btn btn-secondary" onclick="downloadNetwork('coauthorship')">Excel</button>
                     </div>
-                    <div class="svg-container"><svg id="svgCoauthorship" width="100%" height="100%"></svg></div>
+                    <div class="svg-container" style="position: relative;">
+                        <svg id="svgCoauthorship" width="100%" height="100%"></svg>
+                        <div
+                            style="position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px;">
+                            <button class="btn btn-secondary"
+                                style="width: 40px; height: 40px; border-radius: 50%; padding: 0; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; background: var(--bg-card); color: var(--text-primary); border-color: var(--border-subtle);"
+                                onclick="zoomNetwork('coauthorship', 1.5)">+</button>
+                            <button class="btn btn-secondary"
+                                style="width: 40px; height: 40px; border-radius: 50%; padding: 0; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; background: var(--bg-card); color: var(--text-primary); border-color: var(--border-subtle);"
+                                onclick="zoomNetwork('coauthorship', 0.66)">-</button>
+                        </div>
+                    </div>
                     <div class="legend">
                         <div class="legend-title">Communities</div>
                         <div id="communityLegend"
@@ -739,7 +792,7 @@
         <div class="tooltip" id="tooltip"></div>
         <footer>
             <p>Interactive Visualization • Hover to preview • Click to lock • Drag to move</p>
-            <p style="margin-top: 10px;"><a href="../index.html">← Back to Tool Hub</a></p>
+            <p style="margin-top: 10px;"><a href="https://toolhub.hylix.app/">← Back to Tool Hub</a></p>
         </footer>
     </div>
 
@@ -747,7 +800,15 @@
         let paperMeshNetwork = null, coauthorshipNetwork = null;
         let paperMeshSimulation = null, coauthorshipSimulation = null;
         let currentNodeSize = { 'paper-mesh': 8, 'coauthorship': 8 };
+        let currentTopLabels = { 'paper-mesh': 30, 'coauthorship': 30 };
         let selectedNode = { 'paper-mesh': null, 'coauthorship': null };
+        let globalPapersData = [];
+        let currentMinPapers = 1;
+        let currentMinCollab = 8;
+        let svgZoomBehaviors = {
+            'paper-mesh': { behavior: null, svg: null, g: null },
+            'coauthorship': { behavior: null, svg: null, g: null }
+        };
 
         // Updated Colors for Dark Theme
         const journalColor = '#e4c9a3'; // Gold Accent
@@ -775,27 +836,58 @@
             if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
         });
 
+        function loadSampleData() {
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('errorMsg').classList.remove('active');
+            try {
+                if (typeof pubmedSampleData !== 'undefined') {
+                    processDataText(pubmedSampleData);
+                } else {
+                    throw new Error("Sample data file (sampleData.js) could not be loaded. Please ensure it is present in the directory.");
+                }
+            } catch (error) {
+                document.getElementById('errorMsg').textContent = error.message;
+                document.getElementById('errorMsg').classList.add('active');
+                document.getElementById('loading').classList.remove('active');
+            }
+        }
+
+        function zoomNetwork(networkType, factor) {
+            const state = svgZoomBehaviors[networkType];
+            if (!state || !state.behavior || !state.svg) return;
+            state.svg.transition().duration(300).call(state.behavior.scaleBy, factor);
+        }
+
         function processFile(file) {
             document.getElementById('loading').classList.add('active');
             document.getElementById('errorMsg').classList.remove('active');
             const reader = new FileReader();
-            reader.onload = e => {
-                try {
-                    const papers = parsePubMedData(e.target.result);
-                    paperMeshNetwork = generatePaperMeshNetwork(papers);
-                    coauthorshipNetwork = generateCoauthorshipNetwork(papers);
-                    displayNetworks();
-                    document.getElementById('loading').classList.remove('active');
-                    document.getElementById('uploadSection').style.display = 'none';
-                    document.getElementById('networkSection').style.display = 'block';
-                    setupSearch();
-                } catch (error) {
-                    document.getElementById('errorMsg').textContent = 'Error: ' + error.message;
-                    document.getElementById('errorMsg').classList.add('active');
-                    document.getElementById('loading').classList.remove('active');
-                }
-            };
+            reader.onload = e => processDataText(e.target.result);
             reader.readAsText(file);
+        }
+
+        function processDataText(data) {
+            try {
+                globalPapersData = parsePubMedData(data);
+
+                const minPapersInput = document.getElementById('minPapersPM');
+                currentMinPapers = minPapersInput ? parseInt(minPapersInput.value) : 1;
+
+                const minCollabInput = document.getElementById('minWeight');
+                currentMinCollab = minCollabInput ? parseInt(minCollabInput.value) : 8;
+
+                paperMeshNetwork = generatePaperMeshNetwork(globalPapersData, currentMinPapers);
+                coauthorshipNetwork = generateCoauthorshipNetwork(globalPapersData, currentMinCollab);
+                displayNetworks();
+                document.getElementById('loading').classList.remove('active');
+                document.getElementById('uploadSection').style.display = 'none';
+                document.getElementById('networkSection').style.display = 'block';
+                setupSearch();
+            } catch (error) {
+                document.getElementById('errorMsg').textContent = 'Error: ' + error.message;
+                document.getElementById('errorMsg').classList.add('active');
+                document.getElementById('loading').classList.remove('active');
+            }
         }
 
         function parsePubMedData(data) {
@@ -827,8 +919,8 @@
             return papers;
         }
 
-        function generatePaperMeshNetwork(papers) {
-            const nodes = [], links = [], nodeMap = new Map();
+        function generatePaperMeshNetwork(papers, minPapers = 1) {
+            let nodes = [], links = [], nodeMap = new Map();
             let nodeId = 0;
             papers.forEach(paper => {
                 const journalLabel = `${paper.journal} [PMID:${paper.pmid}]`;
@@ -846,11 +938,35 @@
                     nodes[jId].degree++; nodes[mId].degree++;
                 });
             });
+
+            if (minPapers > 1) {
+                const validMeshIds = new Set(nodes.filter(n => n.type === 'mesh' && n.degree >= minPapers).map(n => n.id));
+                links = links.filter(l => {
+                    const s = nodes.find(n => n.id === (l.source.id ?? l.source));
+                    const t = nodes.find(n => n.id === (l.target.id ?? l.target));
+                    const meshNode = s.type === 'mesh' ? s : t;
+                    return validMeshIds.has(meshNode.id);
+                });
+                const connected = new Set();
+                links.forEach(l => {
+                    connected.add(l.source.id ?? l.source);
+                    connected.add(l.target.id ?? l.target);
+                });
+                nodes = nodes.filter(n => connected.has(n.id));
+
+                nodes.forEach(n => n.degree = 0);
+                links.forEach(l => {
+                    const s = nodes.find(n => n.id === (l.source.id ?? l.source));
+                    const t = nodes.find(n => n.id === (l.target.id ?? l.target));
+                    if (s && t) { s.degree++; t.degree++; }
+                });
+            }
+
             return { nodes, links };
         }
 
-        function generateCoauthorshipNetwork(papers) {
-            const nodes = [], links = [], nodeMap = new Map(), collaborations = new Map();
+        function generateCoauthorshipNetwork(papers, minCollab = 8) {
+            let nodes = [], links = [], nodeMap = new Map(), collaborations = new Map();
             let nodeId = 0;
             papers.forEach(paper => {
                 if (paper.authors.length < 2) return;
@@ -873,8 +989,26 @@
             });
             collaborations.forEach(c => {
                 links.push(c);
-                nodes[c.source].degree++; nodes[c.target].degree++;
             });
+
+            if (minCollab > 1) {
+                links = links.filter(l => l.weight >= minCollab);
+            }
+
+            const connected = new Set();
+            links.forEach(l => {
+                connected.add(l.source.id ?? l.source);
+                connected.add(l.target.id ?? l.target);
+            });
+            nodes = nodes.filter(n => connected.has(n.id));
+
+            nodes.forEach(n => n.degree = 0);
+            links.forEach(l => {
+                const s = nodes.find(n => n.id === (l.source.id ?? l.source));
+                const t = nodes.find(n => n.id === (l.target.id ?? l.target));
+                if (s && t) { s.degree++; t.degree++; }
+            });
+
             detectCommunities(nodes, links);
             return { nodes, links };
         }
@@ -1012,7 +1146,7 @@
                 .force('link', d3.forceLink(paperMeshNetwork.links).id(d => d.id).distance(100))
                 .force('charge', d3.forceManyBody().strength(-300))
                 .force('center', d3.forceCenter(width / 2, height / 2))
-                .force('collision', d3.forceCollide().radius(30));
+                .force('collision', d3.forceCollide().radius(d => Math.sqrt(d.degree) * currentNodeSize['paper-mesh'] + 10));
             const link = g.append('g').selectAll('line').data(paperMeshNetwork.links).join('line')
                 .attr('class', 'link').attr('stroke-width', 1.5);
             const node = g.append('g').selectAll('circle').data(paperMeshNetwork.nodes).join('circle')
@@ -1042,16 +1176,28 @@
                 highlightNode(d.id, 'paper-mesh');
                 if (d.type === 'journal' && d.pmid) { window.open(`https://pubmed.ncbi.nlm.nih.gov/${d.pmid}/`, '_blank'); }
             });
+            // Only consider mesh terms for top labels
+            const meshNodes = paperMeshNetwork.nodes.filter(n => n.type === 'mesh');
+            const topNodesSetPM = new Set([...meshNodes].sort((a, b) => b.degree - a.degree).slice(0, currentTopLabels['paper-mesh']).map(n => n.id));
+
+            const baseFontSizePM = currentNodeSize['paper-mesh'];
+
             const label = g.append('g').selectAll('text').data(paperMeshNetwork.nodes).join('text')
-                .text(d => { if (d.displayName.length > 50) return d.displayName.substring(0, 50) + '...'; return d.displayName; })
-                .attr('font-size', d => Math.max(8, Math.sqrt(d.degree) * currentNodeSize['paper-mesh'] / 2 + 6));
+                .text(d => {
+                    if (!topNodesSetPM.has(d.id)) return '';
+                    if (d.displayName.length > 50) return d.displayName.substring(0, 50) + '...';
+                    return d.displayName;
+                })
+                .style('font-size', d => Math.max(baseFontSizePM * 0.8, Math.sqrt(d.degree) * baseFontSizePM / 2.5 + baseFontSizePM * 0.5) + 'px');
 
             simulation.on('tick', () => {
                 link.attr('x1', d => d.source.x).attr('y1', d => d.source.y).attr('x2', d => d.target.x).attr('y2', d => d.target.y);
                 node.attr('cx', d => d.x).attr('cy', d => d.y);
                 label.attr('x', d => d.x).attr('y', d => d.y);
             });
-            svg.call(d3.zoom().scaleExtent([0.1, 4]).on('zoom', e => g.attr('transform', e.transform)));
+            const zoomBehavior = d3.zoom().scaleExtent([0.1, 4]).on('zoom', e => g.attr('transform', e.transform));
+            svg.call(zoomBehavior);
+            svgZoomBehaviors['paper-mesh'] = { behavior: zoomBehavior, svg: svg, g: g };
             svg.on('click', function (e) { if (e.target === this) { clearSelection('paper-mesh'); } });
             paperMeshSimulation = simulation;
         }
@@ -1066,7 +1212,7 @@
                 .force('link', d3.forceLink(coauthorshipNetwork.links).id(d => d.id).distance(d => 120 / Math.sqrt(d.weight)))
                 .force('charge', d3.forceManyBody().strength(-400))
                 .force('center', d3.forceCenter(width / 2, height / 2))
-                .force('collision', d3.forceCollide().radius(35));
+                .force('collision', d3.forceCollide().radius(d => Math.sqrt(d.degree) * currentNodeSize['coauthorship'] + 12));
             const link = g.append('g').selectAll('line').data(coauthorshipNetwork.links).join('line')
                 .attr('class', 'link').attr('stroke-width', d => Math.sqrt(d.weight) * 2);
             const node = g.append('g').selectAll('circle').data(coauthorshipNetwork.nodes).join('circle')
@@ -1096,16 +1242,22 @@
                 const searchName = d.name.replace(/ /g, '+');
                 window.open(`https://pubmed.ncbi.nlm.nih.gov/?term=${searchName}`, '_blank');
             });
+            const topNodesSetCA = new Set([...coauthorshipNetwork.nodes].sort((a, b) => b.degree - a.degree).slice(0, currentTopLabels['coauthorship']).map(n => n.id));
+
+            const baseFontSizeCA = currentNodeSize['coauthorship'];
+
             const label = g.append('g').selectAll('text').data(coauthorshipNetwork.nodes).join('text')
-                .text(d => d.displayName)
-                .attr('font-size', d => Math.max(8, Math.sqrt(d.degree) * currentNodeSize['coauthorship'] / 1.5 + 7));
+                .text(d => topNodesSetCA.has(d.id) ? d.displayName : '')
+                .style('font-size', d => Math.max(baseFontSizeCA * 0.8, Math.sqrt(d.degree) * baseFontSizeCA / 2 + baseFontSizeCA * 0.5) + 'px');
 
             simulation.on('tick', () => {
                 link.attr('x1', d => d.source.x).attr('y1', d => d.source.y).attr('x2', d => d.target.x).attr('y2', d => d.target.y);
                 node.attr('cx', d => d.x).attr('cy', d => d.y);
                 label.attr('x', d => d.x).attr('y', d => d.y);
             });
-            svg.call(d3.zoom().scaleExtent([0.1, 4]).on('zoom', e => g.attr('transform', e.transform)));
+            const zoomBehavior = d3.zoom().scaleExtent([0.1, 4]).on('zoom', e => g.attr('transform', e.transform));
+            svg.call(zoomBehavior);
+            svgZoomBehaviors['coauthorship'] = { behavior: zoomBehavior, svg: svg, g: g };
             svg.on('click', function (e) { if (e.target === this) { clearSelection('coauthorship'); } });
             coauthorshipSimulation = simulation;
 
@@ -1166,9 +1318,19 @@
             document.getElementById('nodeSizeValuePM').textContent = e.target.value;
             displayPaperMeshNetwork();
         });
+        document.getElementById('topLabelsPaperMesh').addEventListener('input', e => {
+            currentTopLabels['paper-mesh'] = parseInt(e.target.value);
+            document.getElementById('topLabelsValuePM').textContent = e.target.value;
+            displayPaperMeshNetwork();
+        });
         document.getElementById('nodeSizeCoauthorship').addEventListener('input', e => {
             currentNodeSize['coauthorship'] = parseFloat(e.target.value);
             document.getElementById('nodeSizeValueCA').textContent = e.target.value;
+            displayCoauthorshipNetwork();
+        });
+        document.getElementById('topLabelsCoauthorship').addEventListener('input', e => {
+            currentTopLabels['coauthorship'] = parseInt(e.target.value);
+            document.getElementById('topLabelsValueCA').textContent = e.target.value;
             displayCoauthorshipNetwork();
         });
         document.getElementById('layoutPaperMesh').addEventListener('change', e => {
@@ -1197,20 +1359,18 @@
                 setTimeout(() => nodes.forEach(n => { n.fx = null; n.fy = null; }), 2000);
             } else displayCoauthorshipNetwork();
         });
+        document.getElementById('minPapersPM').addEventListener('input', e => {
+            document.getElementById('minPapersValuePM').textContent = e.target.value;
+            currentMinPapers = parseInt(e.target.value);
+            paperMeshNetwork = generatePaperMeshNetwork(globalPapersData, currentMinPapers);
+            displayPaperMeshNetwork();
+        });
+
         document.getElementById('minWeight').addEventListener('input', e => {
             document.getElementById('minWeightValue').textContent = e.target.value;
-            const minW = parseInt(e.target.value);
-            const filteredLinks = coauthorshipNetwork.links.filter(l => l.weight >= minW);
-            const connectedIds = new Set();
-            filteredLinks.forEach(l => {
-                connectedIds.add(l.source.id || l.source);
-                connectedIds.add(l.target.id || l.target);
-            });
-            const filteredNodes = coauthorshipNetwork.nodes.filter(n => connectedIds.has(n.id));
-            const temp = coauthorshipNetwork;
-            coauthorshipNetwork = { nodes: filteredNodes, links: filteredLinks };
+            currentMinCollab = parseInt(e.target.value);
+            coauthorshipNetwork = generateCoauthorshipNetwork(globalPapersData, currentMinCollab);
             displayCoauthorshipNetwork();
-            coauthorshipNetwork = temp;
         });
     </script>
 </body>
