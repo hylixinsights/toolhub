@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PubMed Timeline Visualizer</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Sans:wght@300;400;500&display=swap"
+        rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
@@ -60,8 +63,15 @@
         }
 
         @keyframes fadeInDown {
-            from { opacity: 0; transform: translateY(-30px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         h1 {
@@ -97,8 +107,13 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         .upload-zone {
@@ -154,7 +169,7 @@
             text-align: center;
             margin-top: 10px;
         }
-        
+
         .example-label {
             display: block;
             margin-bottom: 12px;
@@ -492,12 +507,19 @@
         }
 
         @media (max-width: 768px) {
-            .container { padding: 40px 20px; }
-            h1 { font-size: 2.5rem; }
+            .container {
+                padding: 40px 20px;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+
             .stats-row {
                 flex-direction: column;
                 gap: 30px;
             }
+
             .tooltip {
                 max-width: calc(100vw - 40px);
                 left: 20px !important;
@@ -506,15 +528,24 @@
         }
 
         @keyframes pulseGlow {
-            0%, 100% { box-shadow: 0 0 15px var(--accent-glow); }
-            50% { box-shadow: 0 0 25px var(--accent), 0 0 40px var(--accent-glow); }
+
+            0%,
+            100% {
+                box-shadow: 0 0 15px var(--accent-glow);
+            }
+
+            50% {
+                box-shadow: 0 0 25px var(--accent), 0 0 40px var(--accent-glow);
+            }
         }
 
         .article-marker.visible .article-dot {
             animation: pulseGlow 3s ease-in-out infinite;
         }
     </style>
+    <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -525,9 +556,9 @@
         <section class="upload-section" id="uploadSection">
             <div class="upload-zone" id="uploadZone">
                 <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="17 8 12 3 7 8"/>
-                    <line x1="12" y1="3" x2="12" y2="15"/>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
                 <p class="upload-text">Drop your PubMed file here</p>
                 <p class="upload-hint">or click to browse (.txt or .nbib format)</p>
@@ -555,9 +586,9 @@
             </div>
             <button class="export-btn" id="exportBtn" onclick="exportToExcel()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
                 Export Excel
             </button>
@@ -617,7 +648,7 @@
         const loadExampleBtn = document.getElementById('loadExampleBtn');
 
         uploadZone.addEventListener('click', () => fileInput.click());
-        
+
         uploadZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadZone.classList.add('dragover');
@@ -687,12 +718,12 @@
 
         function parsePubMed(content) {
             const results = [];
-            
+
             content = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-            
+
             const lines = content.split('\n');
             const processedLines = [];
-            
+
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
                 if (/^[A-Z]{2,4}\s*-\s/.test(line)) {
@@ -703,13 +734,13 @@
                     processedLines.push('');
                 }
             }
-            
+
             const recordText = processedLines.join('\n');
             const records = recordText.split(/\n(?=PMID- )/);
-            
+
             for (const record of records) {
                 if (!record.trim()) continue;
-                
+
                 const article = {
                     pmid: '',
                     title: '',
@@ -722,15 +753,15 @@
                     authors: [],
                     reference: ''
                 };
-                
+
                 const recordLines = record.split('\n');
-                
+
                 for (const line of recordLines) {
                     const match = line.match(/^([A-Z]{2,4})\s*-\s*(.*)$/);
                     if (match) {
                         const field = match[1];
                         const value = match[2].trim();
-                        
+
                         switch (field) {
                             case 'PMID': article.pmid = value; break;
                             case 'TI': article.title = value; break;
@@ -744,27 +775,27 @@
                         }
                     }
                 }
-                
+
                 if (article.edat) {
                     article.timestamp = parseEDAT(article.edat);
                 } else if (article.date) {
                     article.timestamp = parseDate(article.date);
                 }
-                
+
                 if (article.edat) {
                     article.displayDate = formatEDATDisplay(article.edat);
                 } else {
                     article.displayDate = article.date;
                 }
-                
+
                 article.journalDisplay = article.journalFull || article.journal || 'Unknown Journal';
                 article.pubmedUrl = `https://pubmed.ncbi.nlm.nih.gov/${article.pmid}/`;
-                
+
                 if (article.pmid && article.timestamp > 0) {
                     results.push(article);
                 }
             }
-            
+
             return results.sort((a, b) => a.timestamp - b.timestamp);
         }
 
@@ -835,14 +866,14 @@
         function displayTimeline() {
             minTimestamp = articles[0].timestamp;
             maxTimestamp = articles[articles.length - 1].timestamp;
-            
+
             const range = maxTimestamp - minTimestamp;
             const padding = Math.max(range * 0.05, 30 * 24 * 60 * 60 * 1000);
             minTimestamp -= padding;
             maxTimestamp += padding;
 
             document.getElementById('totalArticles').textContent = articles.length;
-            
+
             const journals = new Set(articles.map(a => a.journal).filter(j => j));
             document.getElementById('journalCount').textContent = journals.size;
 
@@ -901,7 +932,7 @@
             markers.forEach(marker => {
                 const index = parseInt(marker.dataset.index);
                 const article = articles[index];
-                
+
                 if (article.timestamp <= currentTimestamp) {
                     marker.classList.add('visible');
                 } else {
@@ -929,7 +960,7 @@
         function moveTooltip(e) {
             const padding = 20;
             const rect = tooltip.getBoundingClientRect();
-            
+
             let x = e.clientX + padding;
             let y = e.clientY + padding;
 
@@ -966,7 +997,7 @@
 
             const ws = XLSX.utils.json_to_sheet(data);
             const wb = XLSX.utils.book_new();
-            
+
             ws['!cols'] = [
                 { wch: 5 },
                 { wch: 12 },
@@ -980,11 +1011,11 @@
             ];
 
             XLSX.utils.book_append_sheet(wb, ws, 'Publications');
-            
+
             const today = new Date();
             const dateStr = today.toISOString().split('T')[0];
             const filename = `pubmed_publications_${dateStr}.xlsx`;
-            
+
             XLSX.writeFile(wb, filename);
         }
 
@@ -996,4 +1027,5 @@
         });
     </script>
 </body>
+
 </html>

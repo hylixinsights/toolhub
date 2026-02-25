@@ -33,7 +33,7 @@
       font-family: 'Plus Jakarta Sans', sans-serif;
       color: var(--text-main);
       min-height: 100vh;
-      padding-top: 100px;
+      padding-top: 140px;
       display: flex;
       flex-direction: column;
     }
@@ -891,6 +891,10 @@
 
     /* ─── Responsiveness ─── */
     @media (max-width: 768px) {
+      body {
+        padding-top: 100px;
+      }
+
       .header {
         padding: 15px 20px;
       }
@@ -1024,12 +1028,49 @@
   <!-- Cards Grid -->
   <div class="grid-container" id="cardsGrid">
 
+    <!-- Card: SigCompare -->
+    <div class="tool-card" data-id="sigcompare" data-category="Omics"
+      data-keywords="differential-expression,meta-analysis,GEO2R,upset-plot,sankey,bioinformatics"
+      data-created="2026-02-25">
+      <div class="card-img-wrapper">
+        <span class="category-badge badge-omics">Omics</span>
+        <img src="assets/sigcompare_card.png" class="card-img" alt="SigCompare Preview">
+      </div>
+      <div class="card-content">
+        <h3 class="tool-title">SigCompare</h3>
+        <p class="tool-desc">
+          A simple, code-free way to compare gene signatures across multiple cohorts. SigCompare allows you to instantly
+          intersect differential expression results (including those generated directly from GEO2R) to visualize
+          consensus signatures and unique biological responses through direction-aware UpSet plots and Sankey diagrams.
+        </p>
+        <div class="keywords-container">
+          <!-- Populated by JS -->
+        </div>
+        <div class="card-footer">
+          <a href="https://toolhub.hylix.app/sigcompare/" class="tool-link">
+            Launch Tool
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </a>
+          <button class="like-btn" data-id="sigcompare">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            <span class="like-count">0</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Card: PubMed Vis -->
     <div class="tool-card" data-id="pubmed-vis" data-category="Bibliometrics"
       data-keywords="pubmed,network,bibliometrics,visualizer,science" data-created="2026-02-24">
       <div class="card-img-wrapper">
         <span class="category-badge badge-analysis">Bibliometrics</span>
-        <img src="assets/pubmed_vis_card.png" class="card-img" alt="PubMed Network Visualizer Preview">
+        <img src="assets/pubmedvis_card.png" class="card-img" alt="PubMed Network Visualizer Preview">
       </div>
       <div class="card-content">
         <h3 class="tool-title">PubMed Network Visualizer</h3>
