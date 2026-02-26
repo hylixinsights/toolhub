@@ -1140,14 +1140,25 @@
             <option value="ClinVar_2019">ClinVar 2019</option>
             <option value="DisGeNET">DisGeNET</option>
             <option value="Human_Phenotype_Ontology">Human Phenotype Ontology</option>
+            <option value="custom_gmt">Upload Custom GMT...</option>
           </select>
+        </div>
+        <div id="gmtUploadArea"
+          style="display: none; margin-top: 12px; background: rgba(212,175,55,0.05); border: 1px dashed var(--border-accent); padding: 12px; border-radius: var(--radius-sm);">
+          <label class="setting-label" style="font-size: 0.72rem; margin-bottom: 6px;">Choose .gmt File</label>
+          <input type="file" id="gmtInput" accept=".gmt,.txt"
+            style="font-size: 0.75rem; color: var(--text-primary); width: 100%;">
+          <p class="setting-hint" id="gmtStatus" style="margin-top: 8px; color: var(--text-tertiary);">No file loaded.
+          </p>
         </div>
         <p class="setting-hint">Choose the annotation library for enrichment analysis.</p>
       </div>
       <div class="setting-group">
-        <label class="setting-label">Adjusted P-value Cutoff</label>
-        <input class="setting-input" type="number" id="pvalCutoff" value="0.05" min="0.0001" max="1" step="0.01">
-        <p class="setting-hint">Only display terms below this adjusted p-value threshold.</p>
+        <label class="setting-label">Pathway -log10(Adj. P-value) Cutoff (<span id="pathwayPvalVal">1.30</span>)</label>
+        <input type="range" id="pvalCutoff" min="0" max="10" step="0.01" value="1.30"
+          style="width: 100%; accent-color: var(--accent-primary);">
+        <p class="setting-hint">Only display <strong>pathways/terms</strong> with a -log10(Adj. P-value) above this
+          threshold. (1.30 ≈ P &lt; 0.05)</p>
       </div>
 
       <div class="setting-group">
@@ -1155,6 +1166,32 @@
         <input class="setting-input" type="text" id="geneColName" value="" placeholder="Auto-detect">
         <p class="setting-hint">If your file has a specific column name for gene symbols, enter it here. Otherwise,
           PathwayLens will attempt to auto-detect.</p>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label">DEG Log2 FC Threshold (<span id="log2fcVal">1.0</span>)</label>
+        <input type="range" id="log2fcSlider" min="0" max="5" step="0.1" value="1.0"
+          style="width: 100%; accent-color: var(--accent-primary);">
+        <p class="setting-hint">Minimum absolute Log2 Fold Change for the uploaded DEGs.</p>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label">DEG -log10 FDR Threshold (<span id="fdrVal">2.0</span>)</label>
+        <input type="range" id="fdrSlider" min="0" max="10" step="0.1" value="2.0"
+          style="width: 100%; accent-color: var(--accent-primary);">
+        <p class="setting-hint">Minimum -log10(FDR) for the uploaded DEGs. A value of 2 means FDR &lt; 0.01.</p>
+      </div>
+
+      <div class="setting-group">
+        <label class="setting-label">DEG Direction</label>
+        <div class="setting-select-wrapper">
+          <select class="setting-select" id="degDirection">
+            <option value="any" selected>Any (Up + Down)</option>
+            <option value="up">Up-regulated only</option>
+            <option value="down">Down-regulated only</option>
+          </select>
+        </div>
+        <p class="setting-hint">Filter DEGs by the sign of Log2 Fold Change.</p>
       </div>
     </div>
   </aside>
@@ -1167,6 +1204,10 @@
       results: [],
       lastLibrary: '',
       barInstance: null,
+      customGmt: null,
+      uploadedData: null,
+      uploadedCols: null,
+      uploadedFileName: null,
     };
 
     /* ═══════════════════ Demo Genes (Inflammatory Response) ═══════════════════ */
@@ -1202,6 +1243,17 @@
     const closeSettings = $('#closeSettings');
     const settingsOverlay = $('#settingsOverlay');
     const settingsPanel = $('#settingsPanel');
+    const librarySelect = $('#librarySelect');
+    const gmtUploadArea = $('#gmtUploadArea');
+    const gmtInput = $('#gmtInput');
+    const gmtStatus = $('#gmtStatus');
+
+    const geneColName = $('#geneColName');
+    const log2fcSlider = $('#log2fcSlider');
+    const log2fcVal = $('#log2fcVal');
+    const fdrSlider = $('#fdrSlider');
+    const fdrVal = $('#fdrVal');
+    const degDirection = $('#degDirection');
 
     // New UI Controls
     const topTermsFilter = $('#topTermsFilter');
@@ -1252,28 +1304,10 @@
         header: true,
         skipEmptyLines: true,
         complete(res) {
-          const cols = res.meta.fields || [];
-          const userCol = $('#geneColName').value.trim();
-          let geneCol = null;
-
-          if (userCol && cols.includes(userCol)) {
-            geneCol = userCol;
-          } else {
-            const patterns = [/^gene$/i, /gene.?symbol/i, /gene.?name/i, /symbol/i, /gene_id/i, /geneid/i, /hgnc/i];
-            for (const p of patterns) {
-              const found = cols.find(c => p.test(c));
-              if (found) { geneCol = found; break; }
-            }
-            if (!geneCol) geneCol = cols[0];
-          }
-
-          const genes = [...new Set(
-            res.data
-              .map(r => (r[geneCol] || '').trim().toUpperCase())
-              .filter(g => g && g.length > 0 && !/^\d+$/.test(g))
-          )];
-
-          setGenes(genes, file.name);
+          state.uploadedData = res.data;
+          state.uploadedCols = res.meta.fields || [];
+          state.uploadedFileName = file.name;
+          applyDegFilters();
         }
       });
     }
@@ -1290,6 +1324,93 @@
       }
 
       clearBtn.style.display = genes.length > 0 ? '' : 'none';
+    }
+
+    function safeParseFloat(val) {
+      if (val === undefined || val === null) return NaN;
+      if (typeof val === 'number') return val;
+      if (typeof val === 'string') {
+        // Handle comma decimals but preserve e-notation
+        let clean = val.trim();
+        if (clean.includes(',') && !clean.includes('.')) {
+          clean = clean.replace(',', '.');
+        }
+        return parseFloat(clean);
+      }
+      return NaN;
+    }
+
+    function applyDegFilters() {
+      if (!state.uploadedData) return;
+      const data = state.uploadedData;
+      const cols = state.uploadedCols;
+
+      const userCol = geneColName.value.trim();
+      let geneCol = null;
+      if (userCol && cols.includes(userCol)) geneCol = userCol;
+      else {
+        const patterns = [/^gene$/i, /gene.?symbol/i, /gene.?name/i, /symbol/i, /gene_id/i, /geneid/i, /hgnc/i, /^id$/i, /^name$/i];
+        for (const p of patterns) {
+          const found = cols.find(c => p.test(c.trim()));
+          if (found) { geneCol = found; break; }
+        }
+        if (!geneCol) geneCol = cols[0];
+      }
+
+      let log2fcCol = null;
+      let fdrCol = null;
+
+      const logfcPatterns = [/^log2?fc$/i, /^log2?fold.?change$/i, /^lfc$/i, /^avg_log2fc$/i];
+      const fdrPatterns = [/^padj$/i, /^fdr$/i, /^adj.?p.?val$/i, /^p_val_adj$/i, /^q.?val/i, /^p.?val/i, /^pvalue$/i];
+
+      for (const p of logfcPatterns) {
+        const found = cols.find(c => p.test(c));
+        if (found) { log2fcCol = found; break; }
+      }
+      for (const p of fdrPatterns) {
+        const found = cols.find(c => p.test(c));
+        if (found) { fdrCol = found; break; }
+      }
+
+      const log2fcThresh = parseFloat(log2fcSlider.value) || 1.0;
+      const fdrThresh = parseFloat(fdrSlider.value) || 2.0;
+      const targetPadj = Math.pow(10, -fdrThresh);
+
+      const filtered = data.filter(r => {
+        let pass = true;
+        if (log2fcCol && r[log2fcCol] !== undefined && r[log2fcCol] !== '') {
+          const lfc = safeParseFloat(r[log2fcCol]);
+          if (isNaN(lfc) || Math.abs(lfc) < log2fcThresh) pass = false;
+          if (pass) {
+            const dir = degDirection.value;
+            if (dir === 'up' && lfc < 0) pass = false;
+            if (dir === 'down' && lfc > 0) pass = false;
+          }
+        }
+        if (pass && fdrCol && r[fdrCol] !== undefined && r[fdrCol] !== '') {
+          const padj = safeParseFloat(r[fdrCol]);
+          if (isNaN(padj) || padj > targetPadj) pass = false;
+        }
+        return pass;
+      });
+
+      // If strict filtering removes EVERYTHING, or we couldn't find ANY columns, fallback to taking all genes
+      const finalData = (filtered.length === 0 && data.length > 0) ? data : filtered;
+
+      const genes = [...new Set(
+        finalData
+          .map(r => (r[geneCol] || '').trim().toUpperCase())
+          .filter(g => g && g.length > 0 && !/^\d+$/.test(g) && g !== 'NA' && g !== 'NULL')
+      )];
+
+      let suffix = '';
+      if (log2fcCol || fdrCol) {
+        suffix = ` (${genes.length} passing filters)`;
+      } else {
+        suffix = ` (${genes.length} total)`;
+      }
+
+      setGenes(genes, state.uploadedFileName + suffix);
     }
 
     /* Textarea input */
@@ -1328,51 +1449,100 @@
       runBtn.disabled = true;
       runBtnText.textContent = 'Running...';
       resultsSection.classList.remove('visible');
-      showStatus('Submitting gene list to Enrichr...');
-
       try {
-        const listStr = state.genes.join('\n');
-        const formData = new FormData();
-        formData.append('list', listStr);
-        formData.append('description', 'PathwayLens analysis');
+        const library = librarySelect.value;
+        const pCutoffLog = parseFloat($('#pvalCutoff').value) || 1.30;
+        const pCutoff = Math.pow(10, -pCutoffLog);
+        let parsed = [];
 
-        const addRes = await fetch('https://maayanlab.cloud/Enrichr/addList', {
-          method: 'POST',
-          body: formData,
-        });
+        if (library === 'custom_gmt') {
+          if (!state.customGmt) throw new Error("Please upload a .gmt file first.");
+          state.lastLibrary = state.customGmt.name;
+          showStatus(`Running local analysis against <strong>${state.customGmt.name}</strong>...`);
 
-        if (!addRes.ok) throw new Error(`Enrichr addList failed: ${addRes.status}`);
-        const addData = await addRes.json();
-        state.enrichrId = addData.userListId;
+          await new Promise(r => setTimeout(r, 50)); // UI delay
 
-        const library = $('#librarySelect').value;
-        state.lastLibrary = library;
-        showStatus(`Fetching results from <strong>${library.replace(/_/g, ' ')}</strong>...`);
+          const bgSize = 20000;
+          const inputGenesHash = new Set(state.genes);
+          const n = state.genes.length;
 
-        const enrichRes = await fetch(
-          `https://maayanlab.cloud/Enrichr/enrich?userListId=${state.enrichrId}&backgroundType=${library}`
-        );
+          let rawResults = [];
+          for (const [term, termGenes] of Object.entries(state.customGmt.termGenes)) {
+            const K = termGenes.length;
+            let k = 0;
+            const overlap = [];
+            for (let i = 0; i < K; i++) {
+              if (inputGenesHash.has(termGenes[i])) {
+                k++;
+                overlap.push(termGenes[i]);
+              }
+            }
+            if (k > 0) {
+              const pval = calcHypergeometricP(k, K, n, bgSize);
+              rawResults.push({ term, pval, genes: overlap });
+            }
+          }
 
-        if (!enrichRes.ok) throw new Error(`Enrichr enrich failed: ${enrichRes.status}`);
-        const enrichData = await enrichRes.json();
+          rawResults.sort((a, b) => a.pval - b.pval);
+          const m = rawResults.length;
+          for (let i = 0; i < m; i++) {
+            rawResults[i].adjPval = Math.min(1.0, rawResults[i].pval * m / (i + 1));
+          }
+          for (let i = m - 2; i >= 0; i--) {
+            rawResults[i].adjPval = Math.min(rawResults[i].adjPval, rawResults[i + 1].adjPval);
+          }
 
-        const raw = enrichData[library] || [];
-        const pCutoff = parseFloat($('#pvalCutoff').value) || 0.05;
+          parsed = rawResults.map((r, i) => {
+            const expected = n * state.customGmt.termGenes[r.term].length / bgSize;
+            const ratio = expected > 0 ? r.genes.length / expected : 0;
+            const combinedScore = (r.pval < 1 && r.pval > 0) ? (-Math.log(r.pval) * ratio) : (r.pval === 0 ? 1000 : 0);
+            return {
+              rank: i + 1, term: r.term, pval: r.pval, zscore: 0, combinedScore,
+              genes: r.genes, adjPval: r.adjPval, geneCount: r.genes.length
+            };
+          }).filter(r => r.adjPval <= pCutoff)
+            .sort((a, b) => b.combinedScore - a.combinedScore);
 
-        /* Enrichr columns:
-           0: Rank, 1: Term, 2: P-value, 3: Z-score, 4: Combined score,
-           5: Overlapping genes, 6: Adjusted p-value, 7: Old p-val, 8: Old adj p-val */
-        const parsed = raw.map(r => ({
-          rank: r[0],
-          term: r[1],
-          pval: r[2],
-          zscore: r[3],
-          combinedScore: r[4],
-          genes: r[5],
-          adjPval: r[6],
-          geneCount: r[5].length,
-        })).filter(r => r.adjPval <= pCutoff)
-          .sort((a, b) => b.combinedScore - a.combinedScore);
+        } else {
+          showStatus('Submitting gene list to Enrichr...');
+          const listStr = state.genes.join('\n');
+          const formData = new FormData();
+          formData.append('list', listStr);
+          formData.append('description', 'PathwayLens analysis');
+
+          const addRes = await fetch('https://maayanlab.cloud/Enrichr/addList', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!addRes.ok) throw new Error(`Enrichr addList failed: ${addRes.status}`);
+          const addData = await addRes.json();
+          state.enrichrId = addData.userListId;
+
+          state.lastLibrary = library;
+          showStatus(`Fetching results from <strong>${library.replace(/_/g, ' ')}</strong>...`);
+
+          const enrichRes = await fetch(
+            `https://maayanlab.cloud/Enrichr/enrich?userListId=${state.enrichrId}&backgroundType=${library}`
+          );
+
+          if (!enrichRes.ok) throw new Error(`Enrichr enrich failed: ${enrichRes.status}`);
+          const enrichData = await enrichRes.json();
+
+          const raw = enrichData[library] || [];
+
+          parsed = raw.map(r => ({
+            rank: r[0],
+            term: r[1],
+            pval: r[2],
+            zscore: r[3],
+            combinedScore: r[4],
+            genes: r[5],
+            adjPval: r[6],
+            geneCount: r[5].length,
+          })).filter(r => r.adjPval <= pCutoff)
+            .sort((a, b) => b.combinedScore - a.combinedScore);
+        }
 
         state.results = parsed;
 
@@ -1392,13 +1562,103 @@
       }
     }
 
+    /* ═══════════════════ GMT Parsing & Math ═══════════════════ */
+    const logFactMemo = [0, 0];
+    function logFact(n) {
+      if (n < logFactMemo.length) return logFactMemo[n];
+      let ans = logFactMemo[logFactMemo.length - 1];
+      for (let i = logFactMemo.length; i <= n; i++) {
+        ans += Math.log(i);
+        logFactMemo.push(ans);
+      }
+      return logFactMemo[n];
+    }
+    function logChoose(n, k) {
+      if (k < 0 || k > n) return -Infinity;
+      return logFact(n) - logFact(k) - logFact(n - k);
+    }
+    function calcHypergeometricP(k, K, n, N) {
+      if (k === 0) return 1.0;
+      let p = 0;
+      const logDenom = logChoose(N, n);
+      for (let i = k; i <= Math.min(n, K); i++) {
+        const logProb = logChoose(K, i) + logChoose(N - K, n - i) - logDenom;
+        p += Math.exp(logProb);
+      }
+      return Math.min(p, 1.0);
+    }
+
+    gmtInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) {
+        state.customGmt = null;
+        gmtStatus.textContent = "No file loaded.";
+        return;
+      }
+      gmtStatus.textContent = "Loading...";
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const text = ev.target.result;
+        const lines = text.split(/\r?\n/);
+        const termGenes = {};
+        let termCount = 0;
+        lines.forEach(line => {
+          if (!line.trim()) return;
+          const parts = line.split('\t');
+          if (parts.length < 3) return;
+          const term = parts[0];
+          const genes = parts.slice(2).map(g => g.trim().toUpperCase()).filter(Boolean);
+          if (genes.length > 0) {
+            termGenes[term] = genes;
+            termCount++;
+          }
+        });
+        state.customGmt = { name: file.name, termGenes };
+        gmtStatus.innerHTML = `<span style="color:var(--accent-teal)">Loaded ${termCount} gene sets.</span>`;
+        if (state.genes.length > 0) runEnrichment();
+      };
+      reader.readAsText(file);
+    });
+
     /* ═══════════════════ Filter & Control Event Listeners ═══════════════════ */
-    $('#librarySelect').addEventListener('change', () => {
+    librarySelect.addEventListener('change', (e) => {
+      const isCustom = e.target.value === 'custom_gmt';
+      gmtUploadArea.style.display = isCustom ? 'block' : 'none';
+      if (state.genes.length > 0) {
+        if (!isCustom || state.customGmt) runEnrichment();
+      }
+    });
+
+    const pvalCutoff = $('#pvalCutoff');
+    const pathwayPvalVal = $('#pathwayPvalVal');
+
+    pvalCutoff.addEventListener('input', (e) => {
+      pathwayPvalVal.textContent = parseFloat(e.target.value).toFixed(2);
+    });
+    pvalCutoff.addEventListener('change', () => {
       if (state.genes.length > 0) runEnrichment();
     });
 
-    $('#pvalCutoff').addEventListener('change', () => {
-      if (state.genes.length > 0) runEnrichment();
+    log2fcSlider.addEventListener('input', (e) => {
+      log2fcVal.textContent = parseFloat(e.target.value).toFixed(1);
+    });
+    log2fcSlider.addEventListener('change', () => {
+      if (state.uploadedData) applyDegFilters();
+    });
+
+    fdrSlider.addEventListener('input', (e) => {
+      fdrVal.textContent = parseFloat(e.target.value).toFixed(1);
+    });
+    fdrSlider.addEventListener('change', () => {
+      if (state.uploadedData) applyDegFilters();
+    });
+
+    geneColName.addEventListener('change', () => {
+      if (state.uploadedData) applyDegFilters();
+    });
+
+    degDirection.addEventListener('change', () => {
+      if (state.uploadedData) applyDegFilters();
     });
 
     topTermsFilter.addEventListener('change', () => {
