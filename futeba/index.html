@@ -509,7 +509,6 @@
             padding: 12px 16px;
             gap: 14px;
             border-bottom: 1px solid rgba(62, 39, 35, .05);
-            cursor: pointer;
             transition: background .15s;
             -webkit-user-select: none;
             user-select: none
@@ -517,42 +516,6 @@
 
         .jogador:last-child {
             border-bottom: none
-        }
-
-        .jogador:active {
-            background: rgba(62, 39, 35, .03)
-        }
-
-        .jogador-avatar {
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            font-weight: 800;
-            flex-shrink: 0;
-            transition: all .3s cubic-bezier(.175, .885, .32, 1.275)
-        }
-
-        .jogador.pendente .jogador-avatar {
-            background: var(--cinza-fundo);
-            color: var(--texto-muted);
-            border: 2px dashed var(--cinza-barra)
-        }
-
-        .jogador.confirmado .jogador-avatar {
-            background: var(--grama);
-            color: #fff;
-            border: 2px solid var(--grama-escura);
-            box-shadow: 0 2px 8px rgba(76, 175, 80, .3)
-        }
-
-        .jogador.ausente .jogador-avatar {
-            background: #FFEBEE;
-            color: var(--vermelho);
-            border: 2px solid #FFCDD2
         }
 
         .jogador.ausente .jogador-nome {
@@ -584,6 +547,69 @@
         .jogador-pf strong {
             color: var(--marrom-claro);
             font-weight: 700
+        }
+
+        .status-btns {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0
+        }
+
+        .status-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .85rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all .2s cubic-bezier(.175, .885, .32, 1.275);
+            opacity: .35;
+            background: transparent
+        }
+
+        .status-btn:active {
+            transform: scale(.88)
+        }
+
+        .status-btn.sb-ausente {
+            color: var(--vermelho);
+            border-color: #FFCDD2
+        }
+
+        .status-btn.sb-ausente.ativo {
+            opacity: 1;
+            background: #FFEBEE;
+            border-color: var(--vermelho);
+            box-shadow: 0 2px 8px rgba(198, 40, 40, .25)
+        }
+
+        .status-btn.sb-pendente {
+            color: var(--texto-muted);
+            border-color: var(--cinza-barra)
+        }
+
+        .status-btn.sb-pendente.ativo {
+            opacity: 1;
+            background: var(--cinza-fundo);
+            border-color: var(--texto-muted);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .08)
+        }
+
+        .status-btn.sb-confirmado {
+            color: var(--grama-escura);
+            border-color: #A5D6A7
+        }
+
+        .status-btn.sb-confirmado.ativo {
+            opacity: 1;
+            background: var(--grama);
+            color: #fff;
+            border-color: var(--grama-escura);
+            box-shadow: 0 2px 8px rgba(76, 175, 80, .3)
         }
 
         .btn-remover {
@@ -755,51 +781,6 @@
             font-weight: 800;
             color: var(--grama-escura)
         }
-
-        /* Loading Spinner */
-        #loading-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(255, 255, 255, 0.8);
-            z-index: 9999;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            backdrop-filter: blur(2px);
-        }
-
-        #loading-overlay.active {
-            display: flex;
-        }
-
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid var(--cinza-barra);
-            border-top: 4px solid var(--grama-escura);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 12px;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        .loading-text {
-            font-weight: 700;
-            color: var(--marrom-escuro);
-            font-size: 0.9rem;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
     </style>
 </head>
 
@@ -823,7 +804,7 @@
                     <div class="data-ano" id="display-ano">----</div>
                 </div>
             </div>
-            <div class="hero-detail">QUINTA-FEIRA · 21H30</div>
+            <div class="data-quinta">Quinta-feira · 22h</div>
         </div>
 
         <div class="hero-peladeiros an3">
@@ -905,14 +886,14 @@
         </div>
     </div>
 
-    <!-- Tela de carregamento enquanto salva no Google Sheets -->
-    <div id="loading-overlay">
-        <div class="spinner"></div>
-        <div class="loading-text">Salvando...</div>
-    </div>
-
     <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxDmiSgh01xl2bbNlLVWibKOI_9ndIOb0lmfWcSpiJHM3jtquO20IhDCleIsV39oseT/exec';
+        const MOCK = [
+            { nome: "Chau", pf: 45 }, { nome: "Cidão (Rafael)", pf: 92 }, { nome: "Daniel Cabelo", pf: 88 },
+            { nome: "Douglas", pf: 70 }, { nome: "Eduardo", pf: 30 }, { nome: "Fabrício", pf: 99 },
+            { nome: "Igor", pf: 55 }, { nome: "Jackie", pf: 12 }, { nome: "Luiz Penna", pf: 100 },
+            { nome: "Murilo", pf: 80 }, { nome: "Pedro", pf: 25 }, { nome: "Thiago", pf: 64 },
+            { nome: "Vini", pf: 38 }, { nome: "Wellington", pf: 77 }
+        ];
 
         const HIST = [
             { data: '06/02/2026', c: 16, a: 2 }, { data: '30/01/2026', c: 14, a: 1 },
@@ -922,71 +903,13 @@
         const CAP = 18;
         const E = {
             dj: null,
-            m: [], // A ser preenchido pela planilha
+            m: MOCK.map(x => ({ ...x, status: 'pendente' })),
             a: []
         };
+        [0, 1, 2, 5, 7, 8, 9, 11].forEach(i => E.m[i].status = 'confirmado');
+        [3].forEach(i => E.m[i].status = 'ausente');
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            calcData();
-            await loadData();
-            render();
-            clima();
-        });
-
-        async function loadData() {
-            try {
-                const res = await fetch(SCRIPT_URL);
-                const json = await res.json();
-                if (json.status === 'success') {
-                    // String da próxima quinta formatada igual ao cabeçalho (ex: "26/02")
-                    const dj = E.dj;
-                    const ds = String(dj.getDate()).padStart(2, '0') + '/' + String(dj.getMonth() + 1).padStart(2, '0');
-
-                    E.m = [];
-                    E.a = [];
-
-                    json.data.forEach(row => {
-                        const nomeBruto = row.Nome || row.nome || '';
-                        if (!nomeBruto) return;
-
-                        // Verifica se é avulso pela tag ou asterisco
-                        const isAvulso = nomeBruto.toLowerCase().includes('avulso') || nomeBruto.startsWith('*');
-                        const nomeLimpo = nomeBruto.replace(/\(avulso\)/i, '').replace('*', '').trim();
-
-                        let statusDesc = 'pendente';
-                        let rawVal = row[ds]; // Obtém a célula do jogo correspondente
-
-                        if (rawVal) {
-                            // Exemplo: "1 (26/02 10:00) | 0 (26/02 11:00)"
-                            let parts = rawVal.toString().split('|');
-                            let lastPart = parts[parts.length - 1].trim(); // Pega a última ação registrada
-
-                            if (lastPart.startsWith('1')) statusDesc = 'confirmado';
-                            else if (lastPart.startsWith('0')) statusDesc = 'ausente';
-                        }
-
-                        if (isAvulso) {
-                            // Só lista avulsos que confirmaram PRESENÇA alguma hora do dia
-                            if (statusDesc === 'confirmado') {
-                                E.a.push({ nome: nomeLimpo, por: '' });
-                            }
-                        } else {
-                            // Mensalista
-                            E.m.push({
-                                nome: nomeLimpo,
-                                pf: row['Ponta Firmeza'] || '',
-                                status: statusDesc
-                            });
-                        }
-                    });
-
-                } else {
-                    console.error("Erro na planilha:", json.message);
-                }
-            } catch (e) {
-                console.error("Erro ao carregar dados:", e);
-            }
-        }
+        document.addEventListener('DOMContentLoaded', () => { calcData(); render(); clima() });
 
         function calcData() {
             const h = new Date(), dow = h.getDay();
@@ -1006,7 +929,7 @@
             const url = `https://api.open-meteo.com/v1/forecast?latitude=-23.57&longitude=-46.71&hourly=temperature_2m,precipitation_probability,weathercode&timezone=America/Sao_Paulo&start_date=${ds}&end_date=${ds}`;
             try {
                 const r = await fetch(url); if (!r.ok) throw new Error(r.status);
-                const j = await r.json(), i = 21; // 21:00 representa o período das 21h30
+                const j = await r.json(), i = 22;
                 const t = Math.round(j.hourly.temperature_2m[i]), ch = j.hourly.precipitation_probability[i], wc = j.hourly.weathercode[i];
                 const ic = wc <= 1 ? '🌙' : wc <= 3 ? '☁️' : (wc >= 51 && wc <= 67) ? '🌧️' : (wc >= 80 && wc <= 82) ? '🌦️' : wc >= 95 ? '⛈️' : ch > 50 ? '🌧️' : '🌙';
                 const dd = String(d.getDate()).padStart(2, '0'), mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -1015,7 +938,7 @@
                 <div class="clima-icone">${ic}</div>
                 <div class="clima-texto">
                     <div class="clima-temp">${t}°C</div>
-                    <div class="clima-detalhe">Quinta ${dd}/${mm} às 21h30 · Chuva: ${ch}%</div>
+                    <div class="clima-detalhe">Quinta ${dd}/${mm} às 22h · Chuva: ${ch}%</div>
                 </div>
             </div>`;
             } catch (e) {
@@ -1027,7 +950,7 @@
             }
         }
 
-        function render() { renderList(); renderCampo(); renderAvu(); }
+        function render() { renderList(); renderCampo(); renderAvu() }
 
         function renderList() {
             const ul = document.getElementById('lista-men'); ul.innerHTML = '';
@@ -1035,9 +958,13 @@
             const s = [...E.m].sort((a, b) => ord[a.status] - ord[b.status]);
             s.forEach(m => {
                 const oi = E.m.indexOf(m), li = document.createElement('li');
-                li.className = `jogador ${m.status}`; li.onclick = () => toggle(oi);
-                const av = m.status === 'confirmado' ? '✓' : m.status === 'ausente' ? '✕' : '?';
-                li.innerHTML = `<div class="jogador-avatar">${av}</div><div class="jogador-info"><div class="jogador-nome">${m.nome}</div><div class="jogador-pf">Ponta firmeza: <strong>${m.pf} jogos</strong></div></div>`;
+                li.className = `jogador ${m.status}`;
+                li.innerHTML = `<div class="status-btns">`
+                    + `<button class="status-btn sb-ausente${m.status === 'ausente' ? ' ativo' : ''}" onclick="event.stopPropagation();setStatus(${oi},'ausente')" title="Ausência confirmada">✕</button>`
+                    + `<button class="status-btn sb-pendente${m.status === 'pendente' ? ' ativo' : ''}" onclick="event.stopPropagation();setStatus(${oi},'pendente')" title="Não confirmado">?</button>`
+                    + `<button class="status-btn sb-confirmado${m.status === 'confirmado' ? ' ativo' : ''}" onclick="event.stopPropagation();setStatus(${oi},'confirmado')" title="Presença confirmada">✓</button>`
+                    + `</div>`
+                    + `<div class="jogador-info"><div class="jogador-nome">${m.nome}</div><div class="jogador-pf">Ponta firmeza: <strong>${m.pf} jogos</strong></div></div>`;
                 ul.appendChild(li);
             });
             document.getElementById('count-men').textContent = E.m.length;
@@ -1055,93 +982,23 @@
             else tag.style.display = 'none';
         }
 
-        // Esta função havia sumido causando o bug do tempo e renderização
         function renderAvu() {
             const sec = document.getElementById('secao-avu'), ul = document.getElementById('lista-avu');
             ul.innerHTML = '';
-            if (!E.a.length) { sec.style.display = 'none'; return; }
-            sec.style.display = 'block';
-            document.getElementById('count-avu').textContent = E.a.length;
-
+            if (!E.a.length) { sec.style.display = 'none'; return }
+            sec.style.display = 'block'; document.getElementById('count-avu').textContent = E.a.length;
             E.a.forEach((a, i) => {
-                const li = document.createElement('li');
-                li.className = 'jogador confirmado';
-                li.innerHTML = `<div class="jogador-avatar" style="background:var(--amarelo);color:var(--marrom-escuro);border-color:#E65100">👤</div><div class="jogador-info"><div class="jogador-nome">${a.nome} <span style="font-weight:400;color:var(--texto-muted);font-size:.8rem">(convidado)</span></div></div><button class="btn-remover" onclick="event.stopPropagation();rmAvu(${i})">✕</button>`;
+                const li = document.createElement('li'); li.className = 'jogador confirmado';
+                const porLabel = a.por ? ` <span style="font-weight:400;color:var(--texto-muted);font-size:.8rem">(conv. de ${a.por})</span>` : ' <span style="font-weight:400;color:var(--texto-muted);font-size:.8rem">(convidado)</span>';
+                li.innerHTML = `<div class="jogador-avatar" style="background:var(--amarelo);color:var(--marrom-escuro);border-color:#E65100">👤</div><div class="jogador-info"><div class="jogador-nome">${a.nome}${porLabel}</div><div class="jogador-pf">Convidado avulso</div></div><button class="btn-remover" onclick="event.stopPropagation();rmAvu(${i})">✕</button>`;
                 ul.appendChild(li);
             });
         }
 
-        function showLoading(show) {
-            document.getElementById('loading-overlay').classList.toggle('active', show);
-        }
-
-        async function sendPostUpdate(action, nome, status) {
-            const dj = E.dj;
-            const ds = String(dj.getDate()).padStart(2, '0') + '/' + String(dj.getMonth() + 1).padStart(2, '0');
-
-            try {
-                showLoading(true);
-                const res = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    // Envia text/plain para evitar o Preflight Options Error no Apps Script
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: action, nome: nome, status: status, dateColumn: ds })
-                });
-                const result = await res.json();
-                showLoading(false);
-                if (result.status !== 'success') {
-                    throw new Error(result.message);
-                }
-                return true;
-            } catch (error) {
-                showLoading(false);
-                alert("Erro ao salvar no Google Sheets: " + error.message);
-                return false;
-            }
-        }
-
-        async function toggle(i) {
-            const curStatus = E.m[i].status;
-            const nome = E.m[i].nome;
-            const newStatus = curStatus === 'pendente' ? 'confirmado' : (curStatus === 'confirmado' ? 'ausente' : 'pendente');
-
-            // Traduz a interface visual pendente/confirmado/ausente para 1 (vai) e 0 (não vai) ou vazio na planilha
-            // Se "pendente", vai limpar (null/vazio), senão 1 ou 0
-            const sheetStatus = newStatus === 'confirmado' ? 1 : (newStatus === 'ausente' ? 0 : '');
-
-            // Envia para o Backend
-            const success = await sendPostUpdate('update_status', nome, sheetStatus);
-            if (success) {
-                E.m[i].status = newStatus;
-                render();
-            }
-        }
-
-        async function addAvulso() {
-            const n = prompt('Nome do convidado:');
-            if (n && n.trim()) {
-                const p = prompt('Quem está trazendo? (opcional)') || '';
-                // Envia para o Backend
-                const success = await sendPostUpdate('add_avulso', n.trim(), 1);
-                if (success) {
-                    E.a.push({ nome: n.trim(), por: p.trim() });
-                    render();
-                }
-            }
-        }
-
-        async function rmAvu(i) {
-            if (confirm('Remover convidado?')) {
-                const nomeAvulso = E.a[i].nome;
-                const success = await sendPostUpdate('remove_avulso', nomeAvulso, 0);
-                if (success) {
-                    E.a.splice(i, 1);
-                    render();
-                }
-            }
-        }
-
-        document.getElementById('btnForm').addEventListener('click', () => alert('Basta tocar no seu nome na lista abaixo para alternar o seu status!\nO aplicativo salva automaticamente.'));
+        function setStatus(i, s) { E.m[i].status = s; render() }
+        function addAvulso() { const n = prompt('Nome do convidado:'); if (n && n.trim()) { const p = prompt('Quem está trazendo? (opcional)') || ''; E.a.push({ nome: n.trim(), por: p.trim() }); render() } }
+        function rmAvu(i) { if (confirm('Remover convidado?')) { E.a.splice(i, 1); render() } }
+        document.getElementById('btnForm').addEventListener('click', () => alert('Aqui abrirá o Google Forms semanal.\n\nPor enquanto, toque no nome de cada jogador para alternar o status.'));
 
         function abrirHist() {
             document.getElementById('hist-lista').innerHTML = HIST.map(h => `<div class="historico-item"><div class="hi-data">📅 ${h.data}</div><div class="hi-count">${h.c + h.a} peladeiros</div></div>`).join('');
