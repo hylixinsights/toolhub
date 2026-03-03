@@ -1109,7 +1109,8 @@
             E.a.forEach((a, i) => {
                 const li = document.createElement('li');
                 li.className = 'jogador confirmado';
-                li.innerHTML = `<div class="jogador-avatar" style="background:var(--amarelo);color:var(--marrom-escuro);border-color:#E65100">👤</div><div class="jogador-info"><div class="jogador-nome">${a.nome} <span style="font-weight:400;color:var(--texto-muted);font-size:.8rem">(convidado)</span></div></div><button class="btn-remover" onclick="event.stopPropagation();rmAvu(${i})">✕</button>`;
+                const porTag = a.por ? ` <span style="font-weight:400;color:var(--texto-muted);font-size:.8rem">(por ${a.por})</span>` : '';
+                li.innerHTML = `<div class="jogador-avatar" style="background:var(--amarelo);color:var(--marrom-escuro);border-color:#E65100">👤</div><div class="jogador-info"><div class="jogador-nome">${a.nome}${porTag} <span style="font-weight:400;color:var(--texto-muted);font-size:.8rem">(convidado)</span></div></div><button class="btn-remover" onclick="event.stopPropagation();rmAvu(${i})">✕</button>`;
                 ul.appendChild(li);
             });
         }
