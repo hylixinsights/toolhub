@@ -1005,6 +1005,10 @@
         gap: 12px;
         padding: 10px var(--side-margin);
       }
+
+      .metric-sep {
+        display: none;
+      }
     }
   </style>
 </head>
@@ -2068,7 +2072,7 @@
         if (Math.abs(my - screenExpY) < 8 && mx > plotMargin.left && mx < plotMargin.left + plotInnerW) {
           const pr = S.pearson;
           tip.innerHTML = `
-        < div class="tooltip-gene" > Regression</div >
+        <div class="tooltip-gene">Regression</div>
         <div class="tooltip-row"><span class="tooltip-key">Pearson r</span><span class="tooltip-val">${pr.r.toFixed(4)}</span></div>
         <div class="tooltip-row"><span class="tooltip-key">Slope</span><span class="tooltip-val">${pr.slope.toFixed(4)}</span></div>
         <div class="tooltip-row"><span class="tooltip-key">Intercept</span><span class="tooltip-val">${pr.intercept.toFixed(4)}</span></div>
@@ -2092,7 +2096,7 @@
         if (r.dedup_x) flags.push('Deduplicated in X');
         if (r.dedup_y) flags.push('Deduplicated in Y');
         tip.innerHTML = `
-        < div class="tooltip-gene" > ${r.gene}</div >
+        <div class="tooltip-gene">${r.gene}</div>
       <div class="tooltip-row"><span class="tooltip-key">log₂FC X</span><span class="tooltip-val">${r.log2fc_x.toFixed(3)}</span></div>
       <div class="tooltip-row"><span class="tooltip-key">padj X</span><span class="tooltip-val">${r.padj_x.toExponential(2)}</span></div>
       <div class="tooltip-row"><span class="tooltip-key">Score X</span><span class="tooltip-val">${r.score_x.toFixed(2)}</span></div>
