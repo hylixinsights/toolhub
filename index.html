@@ -491,6 +491,18 @@
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
+      margin-bottom: 0;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+        opacity 0.3s ease,
+        margin-bottom 0.4s ease;
+    }
+
+    .tool-card:hover .keywords-container {
+      max-height: 120px;
+      opacity: 1;
       margin-bottom: 24px;
     }
 
@@ -1054,6 +1066,43 @@
             </svg>
           </a>
           <button class="like-btn" data-id="female-authorship">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            <span class="like-count">0</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card: OmicLine -->
+    <div class="tool-card" data-id="omicline" data-category="Omics"
+      data-keywords="differential-expression,concordance,scatter-plot,regression,omics,client-side"
+      data-created="2026-03-04">
+      <div class="card-img-wrapper">
+        <span class="category-badge badge-omics">Omics</span>
+        <img src="assets/omicline.png" class="card-img" alt="OmicLine Preview">
+      </div>
+      <div class="card-content">
+        <h3 class="tool-title">OmicLine</h3>
+        <p class="tool-desc">
+          Visually compare two differential expression signatures side by side. OmicLine generates an interactive
+          scatter plot with regression line to reveal concordance and discordance across omics experiments — entirely
+          client-side, with full data privacy.
+        </p>
+        <div class="keywords-container">
+          <!-- Populated by JS -->
+        </div>
+        <div class="card-footer">
+          <a href="https://toolhub.hylix.app/omicline/" class="tool-link">
+            Launch Tool
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </a>
+          <button class="like-btn" data-id="omicline">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path
                 d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
