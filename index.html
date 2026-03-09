@@ -462,6 +462,12 @@
       color: #f472b6;
     }
 
+    .badge-epidemiology {
+      background: rgba(255, 255, 255, 0.65);
+      color: #004d40;
+      border-color: rgba(0, 77, 64, 0.2);
+    }
+
     .card-content {
       padding: 32px;
       flex-grow: 1;
@@ -1039,6 +1045,42 @@
 
   <!-- Cards Grid -->
   <div class="grid-container" id="cardsGrid">
+
+    <!-- Card: Outbreak -->
+    <div class="tool-card" data-id="outbreak" data-category="Epidemiology"
+      data-keywords="spatiotemporal data,map animation,geospatial visualization,outbreak dynamics,epidemics,GIS,data exploration,spatial analysis"
+      data-created="2026-03-09">
+      <div class="card-img-wrapper">
+        <span class="category-badge badge-epidemiology">Epidemiology</span>
+        <img src="assets/outbreak-cover.png" class="card-img" alt="Outbreak">
+      </div>
+      <div class="card-content">
+        <h3 class="tool-title">Outbreak</h3>
+        <p class="tool-desc">
+          Interactive visualization of spatiotemporal events on a world map. Upload latitude, longitude and date to
+          animate how events spread or evolve over time.
+        </p>
+        <div class="keywords-container">
+          <!-- Populated by JS -->
+        </div>
+        <div class="card-footer">
+          <a href="https://outbreak.sysbio.tools/" class="tool-link">
+            Launch Tool
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+            </svg>
+          </a>
+          <button class="like-btn" data-id="outbreak">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            <span class="like-count">0</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Card: Female Authorship Tracker -->
     <div class="tool-card" data-id="female-authorship" data-category="Bibliometrics"
