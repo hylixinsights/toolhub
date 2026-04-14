@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="World Chagas Disease Day 2026 – Interactive dashboard showcasing Brazilian PhD researchers who publish on Chagas Disease, extracted from CV Lattes platform.">
+  <title>World Chagas Disease Day 2026 – Researcher Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <!-- Force-Graph for WebGL-accelerated network rendering (handles 65k edges) -->
+  <script src="https://unpkg.com/force-graph@1.47.4/dist/force-graph.min.js"></script>
+</head>
+<body>
+
+  <!-- Loading -->
+  <div class="loading-overlay" id="loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Loading Chagas Disease Dashboard…</div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a href="#" class="nav-brand" id="nav-brand">
+        <div class="nav-brand-icon" style="background: transparent; box-shadow: none;">
+          <img src="img/Tcruzi_simple-logo.png" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;">
+        </div>
+        <div>
+          <div class="nav-brand-text">World Chagas Disease Day</div>
+          <div class="nav-brand-sub">April 14 – World Day</div>
+        </div>
+      </a>
+      <div class="nav-tabs" role="tablist">
+        <button class="nav-tab active" data-tab="dashboard" role="tab" id="tab-dashboard">📊 Dashboard</button>
+        <button class="nav-tab" data-tab="network" role="tab" id="tab-network">🕸️ Co-authorship</button>
+        <button class="nav-tab" data-tab="downloads" role="tab" id="tab-downloads">📥 Downloads</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main>
+
+    <!-- ============ TAB 1: DASHBOARD ============ -->
+    <section class="tab-content active" id="content-dashboard" role="tabpanel">
+
+      <!-- Hero -->
+      <div class="hero">
+        <div class="hero-text">
+          <div class="hero-date">🗓️ April 14, 2026 — World Chagas Disease Day</div>
+          <h1>Mapping Brazilian PhD Researchers in Chagas Disease</h1>
+          <p>
+            An interactive exploration of the scientific production by PhD researchers in Brazil 
+            who have published articles on <strong>Chagas Disease</strong> (<em>Trypanosoma cruzi</em>).
+            Data extracted from the <strong>CV Lattes</strong> platform — the largest academic 
+            curriculum database in Latin America.
+          </p>
+        </div>
+        <div class="hero-image">
+          <img src="img/chagas_hero.png" alt="Trypanosoma cruzi – the parasite causing Chagas Disease" id="hero-img">
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon purple">👨‍🔬</div>
+          <div class="stat-info">
+            <div class="stat-label">PhD Researchers</div>
+            <div class="stat-value" id="stat-researchers" data-count="0">--</div>
+            <div class="stat-sub">Doctors who published on Chagas</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon pink">📄</div>
+          <div class="stat-info">
+            <div class="stat-label">Scientific Articles</div>
+            <div class="stat-value" id="stat-articles" data-count="0">--</div>
+            <div class="stat-sub">Unique publications on Chagas</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue">🔗</div>
+          <div class="stat-info">
+            <div class="stat-label">Co-authorship Links</div>
+            <div class="stat-value" id="stat-links" data-count="0">--</div>
+            <div class="stat-sub">Collaboration connections</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">📅</div>
+          <div class="stat-info">
+            <div class="stat-label">Data Source</div>
+            <div class="stat-value" style="font-size:1.3rem;">CV Lattes</div>
+            <div class="stat-sub">Brazilian National Research Database</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Publications Bar Chart -->
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="section-title-icon">📊</span>
+          Top Researchers by Publications
+        </h2>
+        <div class="search-container">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" id="search-researcher" placeholder="Search researcher by name…" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-wrapper" id="chart-wrapper">
+          <svg id="bar-chart"></svg>
+        </div>
+        <div class="chart-tooltip" id="bar-tooltip"></div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+
+    </section>
+
+    <!-- ============ TAB 2: NETWORK ============ -->
+    <section class="tab-content" id="content-network" role="tabpanel">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="section-title-icon">🕸️</span>
+          Co-authorship Network
+        </h2>
+      </div>
+      <div class="network-container" id="network-container">
+        <div class="network-filter" id="network-filter-panel">
+          <label>Min. Publications</label>
+          <input type="range" id="network-min-pubs" min="1" max="50" value="5">
+          <span class="filter-value" id="network-filter-value">≥ 5 publications</span>
+        </div>
+        <div class="network-search">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="network-search-input" placeholder="Find researcher in network…" autocomplete="off" list="network-datalist">
+          <datalist id="network-datalist"></datalist>
+        </div>
+        <div id="network-graph" class="network-canvas"></div>
+        <div class="network-legend">
+          <div class="network-legend-item">
+            <div class="network-legend-dot" style="background:#009c3b;"></div>
+            <span>Researcher (node size = publications)</span>
+          </div>
+          <div class="network-legend-item">
+            <div class="network-legend-dot" style="background:rgba(0,156,59,0.3); width:20px; border-radius:2px; height:2px;"></div>
+            <span>Co-authorship link</span>
+          </div>
+        </div>
+        <div class="network-tooltip" id="network-tooltip"></div>
+      </div>
+    </section>
+
+    <!-- ============ TAB 3: DOWNLOADS ============ -->
+    <section class="tab-content" id="content-downloads" role="tabpanel">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="section-title-icon">📥</span>
+          Download Data
+        </h2>
+      </div>
+      <p style="color:var(--text-secondary); margin-bottom: 1rem; font-size: 0.95rem;">
+        Download the complete datasets used in this dashboard. Data extracted from CV Lattes.
+      </p>
+      <div class="download-grid">
+        <a class="download-card" href="data/artigos_unique.xlsx" download id="download-articles">
+          <div class="download-icon">📄</div>
+          <div class="download-info">
+            <div class="download-title">artigos_unique.xlsx</div>
+            <div class="download-desc">All unique Chagas Disease articles with title, year, DOI, journal, and author count.</div>
+          </div>
+          <span class="download-arrow">→</span>
+        </a>
+        <a class="download-card" href="data/Chagas_researchers.xlsx" download id="download-researchers">
+          <div class="download-icon">👨‍🔬</div>
+          <div class="download-info">
+            <div class="download-title">Chagas_researchers.xlsx</div>
+            <div class="download-desc">Complete list of PhD researchers, publication counts, and year ranges.</div>
+          </div>
+          <span class="download-arrow">→</span>
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-line">
+        <strong>Source:</strong> <a href="https://lattes.cnpq.br/" target="_blank">CV Lattes</a> / Jesus Mena-Chalco
+      </div>
+      <div class="footer-line">
+        <strong>Analysis:</strong> By <a href="https://csbiology.org" target="_blank">Helder Nakaya</a>
+      </div>
+      <div class="footer-line">
+        <strong>Support:</strong> <a href="https://sbi.org.br/" target="_blank">Sociedade Brasileira de Imunologia</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
