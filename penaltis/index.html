@@ -298,6 +298,7 @@ async function readMatch(id) {
 }
 async function writeMatch(m) {
   m.seq = (m.seq || 0) + 1;
+  m.ts = Date.now();
   await db.ref("matches/" + m.id).set(JSON.parse(JSON.stringify(m)));
   return m;
 }
@@ -647,6 +648,8 @@ function PenaltisDoBrasil() {
   const [powerFx, setPowerFx] = useState(null);
   const [totalMatches, setTotalMatches] = useState(0);
   const [qrFail, setQrFail] = useState(false);
+  const [kickClock, setKickClock] = useState(null);
+  const kickDeadlineRef = useRef(null);
 
   const matchRef = useRef(null);
   const subRef = useRef("idle");
@@ -1199,7 +1202,7 @@ function PenaltisDoBrasil() {
   async function createOnline(team) {
     if (!DB_READY) { setErr("Modo online indisponível neste ambiente."); return; }
     setBusy(true); setErr("");
-    await ensureAuth();
+    const uid = await ensureAuth();
     trackPresence();
     if (await serverBusy()) {
       setErr("🥵 Servidor lotado agora! Muita gente jogando — espere uns minutinhos e tente de novo.");
@@ -1212,7 +1215,11 @@ function PenaltisDoBrasil() {
     }
     if (custom) {
       const old = await readMatch(custom);
-      if (old && old.joined && old.joined.B && !old.winner) {
+      /* bloqueia só se: partida rolando, de OUTRA pessoa, com atividade nos últimos 10 min */
+      const active = old && old.joined && old.joined.B && !old.winner;
+      const isMine = old && old.owner && uid && old.owner === uid;
+      const fresh = old && old.ts && (Date.now() - old.ts < 10 * 60 * 1000);
+      if (active && !isMine && fresh) {
         setErr("⚔️ Já existe uma partida em andamento com esse código. Espere ela acabar ou escolha outro.");
         setBusy(false); return;
       }
@@ -1220,7 +1227,7 @@ function PenaltisDoBrasil() {
     A(); S.crowdStart();
     try {
       const m = {
-        id: custom || genCode(), mode: "online",
+        id: custom || genCode(), mode: "online", owner: uid || null,
         teams: { A: team, B: other(team) },
         players: { A: (myName.trim() || "jogador_1").slice(0, 14), B: null },
         joined: { A: true, B: false },
@@ -1270,6 +1277,29 @@ function PenaltisDoBrasil() {
     setBusy(false);
   }
 
+  /* abandonar a partida online: o rival vence por W.O.; se ninguém entrou ainda, apaga a sala */
+  async function abandonMatch() {
+    const cur = matchRef.current;
+    if (mode !== "online" || !cur || cur.winner) { backToMenu(); return; }
+    if (!cur.joined.B) {
+      /* ninguém entrou: só fecha a sala */
+      try { await db.ref("matches/" + cur.id).remove(); } catch (e) { }
+      backToMenu(); return;
+    }
+    if (!window.confirm("Abandonar a partida? O rival vence por W.O.")) return;
+    try {
+      const fresh = (await readMatch(cur.id)) || cur;
+      if (!fresh.winner) {
+        fresh.winner = role === "A" ? "B" : "A";
+        fresh.abandoned = role;
+        await writeMatch(fresh);
+        recordHistory(fresh);
+        bumpMatchCount();
+      }
+    } catch (e) { }
+    backToMenu();
+  }
+
   /* reabre a sala com o MESMO código para esperar um novo desafiante */
   async function reopenRoom() {
     if (!DB_READY || !matchRef.current) return;
@@ -1277,7 +1307,7 @@ function PenaltisDoBrasil() {
     try {
       const cur = matchRef.current;
       const m = {
-        id: cur.id, mode: "online",
+        id: cur.id, mode: "online", owner: cur.owner || null,
         teams: cur.teams,
         players: { A: (myName.trim() || "jogador_1").slice(0, 14), B: null },
         joined: { A: true, B: false },
@@ -1340,6 +1370,11 @@ function PenaltisDoBrasil() {
         const prev = matchRef.current;
         matchRef.current = m; setMatch(m);
         if (prev && !prev.joined.B && m.joined.B) startTurn(m);
+        else if (m.winner && (!prev || !prev.winner)) {
+          /* rival abandonou: vitória por W.O. */
+          if (m.abandoned && m.abandoned !== role) doFlash("🏳️ O rival abandonou!", 1400);
+          startTurn(m);
+        }
       }
     }, 1200);
     return () => clearInterval(t);
@@ -1390,6 +1425,47 @@ function PenaltisDoBrasil() {
       submitShotOnline(shot);
     }
   }
+
+  /* ---------------- TIMER DA COBRANÇA (5s ou chuta pra fora) ---------------- */
+  function forceOutShot() {
+    const s = subRef.current;
+    if (s !== "aim" && s !== "power") return;
+    doFlash("⏱️ Demorou demais! Mandou pra fora!", 1300);
+    const raw = { x: Math.random() < 0.5 ? G.L - 130 : G.R + 130, y: G.T - 60 };
+    const ft = finishTarget(raw, "out");
+    const shot = { target: ft.target, post: false, bar: false, quality: "out", offset: 1, difficulty: 1 };
+    setAim(null); setPowerFx(null);
+    if (mode === "local") {
+      pendingShotRef.current = shot;
+      setSub("pass_dive");
+      return;
+    }
+    if (mode === "bot") {
+      const plan = botKeeperPlan(matchRef.current.level, shot, flightOf(shot.quality));
+      startKickSequence(shot, plan, (res, dive, tapTime, flight) => {
+        const nm = advance(matchRef.current, shot, dive, tapTime, flight, res);
+        matchRef.current = nm; setMatch(nm); startTurn(nm);
+      });
+    } else {
+      setSub("wait_dive");
+      submitShotOnline(shot);
+    }
+  }
+  useEffect(() => {
+    if (sub === "aim" || sub === "power") {
+      if (!kickDeadlineRef.current) kickDeadlineRef.current = Date.now() + 5000;
+      setKickClock(Math.max(0, Math.ceil((kickDeadlineRef.current - Date.now()) / 1000)));
+      const iv = setInterval(() => {
+        if (!kickDeadlineRef.current) return;
+        const left = kickDeadlineRef.current - Date.now();
+        setKickClock(Math.max(0, Math.ceil(left / 1000)));
+        if (left <= 0) { kickDeadlineRef.current = null; forceOutShot(); }
+      }, 150);
+      return () => clearInterval(iv);
+    }
+    kickDeadlineRef.current = null;
+    setKickClock(null);
+  }, [sub]);
 
   /* ---------------- ENTRADA ---------------- */
   const toSvg = (e) => {
@@ -1917,6 +1993,14 @@ function PenaltisDoBrasil() {
             border: "1px solid rgba(255,255,255,.2)", borderRadius: 10, color: "#fff",
             width: 33, height: 33, cursor: "pointer", fontSize: 14,
           }}>{muted ? "🔇" : "🔊"}</button>
+        {mode === "online" && !m.winner && (
+          <button onClick={abandonMatch} className="pk-btn" title="Abandonar partida"
+            style={{
+              position: "absolute", top: -2, left: -2, background: "rgba(239,68,68,.18)",
+              border: "1px solid rgba(239,68,68,.45)", borderRadius: 10, color: "#fff",
+              width: 33, height: 33, cursor: "pointer", fontSize: 14,
+            }}>🏳️</button>
+        )}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingRight: 34 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <div style={{ width: 13, height: 13, borderRadius: 4, background: TEAMS[m.teams.A].jersey, border: "1.5px solid " + TEAMS[m.teams.A].trim }} />
@@ -2152,6 +2236,14 @@ function PenaltisDoBrasil() {
         )}
 
         {/* fim de jogo */}
+        {(sub === "aim" || sub === "power") && kickClock != null && (
+          <div className="pk-display" style={{
+            position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)",
+            background: kickClock <= 2 ? "rgba(239,68,68,.9)" : "rgba(8,16,30,.72)",
+            border: "1px solid rgba(255,255,255,.25)", borderRadius: 12, padding: "3px 14px",
+            fontSize: 19, color: "#fff", zIndex: 5, pointerEvents: "none",
+          }}>⏱️ {kickClock}</div>
+        )}
         {sub === "over" && (
           <div className="pk-pop" style={{
             position: "absolute", inset: 0, display: "flex", flexDirection: "column",

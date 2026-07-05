@@ -1,4 +1,4 @@
-const C = "penaltis-v2";
+const C = "penaltis-v3";
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(C).then((c) => c.addAll(["./"])).then(() => self.skipWaiting()));
 });
