@@ -323,7 +323,7 @@ async function readHistory() {
 /* contador global de partidas (incremento atomico no servidor) */
 async function bumpMatchCount() {
   if (!db) return;
-  try { await db.ref("stats/total").set(firebase.database.ServerValue.increment(1)); } catch (e) { }
+  try { await db.ref("stats/total").set(firebase.database.ServerValue.increment(1)); } catch (e) { console.warn("stats/total:", e); }
 }
 async function readMatchCount() {
   if (!db) return 0;
@@ -633,6 +633,7 @@ function PenaltisDoBrasil() {
   const [overLine, setOverLine] = useState("");
   const [flash, setFlash] = useState(null);
   const [joinCode, setJoinCode] = useState("");
+  const [hostCode, setHostCode] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -1204,10 +1205,22 @@ function PenaltisDoBrasil() {
       setErr("🥵 Servidor lotado agora! Muita gente jogando — espere uns minutinhos e tente de novo.");
       setBusy(false); return;
     }
+    const custom = hostCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (hostCode.trim() && custom.length < 4) {
+      setErr("O código da sala precisa ter de 4 a 6 letras/números.");
+      setBusy(false); return;
+    }
+    if (custom) {
+      const old = await readMatch(custom);
+      if (old && old.joined && old.joined.B && !old.winner) {
+        setErr("⚔️ Já existe uma partida em andamento com esse código. Espere ela acabar ou escolha outro.");
+        setBusy(false); return;
+      }
+    }
     A(); S.crowdStart();
     try {
       const m = {
-        id: genCode(), mode: "online",
+        id: custom || genCode(), mode: "online",
         teams: { A: team, B: other(team) },
         players: { A: (myName.trim() || "jogador_1").slice(0, 14), B: null },
         joined: { A: true, B: false },
@@ -1238,7 +1251,14 @@ function PenaltisDoBrasil() {
     try {
       const m = await readMatch(code);
       if (!m) { setErr("Partida não encontrada. Confira o código."); setBusy(false); return; }
-      if (m.joined.B) { setErr("Essa partida já tem 2 jogadores."); setBusy(false); return; }
+      if (m.joined.B && !m.winner) {
+        setErr("⚔️ Há uma partida em andamento nessa sala! Tente de novo em alguns minutinhos.");
+        setBusy(false); return;
+      }
+      if (m.winner) {
+        setErr("A última partida dessa sala já acabou. Espere o dono da sala reabrir e tente de novo.");
+        setBusy(false); return;
+      }
       m.joined.B = true;
       m.players = { ...(m.players || {}), B: (myName.trim() || "jogador_2").slice(0, 14) };
       await writeMatch(m);
@@ -1247,6 +1267,30 @@ function PenaltisDoBrasil() {
       setMatch(m); matchRef.current = m;
       setScreen("game"); startTurn(m);
     } catch (e) { setErr("Erro ao entrar na partida. Tente de novo."); }
+    setBusy(false);
+  }
+
+  /* reabre a sala com o MESMO código para esperar um novo desafiante */
+  async function reopenRoom() {
+    if (!DB_READY || !matchRef.current) return;
+    setBusy(true); setErr("");
+    try {
+      const cur = matchRef.current;
+      const m = {
+        id: cur.id, mode: "online",
+        teams: cur.teams,
+        players: { A: (myName.trim() || "jogador_1").slice(0, 14), B: null },
+        joined: { A: true, B: false },
+        kicks: { A: [], B: [] }, kickNumber: 0, winner: null,
+        currentShot: null, lastKick: null, seq: cur.seq || 0,
+      };
+      await writeMatch(m);
+      seqRef.current = m.seq; playedRef.current = 0; reactRef.current = -1;
+      setRole("A"); setMyTeam(m.teams.A);
+      setAnim(null); setResult(null); setAim(null); setFlash(null); setLastPlay(null);
+      setMatch(m); matchRef.current = m;
+      setSub("wait_join");
+    } catch (e) { setErr("Não foi possível reabrir a sala. Tente de novo."); }
     setBusy(false);
   }
 
@@ -1278,7 +1322,7 @@ function PenaltisDoBrasil() {
     if (mode !== "online" || screen !== "game" || !match?.id) return;
     const t = setInterval(async () => {
       const s = subRef.current;
-      if (s === "kick_anim" || s === "react" || s === "result") return;
+      if (s === "kick_anim" || s === "react" || s === "result" || s === "over") return;
       const m = await readMatch(matchRef.current.id);
       if (!m || m.seq <= seqRef.current) return;
       seqRef.current = m.seq;
@@ -1818,8 +1862,18 @@ function PenaltisDoBrasil() {
           }} />
         <div style={{ marginTop: 14, fontWeight: 700, fontSize: 14 }}>Criar partida — escolha seu uniforme:</div>
         <TeamPicker onPick={setMyTeam} />
+        <input value={hostCode} onChange={(e) => setHostCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))}
+          placeholder="CÓDIGO DA SALA (OPCIONAL)" maxLength={6}
+          style={{
+            marginTop: 10, padding: "10px 12px", fontSize: 14, textAlign: "center", letterSpacing: ".15em",
+            borderRadius: 12, border: "2px solid rgba(255,255,255,.3)", background: "rgba(255,255,255,.08)",
+            color: "#fff", width: 230, fontWeight: 800, outline: "none",
+          }} />
+        <div style={{ fontSize: 11, opacity: .5, maxWidth: 320, textAlign: "center", marginTop: 4 }}>
+          Escolha um código fixo (ex.: HELDER) pra sempre usar a mesma sala — ou deixe em branco pra gerar um aleatório.
+        </div>
         <button className="pk-btn" disabled={busy} style={bigBtn("#FFCC00")} onClick={() => createOnline(myTeam)}>
-          {busy ? "Criando..." : "➕ Criar partida e gerar código"}
+          {busy ? "Criando..." : "➕ Criar partida"}
         </button>
         <div style={{ margin: "16px 0 6px", opacity: .6, fontWeight: 700 }}>— ou —</div>
         <div style={{ fontWeight: 700, fontSize: 14 }}>Entrar com um código:</div>
@@ -2122,6 +2176,12 @@ function PenaltisDoBrasil() {
                 <button className="pk-btn" onClick={() => startBot(myTeam)}
                   style={{ background: "#FFCC00", color: "#081426", border: "none", borderRadius: 12, padding: "12px 20px", fontWeight: 900, fontSize: 15, cursor: "pointer", boxShadow: "0 4px 0 rgba(0,0,0,.4)" }}>
                   Jogar de novo
+                </button>
+              )}
+              {mode === "online" && role === "A" && (
+                <button className="pk-btn" disabled={busy} onClick={reopenRoom}
+                  style={{ background: "#22c55e", color: "#04220f", border: "none", borderRadius: 12, padding: "12px 20px", fontWeight: 900, fontSize: 15, cursor: "pointer", boxShadow: "0 4px 0 rgba(0,0,0,.4)" }}>
+                  {busy ? "Reabrindo..." : `🔁 Manter sala ${m.id} aberta`}
                 </button>
               )}
               <button className="pk-btn" onClick={backToMenu}
