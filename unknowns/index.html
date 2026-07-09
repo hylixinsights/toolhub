@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Field Guide to Unknowns · hylix</title>
+<meta name="description" content="Find what you don't know — before, during and after building with LLMs.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#080A0D">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Crect width='28' height='28' rx='7' fill='%23080A0D'/%3E%3Cg fill='none' stroke='%233F9BEE' stroke-linecap='round'%3E%3Cpath d='M6 5 C13 10,15 18,22 23' stroke-width='2.4'/%3E%3Cpath d='M22 5 C15 10,13 18,6 23' stroke-width='2.4'/%3E%3Cpath d='M10 8h8M11.5 11.5h5M11.5 16.5h5M10 20h8' stroke-width='1.8'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080A0D; --surface:#10151D; --surface2:#0D121A;
+    --line:#1C2530; --line-2:#242F3B;
+    --text:#EDF2F8; --text-soft:#9AA7B6; --text-dim:#61707E;
+    --cyan:#5FCBF5; --blue:#2E86E6; --blue-deep:#1E63D0;
+    --grad:linear-gradient(120deg,#5FCBF5 0%,#2E86E6 60%,#1E63D0 100%);
+    --teal:#34C6A6; --teal-tint:rgba(52,198,166,.14);
+    --amber:#C9A54E; --amber-tint:rgba(201,165,78,.14);
+    --danger:#E0725C;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+    --sans:'Inter',system-ui,sans-serif;
+    --disp:'Space Grotesk','Inter',sans-serif;
+    --maxw:760px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{
+    background:radial-gradient(85% 55% at 92% -8%, rgba(46,134,230,.13), transparent 60%), var(--bg);
+    color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.62;min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit;cursor:pointer}
+  textarea,input,select{font-family:inherit;color:var(--text)}
+  a{color:var(--cyan);text-decoration:none}
+  a:hover{text-decoration:underline}
+  :focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:8px}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 18px 120px}
+
+  /* ===== Header ===== */
+  header.topo{border-bottom:1px solid var(--line);padding:16px 18px 24px}
+  header.topo .inner{max-width:var(--maxw);margin:0 auto}
+  .hx-top{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:22px}
+  .brand{display:inline-flex;align-items:center;gap:8px}
+  .brand .mark{width:24px;height:24px;flex:none}
+  .brand .wm{font-family:var(--disp);font-weight:700;font-size:17px;letter-spacing:-.01em;color:var(--text)}
+  .brand:hover{text-decoration:none}
+  .brand:hover .wm{color:var(--cyan)}
+  .lang-seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--surface2)}
+  .lang-seg button{background:none;border:none;color:var(--text-dim);font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.05em;padding:8px 13px;min-height:36px}
+  .lang-seg button.on{background:var(--grad);color:#04121f;font-weight:600}
+  h1{font-family:var(--disp);font-weight:700;font-size:clamp(28px,7vw,40px);letter-spacing:-.02em;line-height:1.05}
+  .subtitle{margin-top:12px;font-size:15px;color:var(--text-soft);display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .projeto-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:20px}
+  .projeto-bar select{flex:1;min-width:160px;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:0 13px;font-size:15px}
+  .btn-topo{min-height:48px;padding:0 16px;border-radius:12px;font-size:14.5px;font-weight:600;background:var(--surface);border:1px solid var(--line);color:var(--text-soft)}
+  .salvo{font-family:var(--mono);font-size:11px;color:var(--text-dim);margin-top:12px;min-height:14px}
+
+  .aviso-mem{max-width:var(--maxw);margin:14px auto 0;padding:0 18px;font-family:var(--mono);font-size:11px;color:var(--amber)}
+
+  /* ===== Help button + callout ===== */
+  .help{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--surface2);color:var(--text-soft);font-family:var(--disp);font-size:12px;font-weight:700;line-height:1;display:inline-flex;align-items:center;justify-content:center;flex:none;padding:0}
+  .help:hover{border-color:var(--cyan);color:var(--cyan)}
+  .help[aria-expanded="true"]{background:var(--grad);color:#04121f;border-color:transparent}
+  .callout{display:none;margin:10px 0 2px;padding:13px 15px;background:var(--surface2);border:1px solid var(--line);border-left:2px solid var(--cyan);border-radius:12px;font-size:13.5px;line-height:1.65;color:var(--text-soft)}
+  .callout.open{display:block;animation:cin .16s ease}
+  .callout strong{color:var(--text);font-weight:600}
+  @keyframes cin{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.callout.open{animation:none}}
+
+  /* ===== Trail ===== */
+  nav.trilha{position:sticky;top:0;z-index:30;background:rgba(8,10,13,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:12px 18px 10px}
+  .trilha-inner{position:relative;display:flex;justify-content:space-between;max-width:var(--maxw);margin:0 auto}
+  .helix{position:absolute;left:22px;right:22px;top:8px;height:22px;pointer-events:none}
+  .helix svg{width:100%;height:100%;display:block}
+  .ponto{position:relative;z-index:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:7px;width:20%;padding:0 0 2px}
+  .ponto .circ{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:500;font-size:14px;background:var(--surface);border:1.5px solid var(--line);color:var(--text-dim);transition:transform .15s}
+  @media (prefers-reduced-motion:reduce){.ponto .circ{transition:none}}
+  .ponto .rot{font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;color:var(--text-dim);text-align:center;line-height:1.3}
+  .rot .frac{display:block;color:var(--cyan);font-size:9px;margin-top:2px}
+  .ponto.done .circ{background:var(--grad);border-color:transparent;color:#04121f}
+  .ponto.atual .circ{background:var(--surface);border:2px solid var(--cyan);color:var(--text);transform:scale(1.08);box-shadow:0 0 0 4px rgba(95,203,245,.13)}
+  .ponto.atual .rot{color:var(--text)}
+
+  /* ===== Phase header ===== */
+  .fase-head{margin:30px 0 6px}
+  .fase-head h2{font-family:var(--disp);font-weight:700;font-size:clamp(22px,5vw,30px);letter-spacing:-.015em;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .fase-head p{color:var(--text-soft);font-size:14.5px;margin-top:9px;max-width:60ch}
+
+  /* ===== Context sheet (subtle) ===== */
+  details.ficha{margin-top:18px;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+  details.ficha summary{list-style:none;cursor:pointer;padding:14px 15px;display:flex;align-items:center;gap:10px;color:var(--text-soft);font-size:14px}
+  details.ficha summary::-webkit-details-marker{display:none}
+  details.ficha summary b{color:var(--text);font-weight:600}
+  details.ficha .tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);border:1px solid var(--line);border-radius:5px;padding:2px 7px}
+  details.ficha summary::after{content:"▾";margin-left:auto;color:var(--text-dim);font-size:12px;transition:transform .15s}
+  details.ficha[open] summary::after{transform:rotate(180deg)}
+  .ficha-corpo{padding:2px 15px 16px}
+  .ficha-corpo .hint{font-size:13.5px;color:var(--text-dim);line-height:1.6;margin-bottom:4px}
+  .switch{display:flex;align-items:center;gap:10px;margin-top:13px;font-size:13.5px;color:var(--text-soft);cursor:pointer}
+  .switch input{width:18px;height:18px;accent-color:var(--blue);cursor:pointer}
+
+  /* ===== Cards ===== */
+  .card{background:var(--surface);border:1px solid var(--line);border-left:3px solid transparent;border-radius:14px;padding:20px 18px;margin-top:18px}
+  @media (hover:hover){.card{transition:border-color .18s}.card:hover{border-color:var(--line-2)}}
+  .card[data-status="feito"]{border-left-color:var(--teal)}
+  .card[data-status="pulado"]{border-left-color:var(--amber);opacity:.75}
+  .card-top{display:flex;align-items:center;gap:10px}
+  .passo-num{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim)}
+  .chip{font-family:var(--mono);font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px;white-space:nowrap}
+  .chip.pendente{background:var(--surface2);border:1px solid var(--line);color:var(--text-dim)}
+  .chip.feito{background:var(--teal-tint);color:#74E3CB}
+  .chip.pulado{background:var(--amber-tint);color:#DcC183}
+  .card-top .help{margin-left:auto}
+  .card h3{font-family:var(--disp);font-weight:600;font-size:20px;margin-top:10px;color:var(--text);line-height:1.25}
+
+  .vars{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 0}
+  .var-chip{font-family:var(--mono);font-size:11.5px;padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface2);color:var(--text-soft);min-height:36px}
+  .var-chip.on{background:var(--grad);border-color:transparent;color:#04121f;font-weight:600}
+
+  .field{margin-top:18px}
+  .field-lbl{font-size:12.5px;color:var(--text-dim);font-weight:500;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+  textarea{width:100%;border:1px solid var(--line);border-radius:12px;background:var(--surface2);padding:13px;font-size:14.5px;line-height:1.62;resize:none;overflow:hidden;display:block;color:var(--text)}
+  textarea.prompt{font-family:var(--mono);font-size:13px;min-height:104px;background:#0B1017}
+  textarea.resposta{min-height:80px}
+  textarea::placeholder{color:var(--text-dim)}
+
+  .btn{min-height:48px;padding:0 17px;border-radius:12px;border:none;font-size:14.5px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+  .btn svg{flex:none}
+  .btn.prim,.btn.copiar{background:var(--grad);color:#04121f;font-weight:700}
+  .btn.prim:active,.btn.copiar:active{filter:brightness(1.08)}
+  .btn.ghost{background:var(--surface2);border:1px solid var(--line);color:var(--text-soft)}
+  .btn.ghost:active{border-color:var(--cyan)}
+  .btn.moss,.btn.ok{background:var(--teal);color:#04140f}
+  .btn.perigo{background:transparent;border:1px solid rgba(224,114,92,.45);color:var(--danger)}
+  .btn:disabled{opacity:.4;cursor:default}
+  .btn.mini{min-height:34px;padding:0 11px;font-size:12px;border-radius:9px;gap:6px}
+  .mini-acoes{display:inline-flex;gap:6px;flex:none}
+
+  .acoes{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+  .acoes.full .btn{flex:1}
+  .row2{display:flex;gap:9px;margin-top:12px}
+  .row2 .btn{flex:1}
+
+  .avancar-box{margin-top:26px;padding:18px;border-radius:14px;border:1px dashed var(--line);text-align:center;background:var(--surface2)}
+  .avancar-box .prog{font-family:var(--mono);font-size:12px;color:var(--text-dim);margin-bottom:13px}
+  .nav-fase{display:flex;gap:9px}
+  .nav-fase .btn{flex:1}
+  .nav-fase .btn.back{flex:0 0 auto;padding:0 14px}
+
+  /* ===== Diagnosis ===== */
+  .quad .card h3 span{font-family:var(--mono);font-weight:400;font-size:11px;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;display:block;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
+  .quad .qq{font-size:13px;color:var(--cyan);margin-top:8px}
+
+  /* ===== Summary ===== */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 10px;text-align:center}
+  .stat b{font-family:var(--disp);font-size:26px;display:block;line-height:1.1;color:var(--text)}
+  .stat span{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+  #saida-md{min-height:220px;font-family:var(--mono);font-size:12.5px;overflow:auto;resize:vertical}
+  .nota{font-size:13.5px;color:var(--text-soft);line-height:1.65;margin-top:14px}
+
+  /* ===== Empty ===== */
+  .vazio{margin-top:32px;text-align:center;padding:44px 20px;border:1px dashed var(--line);border-radius:16px;background:var(--surface2)}
+  .vazio h2{font-family:var(--disp);font-weight:700;font-size:clamp(22px,5vw,28px);color:var(--text)}
+  .vazio p{color:var(--text-soft);margin-top:11px;font-size:14.5px;max-width:44ch;margin-inline:auto;line-height:1.62}
+  .novo-form{display:flex;gap:9px;margin-top:22px;max-width:440px;margin-inline:auto}
+  .novo-form input{flex:1;height:50px;border-radius:12px;border:1px solid var(--line);padding:0 14px;font-size:15px;background:var(--surface)}
+
+  footer.rodape{max-width:var(--maxw);margin:52px auto 0;padding:22px 18px 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:18px}
+  .foot-brand{display:inline-flex;align-items:center;gap:8px;color:var(--text-soft);font-size:13.5px}
+  .foot-brand .mark{width:18px;height:18px;flex:none}
+  .foot-brand:hover{text-decoration:none}
+  .foot-brand:hover span{color:var(--cyan)}
+  .foot-brand span{font-family:var(--disp);font-weight:600;color:var(--text)}
+  .foot-credit{font-family:var(--mono);font-size:11px;line-height:1.75;color:var(--text-dim);margin-top:8px}
+  .foot-credit a{color:var(--text-soft)}
+  .linklike{background:none;border:none;padding:0;font:inherit;color:var(--text-soft);text-decoration:underline;cursor:pointer}
+  .rodape-acoes{display:flex;gap:9px;flex-wrap:wrap}
+  .rodape-acoes .btn{flex:1;min-width:130px}
+
+  .loading{text-align:center;padding:80px 20px;font-family:var(--mono);font-size:13px;color:var(--text-dim)}
+
+  @media (min-width:680px){
+    .wrap{padding:0 22px 130px}
+    header.topo{padding:18px 22px 30px}
+    nav.trilha{padding:14px 22px 11px}
+    .ponto .rot{font-size:10.5px}
+    .quad{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .quad .card{margin-top:16px}
+    .card{padding:22px}
+    .rodape-acoes .btn{flex:0 0 auto}
+    footer.rodape{flex-direction:row;justify-content:space-between;align-items:flex-end}
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="hxX" x1="4" y1="4" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#5FCBF5"/><stop offset="1" stop-color="#1E63D0"/></linearGradient>
+  <g id="hxmark" fill="none" stroke="url(#hxX)" stroke-linecap="round">
+    <path d="M6 5 C13 10,15 18,22 23" stroke-width="2.6"/>
+    <path d="M22 5 C15 10,13 18,6 23" stroke-width="2.6"/>
+    <path d="M9.5 8 H18.5" stroke-width="2"/>
+    <path d="M11.5 11.5 H16.5" stroke-width="2"/>
+    <path d="M11.5 16.5 H16.5" stroke-width="2"/>
+    <path d="M9.5 20 H18.5" stroke-width="2"/>
+  </g>
+</defs></svg>
+
+<header class="topo">
+  <div class="inner">
+    <div class="hx-top">
+      <a class="brand" href="https://hylix.app" target="_blank" rel="noopener" aria-label="hylix">
+        <svg class="mark" viewBox="0 0 28 28"><use href="#hxmark"/></svg>
+        <span class="wm">hylix</span>
+      </a>
+      <div class="lang-seg" id="lang-seg" role="group" aria-label="Language">
+        <button data-lang="en">EN</button><button data-lang="pt">PT</button>
+      </div>
+    </div>
+    <h1 id="hx-title"></h1>
+    <p class="subtitle"><span id="hx-sub"></span><button class="help" data-help="c-how" aria-expanded="false">?</button></p>
+    <div class="callout" id="c-how"></div>
+    <div class="projeto-bar" id="projeto-bar" hidden>
+      <select id="sel-projeto" aria-label="Project"></select>
+      <button class="btn-topo" id="btn-novo"></button>
+    </div>
+    <div class="salvo" id="salvo"></div>
+  </div>
+</header>
+
+<div class="aviso-mem" id="aviso-mem" hidden></div>
+
+<nav class="trilha" id="trilha" hidden aria-label="Phases"><div class="trilha-inner" id="trilha-inner"></div></nav>
+
+<main class="wrap" id="conteudo"><div class="loading">Loading…</div></main>
+
+<footer class="rodape" id="rodape" hidden>
+  <div>
+    <a class="foot-brand" href="https://hylix.app" target="_blank" rel="noopener">
+      <svg class="mark" viewBox="0 0 28 28"><use href="#hxmark"/></svg><span>hylix</span>
+    </a>
+    <div class="foot-credit" id="foot-credit"></div>
+  </div>
+  <div class="rodape-acoes">
+    <button class="btn ghost" id="btn-exportar"></button>
+    <button class="btn ghost" id="btn-importar"></button>
+    <button class="btn perigo" id="btn-apagar"></button>
+  </div>
+  <input type="file" id="inp-importar" accept="application/json,.json" hidden>
+</footer>
+
+<script>
+const IC = {
+  copy:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>',
+  paste:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="12" height="16" rx="2"/><path d="M9 5a3 3 0 0 1 6 0"/></svg>',
+  down:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><polyline points="6.5 11 12 16.5 17.5 11"/><path d="M4 20h16"/></svg>',
+  check:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12.5 9.5 18 20 6.5"/></svg>'
+};
+
+/* ===== Content (bilingual) ===== */
+const FASES=[
+  {n:0,rot:{en:'Diagnosis',pt:'Diagnóstico'},titulo:{en:'Phase 0 — Diagnosis',pt:'Fase 0 — Diagnóstico'},
+   desc:{en:"Map what you know and what you don't — it decides which steps matter.",pt:'Mapeie o que você sabe e o que não sabe — isso define quais passos importam.'}},
+  {n:1,rot:{en:'Before',pt:'Antes'},titulo:{en:'Phase 1 — Before building',pt:'Fase 1 — Antes de construir'},
+   desc:{en:'Finding unknowns now is cheap. Use what you need, skip the rest.',pt:'Achar unknowns agora é barato. Use o que precisar, pule o resto.'}},
+  {n:2,rot:{en:'During',pt:'Durante'},titulo:{en:'Phase 2 — While building',pt:'Fase 2 — Durante'},
+   desc:{en:'Unknowns still hide here. Let the agent improvise, and log deviations.',pt:'Ainda há unknowns escondidos. Deixe o agente improvisar e registre desvios.'}},
+  {n:3,rot:{en:'After',pt:'Depois'},titulo:{en:'Phase 3 — After',pt:'Fase 3 — Depois'},
+   desc:{en:'Lock in understanding and get buy-in before you ship.',pt:'Garanta entendimento e aprovação antes de finalizar.'}},
+  {n:4,rot:{en:'Summary',pt:'Resumo'},titulo:{en:'Summary',pt:'Resumo'},
+   desc:{en:'Everything you logged — ready to copy or download.',pt:'Tudo que você registrou — pronto para copiar ou baixar.'}}
+];
+
+const QUAD=[
+  {id:'kk',tag:'Known knowns',q:{en:'What do you already know you want?',pt:'O que você já sabe que quer?'},ph:{en:'e.g. a new CSV export endpoint, following the other exports…',pt:'Ex.: um endpoint novo de export em CSV, seguindo os outros…'}},
+  {id:'ku',tag:'Known unknowns',q:{en:"What haven't you defined yet?",pt:'O que você ainda não definiu?'},ph:{en:'e.g. sync or queued processing — not decided…',pt:'Ex.: processamento síncrono ou em fila — não decidi…'}},
+  {id:'uk',tag:'Unknown knowns',q:{en:"What's obvious but hard to write down?",pt:'O que é óbvio mas difícil de escrever?'},ph:{en:"e.g. the dashboard's look — I know it when I see it…",pt:'Ex.: o visual do dashboard — sei quando vejo…'}},
+  {id:'uu',tag:'Unknown unknowns',q:{en:"Where are you in unfamiliar territory?",pt:'Onde é território desconhecido?'},ph:{en:"e.g. never touched the auth module here…",pt:'Ex.: nunca mexi no módulo de auth…'}}
+];
+
+const PASSOS=[
+  {id:'bs',fase:1,num:{en:'Step 1',pt:'Passo 1'},titulo:{en:'Blind Spot Pass',pt:'Blind Spot Pass'},
+   quando:{en:'For <strong>unfamiliar territory</strong> — a new part of the codebase or a domain you don\'t know. Ask it to surface your <strong>unknown unknowns</strong>.',pt:'Para <strong>território desconhecido</strong> — parte nova do código ou um domínio que você não conhece. Peça para revelar seus <strong>unknown unknowns</strong>.'},
+   vars:[{rot:{en:'New codebase',pt:'Codebase novo'},txt:{en:"I'm working on [TASK], but I don't know [AREA / PART OF THE CODE].\n\nDo a blind spot pass: help me find my unknown unknowns here and teach me to prompt you better.\n\nAbout me: [YOUR EXPERIENCE WITH THE PROBLEM AND CODE]",pt:'Estou trabalhando em [TAREFA], mas não conheço [ÁREA / PARTE DO CÓDIGO].\n\nFaça um blind spot pass: me ajude a achar meus unknown unknowns aqui e me ensine a te promptar melhor.\n\nSobre mim: [SUA EXPERIÊNCIA COM O PROBLEMA E O CÓDIGO]'}},
+     {rot:{en:'Learn a domain',pt:'Aprender um domínio'},txt:{en:"I need to [DO X], but I don't really know what [CONCEPT — e.g. color grading] is.\n\nTeach me enough to find my unknown unknowns. Start with what I don't even know to ask.",pt:'Preciso [FAZER X], mas não sei o que é [CONCEITO — ex.: color grading].\n\nMe ensine o suficiente para achar meus unknown unknowns. Comece pelo que eu nem sei que deveria perguntar.'}}]},
+  {id:'proto',fase:1,num:{en:'Step 2',pt:'Passo 2'},titulo:{en:'Brainstorm + Prototypes',pt:'Brainstorm + Protótipos'},
+   quando:{en:'When the goal is <strong>"I know it when I see it"</strong> (design, UX, scope). React to variations now — it\'s cheaper than fixing code later.',pt:'Quando o objetivo é <strong>“sei quando vejo”</strong> (design, UX, escopo). Reaja a variações agora — é mais barato que consertar código depois.'},
+   vars:[{rot:{en:'Design variations',pt:'Variações de design'},txt:{en:"I want [A SCREEN] for [THIS], but don't know what's possible.\n\nMake an HTML page with 4 wildly different design directions to react to.",pt:'Quero [UMA TELA] para [ISSO], mas não sei o que é possível.\n\nFaça uma página HTML com 4 direções de design bem diferentes para eu reagir.'}},
+     {rot:{en:'Mock first',pt:'Mock primeiro'},txt:{en:'Before wiring anything up, make one HTML file mocking [FEATURE] with fake data.\n\nI want to react to the layout before you touch the real app.',pt:'Antes de conectar nada, faça um HTML mockando [FEATURE] com dados falsos.\n\nQuero reagir ao layout antes de mexer no app real.'}},
+     {rot:{en:'Brainstorm',pt:'Brainstorm'},txt:{en:"Rough problem: [e.g. users churn after onboarding].\n\nSearch the codebase and brainstorm 10 places we could intervene, cheapest to most ambitious. I'll say which resonate.",pt:'Problema bruto: [ex.: usuários cancelam após o onboarding].\n\nExplore o código e faça um brainstorm de 10 pontos de intervenção, do mais barato ao mais ambicioso. Eu digo quais ressoam.'}}]},
+  {id:'ent',fase:1,num:{en:'Step 3',pt:'Passo 3'},titulo:{en:'Interview',pt:'Entrevista'},
+   quando:{en:'For the <strong>remaining ambiguities</strong> — especially the ones that would change the architecture.',pt:'Para as <strong>ambiguidades restantes</strong> — principalmente as que mudariam a arquitetura.'},
+   vars:[{rot:{en:'Default',pt:'Padrão'},txt:{en:"Interview me one question at a time about anything ambiguous. Prioritize questions where my answer would change the architecture.\n\nContext: [SPEC / BRAINSTORM / THIS GUIDE'S SUMMARY]",pt:'Me entreviste uma pergunta por vez sobre qualquer ambiguidade. Priorize perguntas cuja resposta mudaria a arquitetura.\n\nContexto: [SPEC / BRAINSTORM / RESUMO DESTE GUIA]'}}]},
+  {id:'ref',fase:1,num:{en:'Step 4',pt:'Passo 4'},titulo:{en:'References',pt:'Referências'},
+   quando:{en:'When it\'s <strong>hard to describe</strong> in words. The best reference is real source code — even in another language.',pt:'Quando é <strong>difícil descrever</strong> em palavras. A melhor referência é código-fonte real — até em outra linguagem.'},
+   vars:[{rot:{en:'Default',pt:'Padrão'},txt:{en:'This reference in [FOLDER / LIB / LINK] does exactly what I want.\n\nRead the source (not just the look) and reimplement the same semantics in [OUR STACK].',pt:'Esta referência em [PASTA / LIB / LINK] faz exatamente o que quero.\n\nLeia o código (não só a aparência) e reimplemente a mesma semântica em [NOSSA STACK].'}}]},
+  {id:'plano',fase:1,num:{en:'Step 5',pt:'Passo 5'},titulo:{en:'Implementation plan',pt:'Plano de implementação'},
+   quando:{en:'When you think you\'re <strong>ready to code</strong>. The plan surfaces what you\'ll still want to change.',pt:'Quando achar que está <strong>pronto para codar</strong>. O plano revela o que você ainda vai querer mudar.'},
+   vars:[{rot:{en:'Default',pt:'Padrão'},txt:{en:'Write an implementation plan — in HTML if possible — leading with what I\'m most likely to tweak: data model, type interfaces, anything user-facing.\n\nPut mechanical refactoring last — I trust you there.',pt:'Escreva um plano de implementação — em HTML, se possível — liderando com o que eu mais devo ajustar: modelo de dados, interfaces de tipos, o que é visível ao usuário.\n\nDeixe o refactoring mecânico por último — nele eu confio em você.'}}]},
+  {id:'sessao',fase:2,num:{en:'Step 6',pt:'Passo 6'},titulo:{en:'Fresh session',pt:'Nova sessão'},
+   quando:{en:'Open a <strong>clean session</strong> and pass in the Phase 1 artifacts. The exported summary works as context.',pt:'Abra uma <strong>sessão limpa</strong> e passe os artefatos da Fase 1. O resumo exportado serve de contexto.'},
+   vars:[{rot:{en:'Default',pt:'Padrão'},txt:{en:'Implement per the spec and prototype below.\n\n[EXPORTED SUMMARY + SPEC + PROTOTYPE]',pt:'Implemente conforme a spec e o protótipo abaixo.\n\n[RESUMO EXPORTADO + SPEC + PROTÓTIPO]'}}]},
+  {id:'notas',fase:2,num:{en:'Step 7',pt:'Passo 7'},titulo:{en:'Implementation notes',pt:'Notas de implementação'},
+   quando:{en:'Give the agent a rule to <strong>improvise and log deviations</strong> as it works.',pt:'Dê ao agente uma regra para <strong>improvisar e registrar desvios</strong> enquanto trabalha.'},
+   vars:[{rot:{en:'Default',pt:'Padrão'},txt:{en:'Keep an implementation-notes.md. If an edge case forces a deviation, take the conservative option, log it under "Deviations", and keep going.',pt:'Mantenha um implementation-notes.md. Se um edge case forçar um desvio, escolha a opção conservadora, registre em “Desvios” e continue.'}}]},
+  {id:'pitch',fase:3,num:{en:'Step 8',pt:'Passo 8'},titulo:{en:'Pitch / Explainer',pt:'Pitch / Explicador'},
+   quando:{en:'When you need <strong>buy-in</strong>. Reviewers start with the same unknowns you had.',pt:'Quando precisar de <strong>aprovação</strong>. Reviewers começam com os mesmos unknowns que você tinha.'},
+   vars:[{rot:{en:'Default',pt:'Padrão'},txt:{en:'Package the prototype, spec, and notes into one doc I can share for buy-in. Lead with the demo.',pt:'Empacote o protótipo, a spec e as notas num doc que eu possa compartilhar para aprovação. Comece com a demo.'}}]},
+  {id:'quiz',fase:3,num:{en:'Step 9',pt:'Passo 9'},titulo:{en:'Quiz',pt:'Quiz'},
+   quando:{en:'<strong>Before you ship</strong>. The diff gives shallow understanding — the quiz confirms the rest.',pt:'<strong>Antes de finalizar</strong>. O diff dá entendimento raso — o quiz confirma o resto.'},
+   vars:[{rot:{en:'Default',pt:'Padrão'},txt:{en:'Give me a report — HTML if possible — with context and what was done, plus a quiz at the end I must pass before shipping.',pt:'Gere um relatório — HTML se possível — com contexto e o que foi feito, mais um quiz no final que eu preciso passar antes de finalizar.'}}]}
+];
+
+const UI={
+  title:{en:'Field Guide to Unknowns',pt:'Guia de Unknowns'},
+  sub:{en:"Find what you don't know — before, during and after building.",pt:'Descubra o que você não sabe — antes, durante e depois de construir.'},
+  how:{en:'<strong>How it works:</strong> copy the prompt, paste it into your LLM, bring the answer back into the field, and advance along the trail. Fill only what helps — skip anything you don\'t need.',pt:'<strong>Como funciona:</strong> copie o prompt, cole na sua LLM, traga a resposta para o campo e avance pela trilha. Preencha só o que ajudar — pule o que não precisar.'},
+  novo:{en:'+ New',pt:'+ Novo'},
+  avisoMem:{en:'No saving here — use Export before closing.',pt:'Sem salvamento aqui — use Exportar antes de fechar.'},
+  savedArtifact:{en:'Saved · {h}',pt:'Salvo · {h}'},savedBrowser:{en:'Saved in browser · {h}',pt:'Salvo no navegador · {h}'},savedTab:{en:'This tab only — export to keep',pt:'Só nesta aba — exporte para guardar'},saveFail:{en:'Save failed — export to be safe',pt:'Falha ao salvar — exporte por segurança'},
+  footCredit:{en:'Based on “A Field Guide to Fable: Finding Your Unknowns” by Thariq (<a href="https://x.com/trq212" target="_blank" rel="noopener">@trq212</a>). Nothing leaves your browser · <button class="linklike" id="lnk-priv">privacy</button>',pt:'Baseado em “A Field Guide to Fable: Finding Your Unknowns”, de Thariq (<a href="https://x.com/trq212" target="_blank" rel="noopener">@trq212</a>). Nada sai do seu navegador · <button class="linklike" id="lnk-priv">privacidade</button>'},
+  exportar:{en:'Export',pt:'Exportar'},importar:{en:'Import',pt:'Importar'},apagar:{en:'Delete',pt:'Apagar'},
+  vazioT:{en:'Start a project',pt:'Comece um projeto'},vazioP:{en:'Name it and begin with the diagnosis. Keep several in parallel — everything stays in your browser.',pt:'Dê um nome e comece pelo diagnóstico. Tenha vários em paralelo — tudo fica no seu navegador.'},
+  projName:{en:'Project name',pt:'Nome do projeto'},iniciar:{en:'Start',pt:'Iniciar'},noProj:{en:'Untitled',pt:'Sem nome'},
+  privT:{en:'Nothing is stored on servers',pt:'Nada é armazenado em servidores'},
+  privBody:{en:'This tool sends and stores nothing on servers — everything stays {onde}. If it\'s cleared or you switch devices, the work is lost, so use <strong>Export</strong> to keep a copy. Even so, avoid pasting anything sensitive or confidential (keys, passwords, client data).',pt:'Esta ferramenta não envia nem armazena nada em servidores — tudo fica {onde}. Se for apagado ou você trocar de aparelho, o trabalho se perde, então use <strong>Exportar</strong> para guardar uma cópia. Mesmo assim, evite colar algo sensível ou confidencial (chaves, senhas, dados de clientes).'},
+  privOk:{en:'Got it',pt:'Entendi'},
+  ondeArtifact:{en:'in this artifact only',pt:'só neste artefato'},ondeLocal:{en:'in this browser only',pt:'só neste navegador'},ondeMem:{en:'in this tab only',pt:'só nesta aba'},
+  ctxTitle:{en:'Your context',pt:'Seu contexto'},ctxTag:{en:'optional',pt:'opcional'},
+  ctxHint:{en:'Who you are on this problem — your experience with the code and domain. Attached to every prompt you copy, so the LLM works as a thought partner.',pt:'Quem você é nesse problema — sua experiência com o código e o domínio. Anexado a todo prompt que você copiar, para a LLM ser parceira de pensamento.'},
+  ctxPh:{en:"e.g. backend dev, first time in this frontend; explored module X; still deciding scope…",pt:'Ex.: dev backend, primeira vez neste front; explorei o módulo X; ainda decidindo o escopo…'},
+  attachCtx:{en:'Attach context when I copy prompts',pt:'Anexar contexto ao copiar prompts'},
+  diagHint:{en:'Jot what you already see and move on.',pt:'Anote o que já enxerga e siga.'},
+  finishDiag:{en:'Start Phase 1',pt:'Começar a Fase 1'},
+  promptLabel:{en:'Prompt — edit the [brackets]',pt:'Prompt — edite os [colchetes]'},
+  copyPrompt:{en:'Copy prompt',pt:'Copiar prompt'},copied:{en:'Copied',pt:'Copiado'},copiedCtx:{en:'Copied + context',pt:'Copiado + contexto'},copyManual:{en:'Copy manually',pt:'Copie manual'},
+  answerLabel:{en:'Paste the answer',pt:'Cole a resposta'},answerPh:{en:'What the LLM said — decisions, findings, what changed in your understanding.',pt:'O que a LLM disse — decisões, achados, o que mudou no seu entendimento.'},
+  markDone:{en:'Done',pt:'Feito'},undone:{en:'Done ✓',pt:'Feito ✓'},skip:{en:'Skip',pt:'Pular'},resume:{en:'Resume',pt:'Retomar'},
+  stPend:{en:'to do',pt:'a fazer'},stDone:{en:'done',pt:'feito'},stSkip:{en:'skipped',pt:'pulado'},
+  paste:{en:'Paste',pt:'Colar'},copyMini:{en:'Copy',pt:'Copiar'},
+  pasted:{en:'Pasted',pt:'Colado'},pastedEnd:{en:'Added',pt:'Adicionado'},nothingPaste:{en:'Clipboard empty',pt:'Área vazia'},tapPaste:{en:'Tap field, then paste',pt:'Toque no campo e cole'},
+  stepsResolved:{en:'{0} of {1} done',pt:'{0} de {1} feitos'},advance:{en:'Next: {0}',pt:'Próxima: {0}'},
+  exportMd:{en:'Export summary',pt:'Exportar resumo'},exportMdDesc:{en:'Use as context for your build session, keep as a record, or download it.',pt:'Use como contexto da sessão de build, guarde como registro, ou baixe.'},
+  genSummary:{en:'Generate',pt:'Gerar'},copy:{en:'Copy',pt:'Copiar'},downloadMd:{en:'Download',pt:'Baixar'},mdPh:{en:'Tap Generate.',pt:'Toque em Gerar.'},summaryCopied:{en:'Copied',pt:'Copiado'},downloaded:{en:'Saved',pt:'Salvo'},useCopy:{en:'Use Copy',pt:'Use Copiar'},
+  statDone:{en:'done',pt:'feitos'},statSkip:{en:'skipped',pt:'pulados'},statPend:{en:'to do',pt:'a fazer'},
+  nota:{en:"When a long task comes back wrong, it usually means too little time spent on unknowns. Jump back to any phase from the trail above.",pt:'Quando uma tarefa longa volta errada, geralmente foi pouco tempo nos unknowns. Volte a qualquer fase pela trilha acima.'},
+  promptNew:{en:'Project name:',pt:'Nome do projeto:'},confirmDelete:{en:'Delete “{0}”? Export first if you want to keep it.',pt:'Apagar “{0}”? Exporte antes se quiser guardar.'},confirmImport:{en:'Replace current data with the backup?',pt:'Substituir os dados atuais pelo backup?'},
+  backupDown:{en:'Exported',pt:'Exportado'},backupCopied:{en:'Copied (download off)',pt:'Copiado (download off)'},backupImported:{en:'Imported',pt:'Importado'},invalidFile:{en:'Invalid file',pt:'Arquivo inválido'},
+  summaryHead:{en:'Summary',pt:'Resumo'},diagHead:{en:'Diagnosis',pt:'Diagnóstico'},contextHead:{en:'Context',pt:'Contexto'},promptUsed:{en:'Prompt:',pt:'Prompt:'},respNotes:{en:'Notes:',pt:'Notas:'},genOn:{en:'From the Field Guide to Unknowns · {0}',pt:'Do Guia de Unknowns · {0}'}
+};
+
+/* ===== Storage ===== */
+const store=(function(){
+  if(window.storage) return {tipo:'artefato',async get(k){try{const r=await window.storage.get(k);return r?r.value:null}catch(e){return null}},async set(k,v){try{const r=await window.storage.set(k,v);return !!r}catch(e){return false}}};
+  try{const t='__t';localStorage.setItem(t,'1');localStorage.removeItem(t);return {tipo:'local',async get(k){try{return localStorage.getItem(k)}catch(e){return null}},async set(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}}}catch(e){}
+  const m={};return {tipo:'memoria',async get(k){return m[k]===undefined?null:m[k]},async set(k,v){m[k]=v;return true}};
+})();
+
+const CHAVE='guia-unknowns:v2';
+let estado=null,lang='en',tSalvar=null;
+
+function estadoInicial(){return {activeId:null,projetos:[],avisoOk:false,lang:'en'}}
+function novoProjeto(nome){const passos={};PASSOS.forEach(p=>passos[p.id]={status:'pendente',prompt:p.vars[0].txt[lang],resposta:''});return {id:'p'+Date.now().toString(36),nome:nome||T(UI.noProj),fase:0,contexto:'',usarContexto:true,diag:{kk:'',ku:'',uk:'',uu:''},passos}}
+function migrar(){if(!estado||!Array.isArray(estado.projetos))estado=estadoInicial();if(estado.avisoOk===undefined)estado.avisoOk=false;if(!estado.lang)estado.lang='en';estado.projetos.forEach(pr=>{if(pr.contexto===undefined)pr.contexto='';if(pr.usarContexto===undefined)pr.usarContexto=true;if(!pr.diag)pr.diag={kk:'',ku:'',uk:'',uu:''};if(!pr.passos)pr.passos={};PASSOS.forEach(s=>{if(!pr.passos[s.id])pr.passos[s.id]={status:'pendente',prompt:s.vars[0].txt[lang],resposta:''}})})}
+async function carregar(){let b=null;try{b=await store.get(CHAVE)}catch(e){}try{estado=b?JSON.parse(b):estadoInicial()}catch(e){estado=estadoInicial()}migrar();lang=estado.lang||'en';if(store.tipo==='memoria')document.getElementById('aviso-mem').hidden=false}
+async function salvarAgora(){const el=document.getElementById('salvo');const ok=await store.set(CHAVE,JSON.stringify(estado));const h=new Date();const hora=String(h.getHours()).padStart(2,'0')+':'+String(h.getMinutes()).padStart(2,'0');if(!ok){el.textContent=T(UI.saveFail);return}el.textContent=store.tipo==='local'?T(UI.savedBrowser).replace('{h}',hora):store.tipo==='artefato'?T(UI.savedArtifact).replace('{h}',hora):T(UI.savedTab)}
+function salvar(){clearTimeout(tSalvar);tSalvar=setTimeout(salvarAgora,600)}
+function proj(){return estado.projetos.find(p=>p.id===estado.activeId)||null}
+
+/* ===== Helpers ===== */
+function T(o){return o[lang]!==undefined?o[lang]:o.en}
+function fmt(s){const a=[].slice.call(arguments,1);return s.replace(/\{(\d+)\}/g,(m,i)=>a[i]!==undefined?a[i]:m)}
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function slug(s){return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'project'}
+function autosize(ta){ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight+2,440)+'px'}
+function ligaAutosize(ta){autosize(ta);ta.addEventListener('input',()=>autosize(ta))}
+function feedback(btn,msg,ok){if(btn.dataset.orig===undefined)btn.dataset.orig=btn.innerHTML;btn.innerHTML=(ok?IC.check+' ':'')+msg;btn.classList.toggle('ok',!!ok);clearTimeout(btn._t);btn._t=setTimeout(()=>{btn.innerHTML=btn.dataset.orig;btn.classList.remove('ok')},2000)}
+async function copiarTexto(txt,btn,rotOk){let ok=false;try{await navigator.clipboard.writeText(txt);ok=true}catch(e){try{const ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();ok=document.execCommand('copy');ta.remove()}catch(e2){ok=false}}if(btn)feedback(btn,ok?(rotOk||T(UI.copied)):T(UI.copyManual),ok);return ok}
+async function colarEm(ta,btn){try{const txt=await navigator.clipboard.readText();if(txt&&txt.trim()){const tinha=ta.value.trim().length>0;ta.value=tinha?ta.value.replace(/\s+$/,'')+'\n\n'+txt.trim():txt.trim();ta.dispatchEvent(new Event('input',{bubbles:true}));feedback(btn,tinha?T(UI.pastedEnd):T(UI.pasted),true)}else feedback(btn,T(UI.nothingPaste),false)}catch(e){ta.focus();feedback(btn,T(UI.tapPaste),false)}}
+function baixar(nome,c,tipo){try{const b=new Blob([c],{type:tipo});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=nome;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);return true}catch(e){return false}}
+function miniTools(id,o){let h='<span class="mini-acoes">';if(o.colar)h+=`<button type="button" class="btn ghost mini" data-colar="${id}">${IC.paste} ${T(UI.paste)}</button>`;if(o.copiar)h+=`<button type="button" class="btn ghost mini" data-copiar-mini="${id}">${IC.copy} ${T(UI.copyMini)}</button>`;return h+'</span>'}
+function ligaMiniTools(e){e.querySelectorAll('[data-colar]').forEach(b=>b.addEventListener('click',()=>colarEm(document.getElementById(b.dataset.colar),b)));e.querySelectorAll('[data-copiar-mini]').forEach(b=>b.addEventListener('click',()=>copiarTexto(document.getElementById(b.dataset.copiarMini).value,b)))}
+function textoPromptFinal(p,st){if(p.usarContexto&&(p.contexto||'').trim()){const head=lang==='en'?'My context:':'Meu contexto:';return head+'\n'+p.contexto.trim()+'\n\n---\n\n'+st.prompt}return st.prompt}
+function ondeText(){return store.tipo==='artefato'?T(UI.ondeArtifact):store.tipo==='memoria'?T(UI.ondeMem):T(UI.ondeLocal)}
+
+/* ===== Help callouts ===== */
+function closeCallouts(except){document.querySelectorAll('.callout.open').forEach(c=>{if(c!==except){c.classList.remove('open');const b=document.querySelector(`.help[data-help="${c.id}"]`);if(b)b.setAttribute('aria-expanded','false')}})}
+document.addEventListener('click',e=>{
+  const h=e.target.closest('.help');
+  if(h){const id=h.dataset.help;const c=document.getElementById(id);if(!c)return;const willOpen=!c.classList.contains('open');closeCallouts(c);c.classList.toggle('open',willOpen);h.setAttribute('aria-expanded',willOpen?'true':'false');e.stopPropagation();return}
+  if(!e.target.closest('.callout'))closeCallouts(null);
+});
+
+/* ===== Static i18n ===== */
+function applyStatic(){
+  document.documentElement.lang=lang;
+  document.getElementById('hx-title').textContent=T(UI.title);
+  document.getElementById('hx-sub').textContent=T(UI.sub);
+  document.getElementById('c-how').innerHTML=T(UI.how);
+  document.getElementById('btn-novo').textContent=T(UI.novo);
+  document.getElementById('aviso-mem').textContent=T(UI.avisoMem);
+  document.getElementById('foot-credit').innerHTML=T(UI.footCredit);
+  document.getElementById('btn-exportar').textContent=T(UI.exportar);
+  document.getElementById('btn-importar').textContent=T(UI.importar);
+  document.getElementById('btn-apagar').textContent=T(UI.apagar);
+  const lp=document.getElementById('lnk-priv');if(lp)lp.addEventListener('click',abrirPriv);
+  document.querySelectorAll('#lang-seg button').forEach(b=>b.classList.toggle('on',b.dataset.lang===lang));
+}
+function abrirPriv(){mostrarPriv();}
+
+/* ===== Privacy (inline card at top of content) ===== */
+function privCardHTML(){
+  return `<div class="card" id="priv-card" style="border-left-color:var(--cyan)">
+    <div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);margin-bottom:7px">${T(UI.privT)}</div>
+    <p style="font-size:14px;color:var(--text-soft);line-height:1.65">${T(UI.privBody).replace('{onde}',ondeText())}</p>
+    <div class="acoes"><button class="btn prim" id="btn-priv-ok">${T(UI.privOk)}</button></div>
+  </div>`;
+}
+let privPromptOpen=false;
+function mostrarPriv(){privPromptOpen=true;render();}
+
+/* ===== Helix ===== */
+function helixMarkup(frac){
+  const P=3,amp=7,cy=11,W=100,step=2.5;let a='',b='';
+  for(let x=0;x<=W+.01;x+=step){const s=Math.sin(2*Math.PI*P*x/W)*amp;a+=(x===0?'M':'L')+x.toFixed(1)+' '+(cy+s).toFixed(1)+' ';b+=(x===0?'M':'L')+x.toFixed(1)+' '+(cy-s).toFixed(1)+' '}
+  let r='';for(let k=0;k<P*2;k++){const x=(W/(P*2))*(k+.5);const s=Math.sin(2*Math.PI*P*x/W)*amp;r+=`<line x1="${x.toFixed(1)}" y1="${(cy+s).toFixed(1)}" x2="${x.toFixed(1)}" y2="${(cy-s).toFixed(1)}" vector-effect="non-scaling-stroke"/>`}
+  const cw=(100*frac).toFixed(2);
+  return `<svg viewBox="0 0 100 22" preserveAspectRatio="none"><defs>
+    <linearGradient id="hlxg" x1="0" y1="0" x2="100" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#5FCBF5"/><stop offset="1" stop-color="#1E63D0"/></linearGradient>
+    <clipPath id="hlxc"><rect x="0" y="0" width="${cw}" height="22"/></clipPath></defs>
+    <g stroke="#1C2530" stroke-width="1.3" fill="none"><path d="${a}" vector-effect="non-scaling-stroke"/><path d="${b}" vector-effect="non-scaling-stroke"/><g stroke-width="1.1">${r}</g></g>
+    <g clip-path="url(#hlxc)" stroke="url(#hlxg)" stroke-width="1.7" fill="none"><path d="${a}" vector-effect="non-scaling-stroke"/><path d="${b}" vector-effect="non-scaling-stroke"/><g stroke-width="1.4">${r}</g></g></svg>`;
+}
+
+/* ===== Render ===== */
+const $c=document.getElementById('conteudo');
+function render(){
+  const p=proj();
+  document.getElementById('projeto-bar').hidden=estado.projetos.length===0;
+  document.getElementById('trilha').hidden=!p;
+  document.getElementById('rodape').hidden=false;
+  document.getElementById('btn-apagar').hidden=!p;
+  renderSeletor();
+  let head = (!estado.avisoOk||privPromptOpen)?privCardHTML():'';
+  if(!p){ $c.innerHTML=head+vazioHTML(); ligaVazio(); }
+  else{ renderTrilha(p);
+    if(p.fase===0) $c.innerHTML=head+diagHTML(p), ligaDiag(p);
+    else if(p.fase===4) $c.innerHTML=head+resumoHTML(p), ligaResumo(p);
+    else $c.innerHTML=head+passosHTML(p), ligaPassos(p);
+  }
+  ligaPrivBtn();
+  $c.querySelectorAll('textarea').forEach(ligaAutosize);
+  window.scrollTo({top:0});
+}
+function ligaPrivBtn(){const b=document.getElementById('btn-priv-ok');if(b)b.addEventListener('click',()=>{estado.avisoOk=true;privPromptOpen=false;salvarAgora();render()})}
+function renderSeletor(){document.getElementById('sel-projeto').innerHTML=estado.projetos.map(pr=>`<option value="${pr.id}" ${pr.id===estado.activeId?'selected':''}>${esc(pr.nome)}</option>`).join('')}
+
+function vazioHTML(){return `<div class="vazio"><h2>${T(UI.vazioT)}</h2><p>${T(UI.vazioP)}</p><div class="novo-form"><input id="inp-nome" placeholder="${T(UI.projName)}" maxlength="60"><button class="btn prim" id="btn-criar">${T(UI.iniciar)}</button></div></div>`}
+function ligaVazio(){const criar=()=>{const n=document.getElementById('inp-nome').value.trim();const np=novoProjeto(n||T(UI.noProj));estado.projetos.push(np);estado.activeId=np.id;salvarAgora();render()};const bc=document.getElementById('btn-criar');if(bc)bc.addEventListener('click',criar);const inp=document.getElementById('inp-nome');if(inp)inp.addEventListener('keydown',e=>{if(e.key==='Enter')criar()})}
+
+function progFase(p,n){const ps=PASSOS.filter(s=>s.fase===n);return {done:ps.filter(s=>p.passos[s.id].status!=='pendente').length,total:ps.length}}
+function renderTrilha(p){const box=document.getElementById('trilha-inner');box.innerHTML=`<div class="helix">${helixMarkup(p.fase/4)}</div>`+FASES.map(f=>{const cls=f.n<p.fase?'done':(f.n===p.fase?'atual':'');const m=f.n<p.fase?'✓':(f.n===4?'★':f.n);let fr='';if(f.n>=1&&f.n<=3){const pr=progFase(p,f.n);fr=`<span class="frac">${pr.done}/${pr.total}</span>`}return `<button class="ponto ${cls}" data-fase="${f.n}"><span class="circ">${m}</span><span class="rot">${T(f.rot)}${fr}</span></button>`}).join('');box.querySelectorAll('.ponto').forEach(b=>b.addEventListener('click',()=>{p.fase=parseInt(b.dataset.fase);salvar();render()}))}
+function faseHead(f){return `<div class="fase-head"><h2>${T(f.titulo)}</h2><p>${T(f.desc)}</p></div>`}
+
+function fichaHTML(p){return `<details class="ficha" ${(!p.contexto.trim()&&p.fase===0)?'open':''}>
+  <summary><b>${T(UI.ctxTitle)}</b><span class="tag">${T(UI.ctxTag)}</span></summary>
+  <div class="ficha-corpo"><p class="hint">${T(UI.ctxHint)}</p>
+    <div class="field-lbl"><span></span>${miniTools('ta-ctx',{colar:true,copiar:true})}</div>
+    <textarea id="ta-ctx" class="resposta" placeholder="${esc(T(UI.ctxPh))}"></textarea>
+    <label class="switch"><input type="checkbox" id="chk-ctx"> ${T(UI.attachCtx)}</label></div></details>`}
+function ligaFicha(p){const ta=document.getElementById('ta-ctx'),chk=document.getElementById('chk-ctx');if(!ta)return;ta.value=p.contexto;chk.checked=p.usarContexto;ta.addEventListener('input',()=>{p.contexto=ta.value;salvar()});chk.addEventListener('change',()=>{p.usarContexto=chk.checked;salvarAgora()});ligaMiniTools(ta.closest('details'))}
+
+function diagHTML(p){return faseHead(FASES[0])+fichaHTML(p)+`<div class="quad">`+QUAD.map(q=>`<div class="card"><h3><span>${q.tag}</span>${T(q.q)}</h3>
+  <div class="field"><div class="field-lbl"><span></span>${miniTools('diag-'+q.id,{colar:true,copiar:true})}</div>
+  <textarea id="diag-${q.id}" class="resposta" placeholder="${esc(T(q.ph))}"></textarea></div></div>`).join('')+`</div>
+  <div class="avancar-box"><div class="prog">${T(UI.diagHint)}</div><button class="btn prim" style="width:100%;max-width:340px" id="btn-avancar">${T(UI.finishDiag)}</button></div>`}
+function ligaDiag(p){ligaFicha(p);QUAD.forEach(q=>{const ta=document.getElementById('diag-'+q.id);ta.value=p.diag[q.id]||'';ta.addEventListener('input',()=>{p.diag[q.id]=ta.value;salvar()})});ligaMiniTools($c);const b=document.getElementById('btn-avancar');if(b)b.addEventListener('click',()=>{p.fase=1;salvarAgora();render()})}
+
+function passosHTML(p){const f=FASES[p.fase],passos=PASSOS.filter(s=>s.fase===p.fase);return faseHead(f)+fichaHTML(p)+passos.map(s=>{const st=p.passos[s.id];const vars=s.vars.length>1?`<div class="vars">${s.vars.map((v,i)=>`<button type="button" class="var-chip ${st.prompt===v.txt[lang]?'on':''}" data-var="${i}">${T(v.rot)}</button>`).join('')}</div>`:'';const sl=st.status==='feito'?T(UI.stDone):st.status==='pulado'?T(UI.stSkip):T(UI.stPend);return `<div class="card" data-passo="${s.id}" data-status="${st.status}">
+  <div class="card-top"><span class="passo-num">${T(s.num)}</span><span class="chip ${st.status}">${sl}</span><button class="help" data-help="c-${s.id}" aria-expanded="false">?</button></div>
+  <h3>${T(s.titulo)}</h3><div class="callout" id="c-${s.id}">${T(s.quando)}</div>${vars}
+  <div class="field"><div class="field-lbl"><span>${T(UI.promptLabel)}</span>${miniTools('pr-'+s.id,{colar:true})}</div>
+    <textarea id="pr-${s.id}" class="prompt" data-prompt></textarea>
+    <div class="acoes full" style="margin-top:12px"><button class="btn copiar" data-copiar>${IC.copy} ${T(UI.copyPrompt)}</button></div></div>
+  <div class="field"><div class="field-lbl"><span>${T(UI.answerLabel)}</span>${miniTools('re-'+s.id,{colar:true,copiar:true})}</div>
+    <textarea id="re-${s.id}" class="resposta" data-resposta placeholder="${esc(T(UI.answerPh))}"></textarea></div>
+  <div class="row2"><button class="btn ${st.status==='feito'?'moss':'ghost'}" data-feito>${st.status==='feito'?T(UI.undone):T(UI.markDone)}</button>
+    <button class="btn ghost" data-pular>${st.status==='pulado'?T(UI.resume):T(UI.skip)}</button></div></div>`}).join('')+avancarHTML(p,passos)}
+function ligaPassos(p){const passos=PASSOS.filter(s=>s.fase===p.fase);ligaFicha(p);passos.forEach(s=>{const card=$c.querySelector(`[data-passo="${s.id}"]`),st=p.passos[s.id];const taP=card.querySelector('[data-prompt]'),taR=card.querySelector('[data-resposta]');taP.value=st.prompt;taR.value=st.resposta;taP.addEventListener('input',()=>{st.prompt=taP.value;salvar();card.querySelectorAll('.var-chip').forEach((c,i)=>c.classList.toggle('on',s.vars[i].txt[lang]===taP.value))});taR.addEventListener('input',()=>{st.resposta=taR.value;salvar()});card.querySelectorAll('.var-chip').forEach((c,i)=>c.addEventListener('click',()=>{st.prompt=s.vars[i].txt[lang];taP.value=st.prompt;autosize(taP);salvar();card.querySelectorAll('.var-chip').forEach((x,j)=>x.classList.toggle('on',j===i))}));card.querySelector('[data-copiar]').addEventListener('click',e=>{const cc=p.usarContexto&&(p.contexto||'').trim();copiarTexto(textoPromptFinal(p,st),e.currentTarget,cc?T(UI.copiedCtx):T(UI.copied))});card.querySelector('[data-feito]').addEventListener('click',()=>{st.status=st.status==='feito'?'pendente':'feito';salvarAgora();render()});card.querySelector('[data-pular]').addEventListener('click',()=>{st.status=st.status==='pulado'?'pendente':'pulado';salvarAgora();render()})});ligaMiniTools($c);ligaAvancar(p)}
+function avancarHTML(p,passos){const done=passos.filter(s=>p.passos[s.id].status!=='pendente').length;const prox=FASES[p.fase+1],ant=FASES[p.fase-1];return `<div class="avancar-box"><div class="prog">${fmt(T(UI.stepsResolved),done,passos.length)}</div><div class="nav-fase"><button class="btn ghost back" id="btn-voltar">←</button><button class="btn ${done===passos.length?'prim':'ghost'}" id="btn-avancar">${fmt(T(UI.advance),T(prox.rot))}</button></div></div>`}
+function ligaAvancar(p){const b=document.getElementById('btn-avancar'),v=document.getElementById('btn-voltar');if(b)b.addEventListener('click',()=>{p.fase=Math.min(4,p.fase+1);salvarAgora();render()});if(v)v.addEventListener('click',()=>{p.fase=Math.max(0,p.fase-1);salvarAgora();render()})}
+
+function gerarMarkdown(p){const d=new Date();const L=[`# ${T(UI.summaryHead)} — ${p.nome}`,``,fmt(T(UI.genOn),d.toLocaleDateString(lang==='en'?'en-US':'pt-BR'))];if((p.contexto||'').trim())L.push(``,`## ${T(UI.contextHead)}`,``,p.contexto.trim());L.push(``,`## ${T(UI.diagHead)}`);QUAD.forEach(q=>{if((p.diag[q.id]||'').trim())L.push(``,`**${q.tag}** — ${T(q.q)}`,p.diag[q.id].trim())});[1,2,3].forEach(n=>{const f=FASES[n],ps=PASSOS.filter(s=>s.fase===n);L.push(``,`## ${T(f.titulo)}`);ps.forEach(s=>{const st=p.passos[s.id];if(st.status==='pulado'&&!st.resposta.trim()){L.push(``,`### ${T(s.titulo)} — ${T(UI.stSkip)}`);return}const sl=st.status==='feito'?T(UI.stDone):st.status==='pulado'?T(UI.stSkip):T(UI.stPend);L.push(``,`### ${T(s.titulo)} — ${sl}`);if(st.prompt.trim()&&st.status!=='pendente')L.push(``,`**${T(UI.promptUsed)}**`,'```',st.prompt.trim(),'```');if(st.resposta.trim())L.push(``,`**${T(UI.respNotes)}**`,st.resposta.trim())})});return L.join('\n')}
+function resumoHTML(p){const t=PASSOS.map(s=>p.passos[s.id]);const fe=t.filter(s=>s.status==='feito').length,pu=t.filter(s=>s.status==='pulado').length;return faseHead(FASES[4])+`<div class="stats"><div class="stat"><b>${fe}</b><span>${T(UI.statDone)}</span></div><div class="stat"><b>${pu}</b><span>${T(UI.statSkip)}</span></div><div class="stat"><b>${t.length-fe-pu}</b><span>${T(UI.statPend)}</span></div></div>
+  <div class="card"><h3>${T(UI.exportMd)}</h3><p style="color:var(--text-soft);font-size:14px;margin-top:8px">${T(UI.exportMdDesc)}</p>
+  <div class="acoes" style="margin-top:14px"><button class="btn prim" id="btn-gerar">${T(UI.genSummary)}</button><button class="btn copiar" id="btn-copiar-md" disabled>${IC.copy} ${T(UI.copy)}</button><button class="btn ghost" id="btn-baixar-md" disabled>${IC.down} ${T(UI.downloadMd)}</button></div>
+  <div class="field"><textarea id="saida-md" readonly placeholder="${esc(T(UI.mdPh))}"></textarea></div>
+  <p class="nota">${T(UI.nota)}</p></div>`}
+function ligaResumo(p){const ta=document.getElementById('saida-md'),bC=document.getElementById('btn-copiar-md'),bB=document.getElementById('btn-baixar-md');document.getElementById('btn-gerar').addEventListener('click',()=>{ta.value=gerarMarkdown(p);ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight+2,460)+'px';bC.disabled=false;bB.disabled=false});bC.addEventListener('click',e=>copiarTexto(ta.value,e.currentTarget,T(UI.summaryCopied)));bB.addEventListener('click',e=>{const ok=baixar(`summary-${slug(p.nome)}.md`,ta.value||gerarMarkdown(p),'text/markdown');feedback(e.currentTarget,ok?T(UI.downloaded):T(UI.useCopy),ok)});ta.addEventListener('click',()=>ta.select())}
+
+/* ===== Top-level ===== */
+document.getElementById('sel-projeto').addEventListener('change',e=>{estado.activeId=e.target.value;salvarAgora();render()});
+document.getElementById('btn-novo').addEventListener('click',()=>{const n=window.prompt?window.prompt(T(UI.promptNew)):null;if(n===null&&window.prompt)return;const np=novoProjeto((n||'').trim()||T(UI.noProj));estado.projetos.push(np);estado.activeId=np.id;salvarAgora();render()});
+document.getElementById('btn-apagar').addEventListener('click',()=>{const p=proj();if(!p)return;const ok=window.confirm?window.confirm(fmt(T(UI.confirmDelete),p.nome)):true;if(!ok)return;estado.projetos=estado.projetos.filter(x=>x.id!==p.id);estado.activeId=estado.projetos.length?estado.projetos[0].id:null;salvarAgora();render()});
+document.getElementById('btn-exportar').addEventListener('click',e=>{const d=new Date().toISOString().slice(0,10);const ok=baixar(`unknowns-backup-${d}.json`,JSON.stringify(estado,null,2),'application/json');if(!ok)copiarTexto(JSON.stringify(estado),e.currentTarget,T(UI.backupCopied));else feedback(e.currentTarget,T(UI.backupDown),true)});
+document.getElementById('btn-importar').addEventListener('click',()=>document.getElementById('inp-importar').click());
+document.getElementById('inp-importar').addEventListener('change',e=>{const arq=e.target.files&&e.target.files[0];e.target.value='';if(!arq)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!o||!Array.isArray(o.projetos))throw 0;const ok=window.confirm?window.confirm(T(UI.confirmImport)):true;if(!ok)return;estado=o;migrar();lang=estado.lang||lang;if(!estado.projetos.find(p=>p.id===estado.activeId))estado.activeId=estado.projetos.length?estado.projetos[0].id:null;salvarAgora();applyStatic();render();document.getElementById('salvo').textContent=T(UI.backupImported)}catch(err){document.getElementById('salvo').textContent=T(UI.invalidFile)}};r.readAsText(arq)});
+document.getElementById('lang-seg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const nl=b.dataset.lang;if(nl===lang)return;lang=nl;estado.lang=nl;salvarAgora();applyStatic();render()});
+
+(async function(){await carregar();applyStatic();render()})();
+</script>
+</body>
+</html>
