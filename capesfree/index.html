@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Periódicos sem APC — Acordos Transformativos da CAPES</title>
+<meta name="description" content="Ferramenta independente para encontrar o periódico de maior fator de impacto onde autores brasileiros podem publicar em acesso aberto sem pagar APC, pelos acordos transformativos da CAPES. Criada por Helder Nakaya.">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+
+<!-- Open Graph -->
+<meta property="og:title" content="Periódicos sem APC — Acordos Transformativos da CAPES">
+<meta property="og:description" content="Encontre o periódico de maior fator de impacto para publicar em acesso aberto sem pagar taxa (APC), pelos acordos da CAPES. Ferramenta independente por Helder Nakaya.">
+<meta property="og:image" content="https://toolhub.hylix.app/assets/capesfree_card.png">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://toolhub.hylix.app/capesfree/">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f6f4ee;            /* warm off-white background */
+    --paper-2:#efece3;
+    --card:#ffffff;
+    --ink:#20272f;             /* near-black slate */
+    --ink-soft:#3c4650;
+    --muted:#6b7480;
+    --line:#e4e0d6;            /* warm hairline */
+    --line-2:#d8d3c6;
+    --capes-blue:#0f7bb0;      /* eye/oval blue */
+    --capes-blue-deep:#0b5f88;
+    --capes-green:#2f9e3f;     /* the green dot */
+    --capes-green-deep:#237a30;
+    --amber:#c98a3c;
+    --shadow:0 1px 2px rgba(30,40,50,.05), 0 8px 24px rgba(30,40,50,.06);
+    --shadow-lg:0 10px 40px rgba(20,30,40,.10);
+    --radius:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:radial-gradient(1200px 600px at 80% -10%, #fbfaf6 0%, rgba(251,250,246,0) 60%),
+                     radial-gradient(1000px 500px at -10% 0%, #f0f5f2 0%, rgba(240,245,242,0) 55%);
+    color:var(--ink);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.55;
+  }
+  a{color:var(--capes-blue-deep);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px;}
+
+  /* ---------- Top bar ---------- */
+  header.top{
+    position:sticky;top:0;z-index:50;
+    background:rgba(246,244,238,.86);
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--line);
+  }
+  .top-inner{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:12px 0;}
+  .brand{display:flex;align-items:center;gap:14px;min-width:0;}
+  .brand img{height:44px;width:auto;flex:none;}
+  .brand .divider{width:1px;height:34px;background:var(--line-2);flex:none;}
+  .brand .titles{min-width:0;}
+  .brand .titles h1{
+    font-family:'Fraunces',Georgia,serif;
+    font-weight:600;font-size:1.12rem;line-height:1.15;margin:0;letter-spacing:-.01em;
+    color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .brand .titles span{font-size:.74rem;color:var(--muted);display:block;margin-top:1px;}
+  .nav{display:flex;align-items:center;gap:8px;flex:none;}
+  .btn{
+    display:inline-flex;align-items:center;gap:7px;
+    padding:8px 14px;border-radius:999px;font-size:.82rem;font-weight:500;
+    border:1px solid var(--line-2);background:#fff;color:var(--ink-soft);
+    cursor:pointer;transition:all .18s ease;white-space:nowrap;
+  }
+  .btn:hover{border-color:var(--capes-blue);color:var(--capes-blue-deep);text-decoration:none;box-shadow:var(--shadow);}
+  .btn.primary{background:var(--capes-blue);border-color:var(--capes-blue);color:#fff;}
+  .btn.primary:hover{background:var(--capes-blue-deep);color:#fff;}
+  .btn svg{width:15px;height:15px;}
+
+  /* ---------- Disclaimer ribbon ---------- */
+  .ribbon{
+    background:linear-gradient(0deg,#fbf7ec,#fdfbf4);
+    border-bottom:1px solid var(--line);
+    font-size:.79rem;color:var(--ink-soft);
+  }
+  .ribbon .wrap{display:flex;align-items:center;gap:10px;padding:8px 22px;}
+  .ribbon b{color:var(--ink);font-weight:600;}
+  .ribbon .dot{width:7px;height:7px;border-radius:50%;background:var(--capes-green);flex:none;}
+
+  /* ---------- Hero ---------- */
+  .hero{padding:46px 0 26px;}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:.76rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--capes-green-deep);background:rgba(47,158,63,.08);
+    padding:5px 12px;border-radius:999px;margin-bottom:16px;
+  }
+  .hero h2{
+    font-family:'Fraunces',Georgia,serif;
+    font-weight:600;font-size:clamp(1.9rem,4.4vw,3.05rem);line-height:1.06;
+    letter-spacing:-.02em;margin:0 0 14px;max-width:16ch;color:var(--ink);
+  }
+  .hero h2 em{font-style:italic;color:var(--capes-blue-deep);}
+  .hero p.lead{font-size:1.06rem;color:var(--ink-soft);max-width:60ch;margin:0 0 26px;}
+  .hero p.lead b{color:var(--ink);font-weight:600;}
+
+  .stats{display:flex;flex-wrap:wrap;gap:14px;}
+  .stat{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:14px 18px;min-width:132px;box-shadow:var(--shadow);
+  }
+  .stat .num{font-family:'Fraunces',serif;font-weight:600;font-size:1.6rem;line-height:1;color:var(--ink);}
+  .stat .num small{font-size:.9rem;color:var(--muted);font-family:'Inter';font-weight:500;}
+  .stat .lab{font-size:.76rem;color:var(--muted);margin-top:5px;}
+
+  /* ---------- Section shell ---------- */
+  section.block{padding:26px 0;}
+  .sec-head{margin-bottom:16px;}
+  .sec-head h3{
+    font-family:'Fraunces',serif;font-weight:600;font-size:1.42rem;margin:0 0 5px;letter-spacing:-.01em;color:var(--ink);
+  }
+  .sec-head p{margin:0;color:var(--muted);font-size:.92rem;max-width:70ch;}
+
+  /* ---------- Visualization ---------- */
+  .viz-card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:18px 16px 8px;overflow:hidden;
+  }
+  .viz-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px;padding:0 4px;}
+  .viz-legend{display:flex;flex-wrap:wrap;gap:5px 12px;}
+  .lg{display:inline-flex;align-items:center;gap:6px;font-size:.76rem;color:var(--ink-soft);cursor:pointer;
+      padding:3px 7px;border-radius:8px;transition:background .15s;user-select:none;}
+  .lg:hover{background:var(--paper-2);}
+  .lg.off{opacity:.32;}
+  .lg i{width:10px;height:10px;border-radius:50%;flex:none;}
+  .viz-actions{display:flex;align-items:center;gap:8px;}
+  .chk{display:inline-flex;align-items:center;gap:7px;font-size:.8rem;color:var(--ink-soft);cursor:pointer;user-select:none;}
+  .chk input{accent-color:var(--capes-green);width:15px;height:15px;}
+  .canvas-holder{position:relative;width:100%;}
+  #beeswarm{display:block;width:100%;}
+  .viz-tip{
+    position:absolute;pointer-events:none;z-index:20;opacity:0;transform:translateY(4px);
+    background:var(--ink);color:#fff;border-radius:10px;padding:9px 11px;font-size:.78rem;
+    box-shadow:var(--shadow-lg);max-width:260px;transition:opacity .12s;line-height:1.4;
+  }
+  .viz-tip .t-name{font-weight:600;margin-bottom:2px;}
+  .viz-tip .t-if{color:#8fe0a0;font-weight:600;}
+  .viz-tip .t-meta{color:#c7ccd2;font-size:.72rem;margin-top:3px;}
+  .viz-foot{font-size:.75rem;color:var(--muted);padding:6px 6px 8px;text-align:center;}
+
+  /* ---------- Search & filters ---------- */
+  .controls{
+    position:sticky;top:69px;z-index:40;
+    background:rgba(246,244,238,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:14px;margin-bottom:18px;
+  }
+  .search-row{display:flex;gap:10px;align-items:center;}
+  .search-box{position:relative;flex:1;min-width:0;}
+  .search-box svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--muted);}
+  .search-box input{
+    width:100%;padding:13px 14px 13px 42px;border-radius:11px;border:1px solid var(--line-2);
+    font-size:.98rem;font-family:inherit;color:var(--ink);background:#fff;transition:border .15s,box-shadow .15s;
+  }
+  .search-box input:focus{outline:none;border-color:var(--capes-blue);box-shadow:0 0 0 3px rgba(15,123,176,.14);}
+  .clearx{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:none;background:var(--paper-2);
+    color:var(--muted);width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:14px;line-height:1;display:none;}
+  .filters{display:flex;flex-wrap:wrap;gap:10px;margin-top:11px;align-items:center;}
+  .selectwrap{position:relative;}
+  select.filt{
+    appearance:none;-webkit-appearance:none;font-family:inherit;font-size:.83rem;color:var(--ink-soft);
+    background:#fff;border:1px solid var(--line-2);border-radius:9px;padding:9px 30px 9px 12px;cursor:pointer;
+    transition:border .15s;max-width:230px;
+  }
+  select.filt:focus{outline:none;border-color:var(--capes-blue);}
+  .selectwrap::after{content:"";position:absolute;right:12px;top:50%;width:7px;height:7px;border-right:2px solid var(--muted);
+    border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none;}
+  .filters .spacer{flex:1;}
+  .result-count{font-size:.83rem;color:var(--muted);white-space:nowrap;}
+  .result-count b{color:var(--ink);font-weight:600;}
+  .chip-toggle{display:inline-flex;align-items:center;gap:7px;font-size:.82rem;color:var(--ink-soft);
+    border:1px solid var(--line-2);background:#fff;border-radius:9px;padding:8px 12px;cursor:pointer;user-select:none;}
+  .chip-toggle input{accent-color:var(--capes-green);}
+
+  /* active area filter tag */
+  .active-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px;}
+  .active-tags:empty{display:none;}
+  .atag{display:inline-flex;align-items:center;gap:7px;font-size:.78rem;background:var(--paper-2);
+    border:1px solid var(--line-2);border-radius:999px;padding:5px 8px 5px 11px;color:var(--ink-soft);}
+  .atag b{color:var(--ink);font-weight:600;}
+  .atag button{border:none;background:none;cursor:pointer;color:var(--muted);font-size:15px;line-height:1;padding:0 2px;}
+  .atag button:hover{color:var(--capes-blue-deep);}
+
+  /* ---------- Results ---------- */
+  .results-head{
+    display:grid;grid-template-columns:56px 1fr 132px 118px 150px;gap:14px;align-items:center;
+    padding:6px 18px;font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;
+  }
+  .results-head .sortable{cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:4px;}
+  .results-head .sortable:hover{color:var(--capes-blue-deep);}
+  .results-head .arrow{font-size:.7rem;}
+  .rlist{display:flex;flex-direction:column;gap:9px;}
+  .row{
+    display:grid;grid-template-columns:56px 1fr 132px 118px 150px;gap:14px;align-items:center;
+    background:var(--card);border:1px solid var(--line);border-radius:13px;padding:13px 18px;
+    box-shadow:var(--shadow);transition:transform .12s ease,box-shadow .12s ease,border-color .12s;
+  }
+  .row:hover{transform:translateY(-1px);box-shadow:var(--shadow-lg);border-color:var(--line-2);}
+  .rank{font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;color:var(--muted);text-align:center;}
+  .rank.top{color:var(--capes-green-deep);}
+  .jname{min-width:0;}
+  .jname a{font-weight:600;color:var(--ink);font-size:.98rem;}
+  .jname a:hover{color:var(--capes-blue-deep);}
+  .jname .jmeta{font-size:.78rem;color:var(--muted);margin-top:3px;display:flex;flex-wrap:wrap;gap:5px 10px;}
+  .jname .area-chip{display:inline-flex;align-items:center;gap:5px;}
+  .jname .area-chip i{width:8px;height:8px;border-radius:50%;flex:none;}
+  .if-cell{text-align:center;}
+  .if-badge{
+    display:inline-flex;flex-direction:column;align-items:center;justify-content:center;
+    min-width:64px;padding:6px 10px;border-radius:10px;background:rgba(47,158,63,.10);border:1px solid rgba(47,158,63,.22);
+  }
+  .if-badge .v{font-family:'Fraunces',serif;font-weight:600;font-size:1.16rem;line-height:1;color:var(--capes-green-deep);}
+  .if-badge .k{font-size:.62rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-top:3px;}
+  .if-badge.none{background:var(--paper-2);border-color:var(--line-2);}
+  .if-badge.none .v{color:var(--muted);font-size:1rem;}
+  .q-chip{display:inline-flex;align-items:center;justify-content:center;font-size:.76rem;font-weight:600;
+    padding:5px 10px;border-radius:8px;min-width:40px;}
+  .q1{background:rgba(47,158,63,.14);color:#1f7a2c;}
+  .q2{background:rgba(15,123,176,.13);color:#0b5f88;}
+  .q3{background:rgba(201,138,60,.15);color:#9a6420;}
+  .q4{background:rgba(120,128,138,.14);color:#59616b;}
+  .q0{color:var(--muted);font-weight:500;}
+  .acordo-cell{font-size:.82rem;color:var(--ink-soft);}
+  .acordo-cell .amod{font-size:.72rem;color:var(--muted);margin-top:2px;}
+  .loadmore{display:flex;justify-content:center;padding:22px 0 6px;}
+  .empty{text-align:center;padding:56px 20px;color:var(--muted);}
+  .empty svg{width:40px;height:40px;color:var(--line-2);margin-bottom:12px;}
+
+  /* ---------- Footer ---------- */
+  footer.foot{border-top:1px solid var(--line);margin-top:40px;padding:34px 0 60px;background:var(--paper-2);}
+  .foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:30px;}
+  .foot h4{font-family:'Fraunces',serif;font-size:1rem;margin:0 0 10px;color:var(--ink);}
+  .foot p,.foot li{font-size:.83rem;color:var(--ink-soft);}
+  .foot ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:7px;}
+  .foot .made{font-size:.82rem;color:var(--muted);margin-top:18px;padding-top:16px;border-top:1px solid var(--line);}
+  .foot .made b{color:var(--ink);}
+  .disclaimer-box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:.82rem;color:var(--ink-soft);}
+  .disclaimer-box b{color:var(--ink);}
+
+  /* ---------- Responsive ---------- */
+  @media(max-width:820px){
+    .results-head{display:none;}
+    .row{grid-template-columns:44px 1fr auto;grid-template-areas:"rank name if" "rank meta if";row-gap:6px;}
+    .row .rank{grid-area:rank;}
+    .row .jname{grid-area:name;}
+    .row .if-cell{grid-area:if;}
+    .row .q-cell,.row .acordo-cell{display:none;}
+    .brand .titles span{display:none;}
+    .foot-grid{grid-template-columns:1fr;gap:22px;}
+    .filters .spacer{display:none;}
+    .controls{top:63px;}
+  }
+  @media(max-width:520px){
+    .brand img{height:36px;}
+    .brand .titles h1{font-size:.98rem;white-space:normal;}
+    .nav .lab-hide{display:none;}
+    .hero{padding:32px 0 18px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ======= TOP BAR ======= -->
+<header class="top">
+  <div class="wrap top-inner">
+    <div class="brand">
+      <img src="logo-capes.png" alt="Logo CAPES">
+      <div class="divider"></div>
+      <div class="titles">
+        <h1>Periódicos sem APC</h1>
+        <span>Acordos transformativos da CAPES · buscador independente</span>
+      </div>
+    </div>
+    <nav class="nav">
+      <a class="btn" href="https://toolhub.hylix.app/">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="lab-hide">ToolHub</span>
+      </a>
+      <a class="btn primary" href="https://hylix.app/">hylix.app</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ======= DISCLAIMER RIBBON ======= -->
+<div class="ribbon">
+  <div class="wrap">
+    <span class="dot"></span>
+    <span><b>Ferramenta independente criada por Helder Nakaya.</b> Não é um site oficial e não tem vínculo com a CAPES. Dados compilados de listas públicas das editoras e do Portal de Periódicos da CAPES.</span>
+  </div>
+</div>
+
+<!-- ======= HERO ======= -->
+<div class="wrap">
+  <section class="hero">
+    <span class="kicker">Publique em acesso aberto · sem pagar taxa</span>
+    <h2>Encontre o melhor periódico para publicar <em>sem APC</em></h2>
+    <p class="lead">
+      Os acordos transformativos da CAPES permitem que autores de instituições participantes publiquem em
+      <b>acesso aberto sem pagar a taxa de processamento de artigo (APC)</b> em milhares de periódicos.
+      Busque por nome, área ou editora e veja tudo <b>ranqueado pelo fator de impacto (JIF)</b>.
+    </p>
+    <div class="stats" id="statStrip"><!-- filled by JS --></div>
+  </section>
+</div>
+
+<!-- ======= VISUALIZATION ======= -->
+<div class="wrap">
+  <section class="block">
+    <div class="sec-head">
+      <h3>Panorama por área e fator de impacto</h3>
+      <p>Cada ponto é um periódico, posicionado pelo seu fator de impacto (JIF) e agrupado por grande área. Clique numa área para filtrar a lista abaixo.</p>
+    </div>
+    <div class="viz-card">
+      <div class="viz-toolbar">
+        <div class="viz-legend" id="vizLegend"></div>
+        <div class="viz-actions">
+          <button class="btn" id="replayBtn" title="Refazer animação">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M23 4v6h-6M1 20v-6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Animar
+          </button>
+        </div>
+      </div>
+      <div class="canvas-holder">
+        <canvas id="beeswarm"></canvas>
+        <div class="viz-tip" id="vizTip"></div>
+      </div>
+      <div class="viz-foot" id="vizFoot">Passe o mouse sobre um ponto para ver o periódico. O losango marca o fator de impacto mediano de cada área.</div>
+    </div>
+  </section>
+</div>
+
+<!-- ======= SEARCH + RESULTS ======= -->
+<div class="wrap">
+  <section class="block" id="resultsBlock">
+    <div class="sec-head">
+      <h3>Buscar periódicos</h3>
+      <p>Ordenados do maior para o menor fator de impacto. Periódicos sem JIF localizado aparecem por último.</p>
+    </div>
+
+    <div class="controls">
+      <div class="search-row">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input id="search" type="text" placeholder="Busque por periódico, área ou editora…" autocomplete="off" spellcheck="false">
+          <button class="clearx" id="clearBtn" title="Limpar">✕</button>
+        </div>
+      </div>
+      <div class="filters">
+        <div class="selectwrap"><select class="filt" id="fAcordo"><option value="">Todos os acordos</option></select></div>
+        <div class="selectwrap"><select class="filt" id="fArea"><option value="">Todas as áreas</option></select></div>
+        <div class="selectwrap"><select class="filt" id="fQuartil">
+          <option value="">Todos os quartis</option><option value="Q1">Q1</option><option value="Q2">Q2</option><option value="Q3">Q3</option><option value="Q4">Q4</option>
+        </select></div>
+        <label class="chip-toggle"><input type="checkbox" id="fComIF"> Somente com JIF</label>
+        <span class="spacer"></span>
+        <span class="result-count" id="resultCount"></span>
+      </div>
+      <div class="active-tags" id="activeTags"></div>
+    </div>
+
+    <div class="results-head">
+      <div style="text-align:center">#</div>
+      <div>Periódico</div>
+      <div class="sortable" id="sortIF" style="text-align:center">Fator de impacto <span class="arrow" id="ifArrow">▼</span></div>
+      <div style="text-align:center">Quartil</div>
+      <div>Acordo</div>
+    </div>
+    <div class="rlist" id="rlist"></div>
+    <div class="loadmore" id="loadMoreWrap"></div>
+  </section>
+</div>
+
+<!-- ======= FOOTER ======= -->
+<footer class="foot">
+  <div class="wrap foot-grid">
+    <div>
+      <h4>Sobre esta ferramenta</h4>
+      <div class="disclaimer-box">
+        <b>Este é um projeto independente</b>, desenvolvido por <b>Helder Nakaya</b> para facilitar a vida de
+        pesquisadores brasileiros. <b>Não é um serviço oficial da CAPES</b> nem possui qualquer vínculo institucional
+        com a Fundação. Sempre confirme a elegibilidade e as condições vigentes nas fontes oficiais antes de submeter.
+      </div>
+      <p class="made">Feito por <b>Helder Nakaya</b> · parte do <a href="https://toolhub.hylix.app/">Hylix ToolHub</a></p>
+    </div>
+    <div>
+      <h4>Metodologia</h4>
+      <ul id="methodList"></ul>
+    </div>
+    <div>
+      <h4>Links úteis</h4>
+      <ul>
+        <li><a href="https://www.periodicos.capes.gov.br/index.php/acessoaberto/acordos-transformativos.html" target="_blank" rel="noopener">Acordos transformativos · Portal CAPES ↗</a></li>
+        <li><a href="base_periodicos_acordos_capes_2026.xlsx" download>Baixar a base completa (.xlsx) ↓</a></li>
+        <li><a href="https://toolhub.hylix.app/">← Voltar ao ToolHub</a></li>
+        <li><a href="https://hylix.app/">hylix.app ↗</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   Periódicos sem APC — Acordos Transformativos da CAPES
+   Ferramenta independente por Helder Nakaya
+   ============================================================ */
+const AREA_COLORS = {
+  "Ciências da Vida":"#3f9161",
+  "Ciências Físicas":"#2f74a8",
+  "Medicina e Saúde":"#c05e5e",
+  "Ciências Sociais e Comportamentais":"#c98a3c",
+  "Negócios e Economia":"#7d8a3f",
+  "Ciências da Terra e Ambientais":"#3f9d8e",
+  "Matemática e Estatística":"#6b7f9e",
+  "Química":"#b06a3a",
+  "Engenharia":"#8a6d4f",
+  "Humanidades":"#a86f78",
+  "Computação":"#3d8091",
+  "Ciência dos Materiais":"#977f3f",
+  "Outros / Multidisciplinar":"#8a9098"
+};
+const KEYMAP = {n:"name",ac:"acordo",ed:"editora",ar:"area",cp:"campo",su:"sub",if:"jif",i5:"jif5",q:"quartil",y:"ano",is:"issn",ei:"eissn",md:"modelo",apc:"apc",u:"url"};
+
+let DATA=null, ROWS=[], AREAS=[], hiddenAreas=new Set(), state={q:"",acordo:"",area:"",quartil:"",comIF:false,sortDir:"desc"};
+let filtered=[], renderedCount=0, BATCH=40;
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+const fmtNum=n=>n.toLocaleString("pt-BR");
+const norm=s=>(s||"").toString().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+
+/* ---------- Load ---------- */
+fetch("data.json").then(r=>r.json()).then(d=>{
+  DATA=d;
+  ROWS=d.rows.map(o=>{const x={};for(const k in o)x[KEYMAP[k]||k]=o[k];x._s=norm([x.name,x.area,x.editora,x.campo,x.sub].join(" "));return x;});
+  AREAS=d.areas.slice();
+  boot();
+}).catch(e=>{
+  $("#rlist").innerHTML='<div class="empty">Não foi possível carregar a base de dados. Recarregue a página.</div>';
+  console.error(e);
+});
+
+function boot(){
+  buildStats(); buildFilters(); buildLegend(); buildMethod();
+  applyFilters();
+  buildBeeswarm();
+  wireEvents();
+}
+
+/* ---------- Stats strip ---------- */
+function buildStats(){
+  const m=DATA.meta;
+  const items=[
+    [fmtNum(m.total),"periódicos elegíveis"],
+    [fmtNum(m.comIF),"com fator de impacto"],
+    [DATA.acordos.length,"acordos vigentes"],
+    [m.maxIF.toString().replace(".",",")+"<small> JIF máx.</small>","maior fator de impacto"]
+  ];
+  $("#statStrip").innerHTML=items.map(([n,l])=>`<div class="stat"><div class="num">${n}</div><div class="lab">${l}</div></div>`).join("");
+}
+
+/* ---------- Filters ---------- */
+function buildFilters(){
+  const fa=$("#fAcordo");
+  DATA.acordos.forEach(a=>fa.insertAdjacentHTML("beforeend",`<option value="${a.name}">${a.name} (${fmtNum(a.count)})</option>`));
+  const fr=$("#fArea");
+  AREAS.slice().sort((a,b)=>a.name.localeCompare(b.name,"pt")).forEach(a=>fr.insertAdjacentHTML("beforeend",`<option value="${a.name}">${a.name} (${fmtNum(a.count)})</option>`));
+}
+
+function buildMethod(){
+  const m=DATA.meta;
+  const li=[
+    `Compilado em <b>${m.compiladoEm}</b>.`,
+    `Fator de impacto: <b>${m.fonteJIF}</b>.`,
+    `<b>${fmtNum(m.total)}</b> periódicos · <b>${fmtNum(m.comIF)}</b> com JIF · <b>${fmtNum(m.semIF)}</b> sem JIF localizado.`,
+    `Acordos: ${DATA.acordos.map(a=>a.name).join(", ")}.`
+  ];
+  $("#methodList").innerHTML=li.map(t=>`<li>${t}</li>`).join("");
+}
+
+/* ---------- Filtering & sorting ---------- */
+function applyFilters(){
+  const q=norm(state.q);
+  filtered=ROWS.filter(r=>{
+    if(state.acordo && r.acordo!==state.acordo) return false;
+    if(state.area && r.area!==state.area) return false;
+    if(state.quartil && r.quartil!==state.quartil) return false;
+    if(state.comIF && r.jif==null) return false;
+    if(q && !r._s.includes(q)) return false;
+    return true;
+  });
+  filtered.sort((a,b)=>{
+    const av=a.jif, bv=b.jif;
+    if(av==null && bv==null) return a.name.localeCompare(b.name,"pt");
+    if(av==null) return 1;
+    if(bv==null) return -1;
+    return state.sortDir==="desc"? bv-av : av-bv;
+  });
+  renderedCount=0;
+  $("#rlist").innerHTML="";
+  renderMore();
+  updateCount();
+  renderActiveTags();
+}
+
+function updateCount(){
+  const withIF=filtered.filter(r=>r.jif!=null).length;
+  $("#resultCount").innerHTML=`<b>${fmtNum(filtered.length)}</b> periódicos · ${fmtNum(withIF)} com JIF`;
+}
+
+function qClass(q){return q==="Q1"?"q1":q==="Q2"?"q2":q==="Q3"?"q3":q==="Q4"?"q4":"q0";}
+
+function renderMore(){
+  const slice=filtered.slice(renderedCount, renderedCount+BATCH);
+  const frag=document.createDocumentFragment();
+  slice.forEach((r,i)=>{
+    const rank=renderedCount+i+1;
+    const color=AREA_COLORS[r.area]||"#8a9098";
+    const el=document.createElement("div");
+    el.className="row";
+    const ifHtml = r.jif!=null
+      ? `<div class="if-badge"><span class="v">${r.jif.toString().replace(".",",")}</span><span class="k">JIF${r.jif5!=null?" · "+r.jif5.toString().replace(".",","):""}</span></div>`
+      : `<div class="if-badge none"><span class="v">—</span><span class="k">sem JIF</span></div>`;
+    const nameHtml = r.url ? `<a href="${r.url}" target="_blank" rel="noopener">${r.name}</a>` : `<a>${r.name}</a>`;
+    el.innerHTML=`
+      <div class="rank ${rank<=3&&r.jif!=null?'top':''}">${r.jif!=null?rank:'·'}</div>
+      <div class="jname">
+        ${nameHtml}
+        <div class="jmeta">
+          <span class="area-chip"><i style="background:${color}"></i>${r.area}</span>
+          ${r.editora?`<span>· ${r.editora}</span>`:""}
+        </div>
+      </div>
+      <div class="if-cell">${ifHtml}</div>
+      <div class="q-cell" style="text-align:center"><span class="q-chip ${qClass(r.quartil)}">${r.quartil||"—"}</span></div>
+      <div class="acordo-cell">${r.acordo||""}${r.modelo?`<div class="amod">${r.modelo}</div>`:""}</div>`;
+    frag.appendChild(el);
+  });
+  $("#rlist").appendChild(frag);
+  renderedCount+=slice.length;
+  const wrap=$("#loadMoreWrap");
+  if(renderedCount<filtered.length){
+    wrap.innerHTML=`<button class="btn" id="loadMoreBtn">Carregar mais (${fmtNum(filtered.length-renderedCount)} restantes)</button>`;
+    $("#loadMoreBtn").onclick=renderMore;
+  } else {
+    wrap.innerHTML="";
+    if(filtered.length===0){
+      $("#rlist").innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><div>Nenhum periódico encontrado. Tente outros termos ou limpe os filtros.</div></div>`;
+    }
+  }
+}
+
+/* infinite scroll (guarded for environments without IntersectionObserver) */
+let sentinel=null;
+if(typeof IntersectionObserver!=="undefined"){
+  sentinel=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)renderMore();});},{rootMargin:"600px"});
+}
+function observeSentinel(){const b=$("#loadMoreBtn");if(b&&sentinel)sentinel.observe(b);}
+
+/* ---------- Active tags ---------- */
+function renderActiveTags(){
+  const tags=[];
+  if(state.area) tags.push(["Área",state.area,()=>{state.area="";$("#fArea").value="";applyFilters();}]);
+  if(state.acordo) tags.push(["Acordo",state.acordo,()=>{state.acordo="";$("#fAcordo").value="";applyFilters();}]);
+  if(state.quartil) tags.push(["Quartil",state.quartil,()=>{state.quartil="";$("#fQuartil").value="";applyFilters();}]);
+  if(state.comIF) tags.push(["","Somente com JIF",()=>{state.comIF=false;$("#fComIF").checked=false;applyFilters();}]);
+  const box=$("#activeTags");box.innerHTML="";
+  tags.forEach(([k,v,fn])=>{
+    const t=document.createElement("span");t.className="atag";
+    t.innerHTML=`${k?k+": ":""}<b>${v}</b>`;
+    const b=document.createElement("button");b.textContent="✕";b.onclick=fn;t.appendChild(b);
+    box.appendChild(t);
+  });
+}
+
+/* ---------- Legend ---------- */
+function buildLegend(){
+  const lg=$("#vizLegend");
+  AREAS.forEach(a=>{
+    const el=document.createElement("span");el.className="lg";el.dataset.area=a.name;
+    el.innerHTML=`<i style="background:${AREA_COLORS[a.name]||'#8a9098'}"></i>${a.name}`;
+    el.onclick=()=>{ // toggle visibility in viz
+      if(hiddenAreas.has(a.name)){hiddenAreas.delete(a.name);el.classList.remove("off");}
+      else{hiddenAreas.add(a.name);el.classList.add("off");}
+      drawStatic();
+    };
+    lg.appendChild(el);
+  });
+}
+
+/* ============================================================
+   BEESWARM (canvas)
+   ============================================================ */
+let bw={canvas:null,ctx:null,W:0,H:0,dpr:1,pts:[],lanes:[],xScale:null,laneH:0,padL:150,padR:24,padT:14,padB:34,anim:null};
+
+function buildBeeswarm(){
+  bw.canvas=$("#beeswarm"); bw.ctx=bw.canvas.getContext("2d");
+  layoutBeeswarm();
+  animateBeeswarm();
+  bw.canvas.addEventListener("mousemove",onHover);
+  bw.canvas.addEventListener("mouseleave",()=>hideTip());
+  bw.canvas.addEventListener("click",onCanvasClick);
+  let rt; window.addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>{layoutBeeswarm();drawStatic();},180);});
+}
+
+function laneOrder(){ // by median IF desc, Outros last
+  return AREAS.slice().sort((a,b)=>{
+    if(a.name==="Outros / Multidisciplinar")return 1;
+    if(b.name==="Outros / Multidisciplinar")return -1;
+    return (b.medIF||0)-(a.medIF||0);
+  });
+}
+
+function layoutBeeswarm(){
+  const holder=bw.canvas.parentElement;
+  const cssW=holder.clientWidth;
+  const isMobile=cssW<620;
+  bw.padL=isMobile?104:150; bw.padR=isMobile?12:24;
+  bw.laneH=isMobile?30:38;
+  const lanes=laneOrder();
+  bw.lanes=lanes;
+  const cssH=bw.padT+bw.padB+lanes.length*bw.laneH;
+  bw.dpr=Math.min(window.devicePixelRatio||1,2);
+  bw.W=cssW; bw.H=cssH;
+  bw.canvas.width=cssW*bw.dpr; bw.canvas.height=cssH*bw.dpr;
+  bw.canvas.style.height=cssH+"px";
+  bw.ctx.setTransform(bw.dpr,0,0,bw.dpr,0,0);
+
+  const maxIF=DATA.meta.maxIF;
+  const x0=bw.padL, x1=cssW-bw.padR;
+  bw.xScale=v=>x0+(Math.sqrt(Math.max(0,v))/Math.sqrt(maxIF))*(x1-x0);
+  const laneIndex={}; lanes.forEach((l,i)=>laneIndex[l.name]=i);
+
+  // deterministic jitter
+  const rnd=(seed)=>{let x=Math.sin(seed*127.1+seed*311.7)*43758.5453;return x-Math.floor(x);};
+  const r=isMobile?1.7:2.15;
+  bw.dotR=r;
+  bw.pts=[];
+  let idx=0;
+  ROWS.forEach(row=>{
+    if(row.jif==null) return;
+    const li=laneIndex[row.area]; if(li==null) return;
+    const cx=bw.xScale(row.jif);
+    const laneCenter=bw.padT+li*bw.laneH+bw.laneH/2;
+    const jitter=(rnd(idx+1)-0.5)*(bw.laneH-2*r-3);
+    bw.pts.push({x:cx,y:laneCenter+jitter,cy:laneCenter,r,color:AREA_COLORS[row.area]||"#8a9098",area:row.area,row});
+    idx++;
+  });
+}
+
+function drawFrame(progress){ // progress 0..1 global
+  const ctx=bw.ctx, cssW=bw.W;
+  ctx.clearRect(0,0,cssW,bw.H);
+  // x gridlines + ticks
+  ctx.save();
+  ctx.strokeStyle="#ece8de"; ctx.fillStyle="#9aa0a8"; ctx.font="11px Inter, sans-serif"; ctx.textAlign="center";
+  [0,1,2,5,10,20,40].forEach(t=>{
+    if(t>DATA.meta.maxIF)return;
+    const x=bw.xScale(t);
+    ctx.beginPath();ctx.moveTo(x,bw.padT-4);ctx.lineTo(x,bw.H-bw.padB+4);ctx.stroke();
+    ctx.fillText(t.toString(),x,bw.H-bw.padB+18);
+  });
+  ctx.textAlign="left"; ctx.fillText("Fator de impacto (JIF) →",bw.padL,bw.H-6);
+  ctx.restore();
+
+  // lane labels
+  ctx.save();
+  ctx.textAlign="right"; ctx.textBaseline="middle";
+  bw.lanes.forEach((l,i)=>{
+    const y=bw.padT+i*bw.laneH+bw.laneH/2;
+    const on=!hiddenAreas.has(l.name);
+    ctx.fillStyle=on?"#3c4650":"#c3bfb4";
+    ctx.font="600 11.5px Inter, sans-serif";
+    const nm=l.name.length>22?l.name.slice(0,21)+"…":l.name;
+    ctx.fillText(nm,bw.padL-12,y-4);
+    ctx.fillStyle=on?"#9aa0a8":"#cfcabd"; ctx.font="10px Inter, sans-serif";
+    ctx.fillText(fmtNum(l.withIF)+" com JIF",bw.padL-12,y+8);
+  });
+  ctx.restore();
+
+  // dots
+  const laneIndex={}; bw.lanes.forEach((l,i)=>laneIndex[l.name]=i);
+  for(const p of bw.pts){
+    if(hiddenAreas.has(p.area)) continue;
+    const li=laneIndex[p.area];
+    const local=Math.max(0,Math.min(1,(progress*(1+0.5) - li*0.5/bw.lanes.length)));
+    const e=1-Math.pow(1-local,3); // easeOutCubic
+    const x=bw.padL + (p.x-bw.padL)*e;
+    const y=p.cy + (p.y-p.cy)*e;
+    ctx.globalAlpha=0.55*e;
+    ctx.beginPath();ctx.arc(x,y,p.r,0,6.2832);
+    ctx.fillStyle=p.color;ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  // median markers
+  bw.lanes.forEach((l,i)=>{
+    if(hiddenAreas.has(l.name)||l.medIF==null) return;
+    const x=bw.xScale(l.medIF), y=bw.padT+i*bw.laneH+bw.laneH/2;
+    const a=1-Math.pow(1-Math.max(0,Math.min(1,progress)),3);
+    ctx.save();ctx.globalAlpha=a;ctx.translate(x,y);ctx.rotate(Math.PI/4);
+    ctx.fillStyle="#ffffff";ctx.strokeStyle=shade(AREA_COLORS[l.name],-25);ctx.lineWidth=1.5;
+    const s=bw.dotR*2.1;ctx.fillRect(-s/2,-s/2,s,s);ctx.strokeRect(-s/2,-s/2,s,s);ctx.restore();
+  });
+}
+
+function shade(hex,amt){ // darken/lighten hex
+  const c=hex.replace("#","");const num=parseInt(c,16);
+  let r=(num>>16)+amt,g=((num>>8)&0xff)+amt,b=(num&0xff)+amt;
+  r=Math.max(0,Math.min(255,r));g=Math.max(0,Math.min(255,g));b=Math.max(0,Math.min(255,b));
+  return `rgb(${r},${g},${b})`;
+}
+
+function animateBeeswarm(){
+  cancelAnimationFrame(bw.anim);
+  const dur=1400, t0=performance.now();
+  (function loop(now){
+    const p=Math.min(1,(now-t0)/dur);
+    drawFrame(p);
+    if(p<1) bw.anim=requestAnimationFrame(loop);
+  })(t0);
+}
+function drawStatic(){cancelAnimationFrame(bw.anim);drawFrame(1);}
+
+/* hover tooltip via nearest-point scan */
+function onHover(ev){
+  const rect=bw.canvas.getBoundingClientRect();
+  const mx=ev.clientX-rect.left, my=ev.clientY-rect.top;
+  let best=null,bd=64;
+  for(const p of bw.pts){
+    if(hiddenAreas.has(p.area))continue;
+    const dx=p.x-mx,dy=p.y-my,d=dx*dx+dy*dy;
+    if(d<bd){bd=d;best=p;}
+  }
+  if(best){showTip(best,mx,my);bw.canvas.style.cursor="pointer";}
+  else{hideTip();bw.canvas.style.cursor="default";}
+}
+function showTip(p,mx,my){
+  const r=p.row, tip=$("#vizTip");
+  tip.innerHTML=`<div class="t-name">${r.name}</div><div><span class="t-if">JIF ${r.jif.toString().replace(".",",")}</span>${r.quartil?" · "+r.quartil:""}</div><div class="t-meta">${r.area}${r.editora?" · "+r.editora:""}<br>${r.acordo||""}</div>`;
+  const holder=bw.canvas.parentElement, hw=holder.clientWidth;
+  let left=mx+14; if(left>hw-200)left=mx-214;
+  tip.style.left=Math.max(4,left)+"px"; tip.style.top=(my+14)+"px"; tip.style.opacity="1";
+}
+function hideTip(){$("#vizTip").style.opacity="0";}
+
+function onCanvasClick(ev){
+  const rect=bw.canvas.getBoundingClientRect();
+  const mx=ev.clientX-rect.left,my=ev.clientY-rect.top;
+  // dot click -> open url
+  let best=null,bd=64;
+  for(const p of bw.pts){if(hiddenAreas.has(p.area))continue;const dx=p.x-mx,dy=p.y-my,d=dx*dx+dy*dy;if(d<bd){bd=d;best=p;}}
+  if(best&&best.row.url){window.open(best.row.url,"_blank","noopener");return;}
+  // lane label click -> filter by area
+  if(mx<bw.padL){
+    const i=Math.floor((my-bw.padT)/bw.laneH);
+    if(i>=0&&i<bw.lanes.length){
+      const name=bw.lanes[i].name;
+      state.area=name; $("#fArea").value=name; applyFilters();
+      $("#resultsBlock").scrollIntoView({behavior:"smooth",block:"start"});
+    }
+  }
+}
+
+/* ---------- Events ---------- */
+function wireEvents(){
+  let dt;
+  $("#search").addEventListener("input",e=>{
+    state.q=e.target.value;
+    $("#clearBtn").style.display=state.q?"block":"none";
+    clearTimeout(dt);dt=setTimeout(()=>{applyFilters();observeSentinel();},140);
+  });
+  $("#clearBtn").onclick=()=>{$("#search").value="";state.q="";$("#clearBtn").style.display="none";applyFilters();};
+  $("#fAcordo").onchange=e=>{state.acordo=e.target.value;applyFilters();};
+  $("#fArea").onchange=e=>{state.area=e.target.value;applyFilters();};
+  $("#fQuartil").onchange=e=>{state.quartil=e.target.value;applyFilters();};
+  $("#fComIF").onchange=e=>{state.comIF=e.target.checked;applyFilters();};
+  $("#sortIF").onclick=()=>{state.sortDir=state.sortDir==="desc"?"asc":"desc";$("#ifArrow").textContent=state.sortDir==="desc"?"▼":"▲";applyFilters();};
+  $("#replayBtn").onclick=animateBeeswarm;
+  new MutationObserver(observeSentinel).observe($("#loadMoreWrap"),{childList:true});
+}
+</script>
+</body>
+</html>
