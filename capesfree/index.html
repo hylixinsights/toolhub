@@ -251,6 +251,20 @@
   .disclaimer-box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:.82rem;color:var(--ink-soft);}
   .disclaimer-box b{color:var(--ink);}
 
+  /* ---------- Apoio institucional ---------- */
+  .apoio{
+    border-top:1px solid var(--line);margin-top:28px;padding-top:26px;
+    display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;
+  }
+  .apoio-label{
+    font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+  }
+  .apoio-row{display:flex;align-items:center;justify-content:center;gap:22px;flex-wrap:wrap;}
+  .apoio-logo{height:104px;width:auto;display:block;}
+  .apoio-sep{width:1px;height:58px;background:var(--line-2);flex:none;}
+  .apoio-text{margin:0;font-size:.9rem;color:var(--ink-soft);max-width:46ch;text-align:left;}
+  .apoio-text b{color:var(--ink);font-weight:600;}
+
   /* ---------- Responsive ---------- */
   @media(max-width:820px){
     .results-head{display:none;}
@@ -261,6 +275,9 @@
     .row .q-cell,.row .acordo-cell{display:none;}
     .brand .titles span{display:none;}
     .foot-grid{grid-template-columns:1fr;gap:22px;}
+    .apoio-sep{display:none;}
+    .apoio-text{text-align:center;}
+    .apoio-logo{height:88px;}
     .filters .spacer{display:none;}
     .controls{top:63px;}
   }
@@ -408,6 +425,20 @@
         <li><a href="https://toolhub.hylix.app/">← Voltar ao ToolHub</a></li>
         <li><a href="https://hylix.app/">hylix.app ↗</a></li>
       </ul>
+    </div>
+  </div>
+
+  <!-- Apoio institucional -->
+  <div class="wrap">
+    <div class="apoio">
+      <span class="apoio-label">Apoio institucional</span>
+      <div class="apoio-row">
+        <img class="apoio-logo" src="einstein_logo_azul_claro.png"
+          alt="Instituto de Pesquisa Einstein — Hospital Israelita Albert Einstein">
+        <span class="apoio-sep"></span>
+        <p class="apoio-text">Esta ferramenta conta com o apoio do <b>Instituto de Pesquisa Einstein</b>, do Hospital
+          Israelita Albert Einstein.</p>
+      </div>
     </div>
   </div>
 </footer>
