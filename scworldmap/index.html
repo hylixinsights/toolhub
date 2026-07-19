@@ -594,6 +594,23 @@
     }
   }
 
+  /* On small screens the legend sits below the map instead of covering it */
+  @media (max-width: 960px) {
+    .legend {
+      position: static;
+      width: auto;
+      margin: 0 10px 12px;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      box-shadow: none;
+      background: rgba(9, 12, 18, 0.6);
+    }
+    .wc-row {
+      flex-wrap: wrap;
+      row-gap: 6px;
+    }
+  }
+
   @media (max-width: 480px) {
     .modes button {
       width: 100%;
@@ -855,8 +872,9 @@ function resize() {
   const spanX = b.maxx - b.minx, spanY = b.maxy - b.miny;
   const pad = 0.03;
   
-  // Set minimum height to 380px or scale by aspect ratio
-  const cssH = Math.max(380, Math.round(cw * spanY / spanX));
+  // Set minimum height to 380px or scale by aspect ratio (240px on small screens)
+  const minH = cw <= 960 ? 240 : 380;
+  const cssH = Math.max(minH, Math.round(cw * spanY / spanX));
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   
   canvas.style.height = cssH + "px";
