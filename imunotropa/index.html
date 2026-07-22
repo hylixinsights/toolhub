@@ -53,12 +53,18 @@ canvas{position:fixed; inset:0; display:block; touch-action:none}
 #bossnm{font-size:9px; letter-spacing:.12em; text-align:center; color:#ff5c7a; text-shadow:0 0 8px #ff2b4d; margin-bottom:3px}
 #bossbar{height:7px; background:#160a12; border:1px solid #4d1626; clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)}
 #bossfill{height:100%; width:100%; background:linear-gradient(90deg,#ff2b4d,#ff8a2a); box-shadow:0 0 8px #ff2b4d}
-#special{position:fixed; right:12px; bottom:calc(10% + env(safe-area-inset-bottom));
-  z-index:7; display:none; pointer-events:auto; width:min(42vw,180px); min-height:52px; padding:12px 10px; border:0; cursor:pointer;
-  font-family:inherit; font-weight:900; font-size:13px; letter-spacing:.12em; color:#2a0813;
+#special{position:fixed; left:12px; bottom:calc(14px + env(safe-area-inset-bottom));
+  z-index:7; display:none; pointer-events:none; opacity:0;
+  width:min(36vw,138px); min-height:58px; padding:10px 8px; border:0; cursor:pointer;
+  font-family:inherit; font-weight:900; font-size:11px; line-height:1.2; letter-spacing:.07em; color:#2a0813;
   background:linear-gradient(90deg,#ffd34a,#ff8a2a); box-shadow:0 0 22px rgba(255,138,42,.6);
   clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);
-  animation:pulseSp 0.7s ease-in-out infinite}
+  transition:opacity .22s ease}
+#special.rdy{opacity:1; pointer-events:auto; animation:pulseSp 0.7s ease-in-out infinite}
+#special:active{filter:brightness(1.15)}
+/* sonda: lê o safe-area inferior em px para reservar a faixa do botão */
+#sab{position:fixed; left:0; bottom:0; width:1px; height:env(safe-area-inset-bottom);
+  pointer-events:none; opacity:0}
 @keyframes pulseSp{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 #coach{position:fixed; left:50%; top:38%; transform:translate(-50%,-50%); z-index:8; display:none;
   width:min(84vw,390px); padding:12px 14px; text-align:center; pointer-events:none; color:#eaf6ff;
@@ -148,10 +154,10 @@ body.lowfx .card{box-shadow:0 0 0 1px #1b2a4d}
   h1{font-size:20px} h2{font-size:15px}
   .btn{padding:11px 10px; margin-top:9px} .btn.ghost{padding:9px}
   .txt{margin:8px 0 3px; line-height:1.55} .arc{margin:8px 0} .lz{margin:7px 0}
-  #special{bottom:calc(9% + env(safe-area-inset-bottom)); min-height:48px; padding:10px 8px}
+  #special{bottom:calc(10px + env(safe-area-inset-bottom)); min-height:48px; padding:8px 7px; font-size:10px}
 }
 @media (prefers-reduced-motion:reduce){
-  #special{animation:none}
+  #special,#special.rdy{animation:none}
   #score.pop,.badge{animation:none}
 }
 </style>
@@ -176,6 +182,7 @@ body.lowfx .card{box-shadow:0 0 0 1px #1b2a4d}
 
 <div id="bosswrap"><div id="bossnm"></div><div id="bossbar"><div id="bossfill"></div></div></div>
 <button id="special">ATIVAR INFLAMASSOMA</button>
+<div id="sab"></div>
 <div id="coach" aria-live="polite"></div>
 <div id="toast"></div>
 <div id="ovl"><div class="card" id="card"></div></div>
@@ -237,6 +244,14 @@ let phi=0, PH=PHASES[0], CELL=PH.cell;
 
 /* ---------- Jogador ---------- */
 const P={x:0,y:0,vx:0,vy:0,r:12, shield:6,maxShield:6, inv:0, fireT:0, dead:false,deadT:0};
+
+/* Envelope de voo — fonte única dos limites verticais da nave.
+   PLAY_TOP: quanto a nave pode subir (o chefe fica em H*0.20 e o centro germinativo em H*0.30).
+   PLAY_BOT: quanto pode descer, respeitando a faixa reservada ao botão de poder (dock). */
+const PLAY_TOP=0.42, PLAY_BOT=0.88, PLAY_FLOOR=0.62, DOCK_BASE=100;
+const safeBottom=()=>{ const s=document.getElementById('sab'); return s?s.offsetHeight:0; };
+const yTop=()=>H*PLAY_TOP;
+const yBot=()=>Math.max(H*PLAY_FLOOR, Math.min(H*PLAY_BOT, H-(DOCK_BASE+safeBottom())));
 /* mecânicas especiais */
 let power=0;                      // carga do PODER ATIVO da fase (0..1), enche por abates
 let powerMode=0, powerModeMax=0;  // MODO ativo: enquanto >0, o tipo de tiro muda
@@ -631,7 +646,7 @@ function castPower(){ if(!powerReady()) return; power=0;
   else if(phi===4) ifnPulse();
   else { powerMode=POWER_DUR[phi]; powerModeMax=POWER_DUR[phi];   // NK / CD8 / B: modo que muda o tiro
     flash=0.4; shake=10; sBig(); addNote(P.x,P.y-30,'MODO '+POWER_NAME[phi]+' ✦',PH.ac,1.5); }
-  elSpecial.style.display='none';
+  elSpecial.classList.remove('rdy');   // some com fade; o loop reavalia no próximo quadro
 }
 tap(elSpecial,castPower);
 
@@ -661,7 +676,7 @@ function startPhase(i){
   powerHinted=false; gcWarnT=0; firstDudDone=false; movedHint=false; phaseEnded=false; newRecord=false;
   phaseStats={correct:0,protectedHits:0,wrongShots:0,blockedBoss:0,powerUses:0,damage:0,tissueEnd:null,tissueRecovery:0}; combo=0; comboBest=0; comboT=0; tutorialActive=!profile.seen[i]; tutorialT=0; tutorialStep=-1; affinityMilestone=0; tissueAtStart=tissueHealth; tissueLost=false;
   P.maxShield=Math.max(2,CELL.shields+DIFF.shieldBonus);
-  P.x=W/2; P.y=H*.74; P.vx=0; P.vy=0; P.shield=P.maxShield; P.inv=1.4; P.dead=false;
+  P.x=W/2; P.y=clamp(H*.78,yTop(),yBot()); P.vx=0; P.vy=0; P.shield=P.maxShield; P.inv=1.4; P.dead=false;
   if(CELL.k==='cd4'){ for(let a=0;a<4;a++) spawnAlly(); }
   cellHud(); pips(); initSegs(); elSpecial.style.display='none';
   scoreAtStart=score; state='brief'; stT=0; showBrief();
@@ -757,7 +772,7 @@ function showBrief(full){ const first=!profile.seen[phi],expanded=full||first;
   showOvl('<div class="eyebrow">'+PH.nm+'</div>'+
     '<h2 style="text-shadow:0 0 12px '+PH.ac+'">'+PH.cellNm+'</h2>'+
     (expanded?lessonHTML(phi):'<p class="txt"><b>Alvo:</b> '+TARGET_SHORT[phi]+'<br><b>Poder:</b> '+POWER_NAME[phi]+'<br><b>Mediadores:</b> '+MOLECULAR_BOOST[phi].nm+'</p>')+
-    '<p class="note">Arraste o dedo para mover · tiro automático · use o botão lateral ou, se ativado nos ajustes, chacoalhe para usar o poder</p>'+
+    '<p class="note">Arraste o dedo para mover · tiro automático · use o botão no canto inferior esquerdo ou, se ativado nos ajustes, chacoalhe para usar o poder</p>'+
     '<button class="btn" id="go">COMEÇAR ▶</button>'+
     (!expanded?'<button class="btn ghost" id="review">REVER CONCEITO</button>':'') );
   tap($('go'),beginPlay); if(!expanded) tap($('review'),()=>showBrief(true));
@@ -1002,7 +1017,7 @@ function movePlayer(dt){
   if(touchOn){ tv=clamp((touchX-P.x)*11,-MAXV,MAXV); tvy=clamp((touchY-P.y)*11,-MAXV,MAXV); }
   else { if(keys.ArrowLeft) tv=-MAXV*.85; else if(keys.ArrowRight) tv=MAXV*.85; if(keys.ArrowUp) tvy=-MAXV*.72; else if(keys.ArrowDown) tvy=MAXV*.72; }
   P.vx=lerp(P.vx,tv,Math.min(1,dt*12)); P.vy=lerp(P.vy,tvy,Math.min(1,dt*12));
-  P.x+=P.vx*dt*CELL.speed; P.y+=P.vy*dt*CELL.speed; P.x=clamp(P.x,16,W-16); P.y=clamp(P.y,H*.50,H*.78);
+  P.x+=P.vx*dt*CELL.speed; P.y+=P.vy*dt*CELL.speed; P.x=clamp(P.x,16,W-16); P.y=clamp(P.y,yTop(),yBot());
   const w=wallAt(P.y);
   if(P.x-P.r<w.l){ if(P.inv<=0) hurt(1); P.x=w.l+P.r+4; P.vx=Math.abs(P.vx)*0.4+120; }
   if(P.x+P.r>w.r){ if(P.inv<=0) hurt(1); P.x=w.r-P.r-4; P.vx=-Math.abs(P.vx)*0.4-120; }
@@ -1051,10 +1066,11 @@ function update(dt){
   if(netCd>0) netCd-=dt;
   if(molecularBoost>0){ molecularBoost=Math.max(0,molecularBoost-dt); }
   if(powerMode>0){ const was=powerMode; powerMode-=dt; if(powerMode<=0){ powerMode=0; addNote(P.x,P.y-26,'modo encerrado',PH.ac,0.9); } }
-  { const rdy=powerReady()&&(state==='play'||state==='boss');
-    elSpecial.style.display=rdy?'block':'none';
+  { const inPlay=(state==='play'||state==='boss'), rdy=powerReady()&&inPlay;
+    elSpecial.style.display=inPlay?'block':'none';   // fica no dock; o fade cuida da entrada
+    elSpecial.classList.toggle('rdy',rdy);
     if(rdy){ elSpecial.textContent=POWER_NAME[phi];
-      if(!powerHinted){ powerHinted=true; addNote(W/2,H*0.74,'PODER PRONTO ✦ toque no botão',PH.ac,1.9); sPow(); } } }
+      if(!powerHinted){ powerHinted=true; addNote(W*0.35,H*0.70,'PODER PRONTO ✦ botão embaixo à esquerda',PH.ac,2.1); sPow(); } } }
   if(CELL.k==='neu' && !P.dead){ life-=dt/CELL.lifespan; if(life<=0) netosis(); }
   if(gc){ if(gc.hp>0){ gc.matur=Math.min(1,gc.matur+dt/16);
       const level=gc.matur>=1?3:gc.matur>=0.7?2:gc.matur>=0.35?1:0;
@@ -1406,7 +1422,7 @@ function frame(now){ requestAnimationFrame(frame);
 let _lastW=0,_lastH=0,_rzT=0;
 function doResize(){ const oldH=_lastH,yRatio=oldH?P.y/oldH:.74; dpr=Math.min(2,window.devicePixelRatio||1); W=window.innerWidth; H=window.innerHeight;
   cv.width=W*dpr; cv.height=H*dpr; cv.style.width=W+'px'; cv.style.height=H+'px';
-  P.x=clamp(P.x,16,W-16); P.y=clamp(H*yRatio,H*.50,H*.78);
+  P.x=clamp(P.x,16,W-16); P.y=clamp(H*yRatio,yTop(),yBot());
   if(gc){ gc.x=clamp(gc.x,60,W-60); gc.y=H*0.30; }
   initSegs(); initMotes(); _lastW=W; _lastH=H; }
 function onResize(){ clearTimeout(_rzT); _rzT=setTimeout(()=>{ if(window.innerWidth!==_lastW||window.innerHeight!==_lastH) doResize(); },120); }
