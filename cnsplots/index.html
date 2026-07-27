@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>cnsplots · toolhub</title>
+  <meta name="description" content="Gere gráficos prontos para publicação (Cell/Nature/Science) enviando sua tabela.">
+
+  <!-- ============================================================= -->
+  <!--  ⬇⬇⬇  ÚNICA COISA QUE VOCÊ PRECISA EDITAR  ⬇⬇⬇                 -->
+  <!--  Troque pela URL do seu app hospedado (Streamlit Cloud ou HF). -->
+  <!--  Ex.: "https://cnsplots-hylix.streamlit.app"                   -->
+  <!-- ============================================================= -->
+  <script>
+    const APP_URL = "https://barcodemetabogen-fm3xdmvqruotepsf5wx7lc.streamlit.app";
+  </script>
+
+  <style>
+    :root { --bar: 44px; --brand: #c0392b; --bg: #0f1116; --fg: #e8e8ea; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { display: flex; flex-direction: column; }
+
+    header {
+      height: var(--bar); flex: 0 0 var(--bar);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px; background: #15181f; border-bottom: 1px solid #262a33;
+    }
+    header .brand { font-weight: 700; letter-spacing: .2px; }
+    header .brand small { font-weight: 400; color: #9aa0ab; margin-left: 8px; }
+    header a { color: #cdd2db; text-decoration: none; font-size: 14px; padding: 6px 10px;
+               border: 1px solid #2c313b; border-radius: 8px; }
+    header a:hover { background: #1d2129; color: #fff; }
+
+    .stage { position: relative; flex: 1 1 auto; }
+    iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; }
+
+    /* Overlay de carregamento */
+    #overlay { position: absolute; inset: 0; display: flex; flex-direction: column;
+               align-items: center; justify-content: center; gap: 18px;
+               background: var(--bg); color: var(--fg); transition: opacity .4s; z-index: 2; }
+    #overlay.hidden { opacity: 0; pointer-events: none; }
+    .spinner { width: 42px; height: 42px; border: 4px solid #2c313b;
+               border-top-color: var(--brand); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #overlay p { margin: 0; color: #9aa0ab; font-size: 15px; }
+    #slow { display: none; font-size: 13px; color: #6b7280; max-width: 320px; text-align: center; }
+
+    /* Tela de configuração (quando a URL ainda não foi definida) */
+    #setup { position: absolute; inset: 0; display: none; flex-direction: column;
+             align-items: center; justify-content: center; gap: 12px; text-align: center;
+             padding: 24px; z-index: 3; background: var(--bg); }
+    #setup code { background: #1d2129; padding: 2px 8px; border-radius: 6px; color: #ffb4a8; }
+    #setup .card { max-width: 460px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">cnsplots <small>gráficos prontos para publicação</small></div>
+    <a id="openTab" href="#" target="_blank" rel="noopener">Abrir em nova aba ↗</a>
+  </header>
+
+  <div class="stage">
+    <!-- Overlay enquanto o app carrega -->
+    <div id="overlay">
+      <div class="spinner"></div>
+      <p>Carregando a ferramenta…</p>
+      <p id="slow">O app gratuito “hiberna” após um tempo sem uso — a primeira visita pode levar ~30&nbsp;s para acordar.</p>
+    </div>
+
+    <!-- Mensagem se a URL do app ainda não foi configurada -->
+    <div id="setup">
+      <div class="card">
+        <div class="spinner" style="margin: 0 auto 16px; border-top-color:#c0392b;"></div>
+        <h2 style="margin:.2em 0;">Falta 1 passo</h2>
+        <p style="color:#9aa0ab;">Edite este arquivo (<code>index.html</code>) e substitua
+        <code>COLE_A_URL_DO_APP_AQUI</code> pela URL do app que você hospedou
+        (Streamlit Cloud ou Hugging Face Spaces).</p>
+      </div>
+    </div>
+
+    <!-- O app é injetado aqui -->
+    <iframe id="app" title="cnsplots" allow="clipboard-write; fullscreen"
+            referrerpolicy="no-referrer"></iframe>
+  </div>
+
+  <script>
+    (function () {
+      const iframe  = document.getElementById("app");
+      const overlay = document.getElementById("overlay");
+      const setup   = document.getElementById("setup");
+      const slow    = document.getElementById("slow");
+      const openTab = document.getElementById("openTab");
+
+      // URL ainda não configurada (não começa com http/https) → mostra instruções
+      if (!APP_URL || !/^https?:\/\//i.test(APP_URL)) {
+        overlay.style.display = "none";
+        setup.style.display = "flex";
+        iframe.style.display = "none";
+        return;
+      }
+
+      // Monta a URL de embed (esconde a barra do Streamlit)
+      const sep = APP_URL.includes("?") ? "&" : "?";
+      iframe.src = APP_URL + sep + "embed=true";
+      openTab.href = APP_URL;
+
+      // Esconde o overlay quando o app carregar
+      iframe.addEventListener("load", () => overlay.classList.add("hidden"));
+
+      // Se demorar, mostra o aviso de "acordando"
+      setTimeout(() => { if (!overlay.classList.contains("hidden")) slow.style.display = "block"; }, 6000);
+    })();
+  </script>
+</body>
+</html>
