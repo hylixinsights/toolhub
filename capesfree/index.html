@@ -227,6 +227,20 @@
   .if-badge .k{font-size:.62rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-top:3px;}
   .if-badge.none{background:var(--paper-2);border-color:var(--line-2);}
   .if-badge.none .v{color:var(--muted);font-size:1rem;}
+  .if-badge.y25{background:rgba(15,123,176,.09);border-color:rgba(15,123,176,.26);}
+  .if-badge .k b{color:var(--capes-blue-deep);font-weight:700;}
+
+  /* ---------- Aviso metodológico (ano do JIF) ---------- */
+  .jcr-note{
+    display:flex;gap:12px;align-items:flex-start;
+    background:#fff;border:1px solid var(--line);border-left:3px solid var(--capes-blue);
+    border-radius:12px;padding:13px 16px;margin:18px 0 2px;box-shadow:var(--shadow);
+  }
+  .jcr-note svg{width:18px;height:18px;color:var(--capes-blue-deep);flex:none;margin-top:2px;}
+  .jcr-note p{margin:0;font-size:.85rem;color:var(--ink-soft);line-height:1.5;}
+  .jcr-note b{color:var(--ink);font-weight:600;}
+  .jcr-note .badge2025{display:inline-block;font-size:.72rem;font-weight:700;color:var(--capes-blue-deep);
+    background:rgba(15,123,176,.10);border:1px solid rgba(15,123,176,.26);border-radius:6px;padding:1px 6px;}
   .q-chip{display:inline-flex;align-items:center;justify-content:center;font-size:.76rem;font-weight:600;
     padding:5px 10px;border-radius:8px;min-width:40px;}
   .q1{background:rgba(47,158,63,.14);color:#1f7a2c;}
@@ -330,6 +344,13 @@
       Busque por nome, área ou editora e veja tudo <b>ranqueado pelo fator de impacto (JIF)</b>.
     </p>
     <div class="stats" id="statStrip"><!-- filled by JS --></div>
+    <div class="jcr-note">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 11v5M12 7.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <p>Os fatores de impacto foram harmonizados usando a série <b>JCR 2025</b>, que contém dados de <b>2024</b>,
+        evitando misturar anos entre editoras. O <b>JCR 2026</b>, com dados de <b>2025</b>, só está disponível para
+        alguns jornais. Os <span id="jcrCount" class="badge2025">—</span> títulos já cobertos pelo JCR 2026 aparecem
+        marcados como <b>JIF 2025</b>.</p>
+    </div>
   </section>
 </div>
 
@@ -513,10 +534,12 @@ function buildMethod(){
   const li=[
     `Compilado em <b>${m.compiladoEm}</b>.`,
     `Fator de impacto: <b>${m.fonteJIF}</b>.`,
+    `<b>${fmtNum(m.atualizados2025||0)}</b> títulos já atualizados para o <b>JIF 2025</b> (JCR 2026); os demais usam o <b>JIF 2024</b> (JCR 2025).`,
     `<b>${fmtNum(m.total)}</b> periódicos · <b>${fmtNum(m.comIF)}</b> com JIF · <b>${fmtNum(m.semIF)}</b> sem JIF localizado.`,
     `Acordos: ${DATA.acordos.map(a=>a.name).join(", ")}.`
   ];
   $("#methodList").innerHTML=li.map(t=>`<li>${t}</li>`).join("");
+  const jc=$("#jcrCount"); if(jc) jc.textContent=fmtNum(m.atualizados2025||0);
 }
 
 /* ---------- Filtering & sorting ---------- */
@@ -559,8 +582,9 @@ function renderMore(){
     const color=AREA_COLORS[r.area]||"#8a9098";
     const el=document.createElement("div");
     el.className="row";
+    const yr = r.ano || 2024;
     const ifHtml = r.jif!=null
-      ? `<div class="if-badge"><span class="v">${r.jif.toString().replace(".",",")}</span><span class="k">JIF${r.jif5!=null?" · "+r.jif5.toString().replace(".",","):""}</span></div>`
+      ? `<div class="if-badge${r.ano===2025?' y25':''}"${r.jif5!=null?` title="JIF 5 anos: ${r.jif5.toString().replace(".",",")}"`:''}><span class="v">${r.jif.toString().replace(".",",")}</span><span class="k">JIF ${r.ano===2025?"<b>2025</b>":yr}</span></div>`
       : `<div class="if-badge none"><span class="v">—</span><span class="k">sem JIF</span></div>`;
     const nameHtml = r.url ? `<a href="${r.url}" target="_blank" rel="noopener">${r.name}</a>` : `<a>${r.name}</a>`;
     el.innerHTML=`
@@ -778,7 +802,7 @@ function onHover(ev){
 }
 function showTip(p,mx,my){
   const r=p.row, tip=$("#vizTip");
-  tip.innerHTML=`<div class="t-name">${r.name}</div><div><span class="t-if">JIF ${r.jif.toString().replace(".",",")}</span>${r.quartil?" · "+r.quartil:""}</div><div class="t-meta">${r.area}${r.editora?" · "+r.editora:""}<br>${r.acordo||""}</div>`;
+  tip.innerHTML=`<div class="t-name">${r.name}</div><div><span class="t-if">JIF ${r.jif.toString().replace(".",",")}</span> · ${r.ano||2024}${r.quartil?" · "+r.quartil:""}</div><div class="t-meta">${r.area}${r.editora?" · "+r.editora:""}<br>${r.acordo||""}</div>`;
   const holder=bw.canvas.parentElement, hw=holder.clientWidth;
   let left=mx+14; if(left>hw-200)left=mx-214;
   tip.style.left=Math.max(4,left)+"px"; tip.style.top=(my+14)+"px"; tip.style.opacity="1";
