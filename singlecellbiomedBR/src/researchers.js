@@ -22,7 +22,8 @@ const Researchers = {
     const R = D.R, pool = [];
     for (let c = 0; c < D.cells.N; c++) if (R.pm[D.cells.r[c]] >= 40) pool.push(D.cells.r[c]);
     const rnd = () => pool[Math.floor(Math.random() * pool.length)];
-    $('#rHint').innerHTML = `<span>Try</span><button type="button" data-r="0">${esc(R.name[0])}</button><button type="button" data-rand="1">a random researcher</button>`;
+    const example = R.id.indexOf('5515247461567730');
+    $('#rHint').innerHTML = `<span>Try</span><button type="button" data-r="${example >= 0 ? example : 0}">${esc(R.name[example >= 0 ? example : 0])}</button><button type="button" data-rand="1">a random researcher</button>`;
     $('#rHint').addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
       const r = b.dataset.rand ? rnd() : +b.dataset.r;

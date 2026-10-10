@@ -466,3 +466,22 @@ footer.site .wrap { padding-block: 18px 28px; display: flex; flex-wrap: wrap; ga
   *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
 }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Concept schematic: three steps, with the reading order preserved on mobile. */
+.concept-byline { font-size: var(--s-13); color: var(--ink-2); margin: -6px 0 22px; }
+.concept-byline a { font-weight: 600; }
+.concept-figure { margin: 28px 0; padding: 24px 0; border-block: 1px solid var(--rule); }
+.concept-flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin: 20px 0; }
+.concept-step svg { width: 100%; height: auto; max-height: 160px; display: block; }
+.concept-step h4 { font-size: var(--s-14); margin: 16px 0 6px; }
+.concept-step p { font-size: var(--s-13); color: var(--ink-2); margin: 0; line-height: 1.5; }
+.concept-figure figcaption { font-size: var(--s-12); color: var(--muted); max-width: 76ch; }
+.credits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.credits a { display: inline-block; margin-top: 6px; }
+@media (max-width: 760px) { .credits { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 600px) {
+  .concept-flow { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .concept-step { padding-bottom: 20px; border-bottom: 1px solid var(--rule); }
+  .concept-step:last-child { border-bottom: 0; padding-bottom: 0; }
+  .concept-step svg { max-height: 140px; }
+}

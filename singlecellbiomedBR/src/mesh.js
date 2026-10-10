@@ -3,7 +3,7 @@ const MeshTab = {
   built: false, j: -1, top: 25, measure: 'count', td: null,
   enter() {
     if (!this.built) { this.build(); this.built = true; }
-    if (this.j < 0) this.select(D.meshIndexByName.get('Dengue') ?? 0);
+    if (this.j < 0) this.select(D.meshIndexByName.get('Systems Biology') ?? 0);
   },
   build() {
     combobox({

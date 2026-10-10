@@ -62,6 +62,47 @@ const About = {
           <tr><td>Gene</td><td>MeSH descriptor</td></tr><tr><td>UMI count</td><td>Linked articles carrying the term</td></tr>
           <tr><td>Library size</td><td>Sum of a researcher's MeSH counts</td></tr><tr><td>Cell type</td><td>Research area (cluster)</td></tr>
           <tr><td>Marker gene</td><td>Marker MeSH term</td></tr></tbody></table></div></div>
+
+        <figure class="concept-figure" aria-labelledby="conceptTitle">
+          <div class="label">The idea</div><h3 class="h3" id="conceptTitle">A single-cell view of scientific activity</h3>
+          <div class="concept-flow">
+            <div class="concept-step">
+              <svg viewBox="0 0 240 140" role="img" aria-label="Three researchers paired with cells of matching colours">
+                <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <circle cx="40" cy="28" r="11" fill="var(--accent-soft)"/><path d="M20 68v-8c0-20 40-20 40 0v8Z" fill="var(--accent-soft)"/>
+                  <circle cx="120" cy="28" r="11" fill="var(--eosin-soft)"/><path d="M100 68v-8c0-20 40-20 40 0v8Z" fill="var(--eosin-soft)"/>
+                  <circle cx="200" cy="28" r="11" fill="var(--sunken)"/><path d="M180 68v-8c0-20 40-20 40 0v8Z" fill="var(--sunken)"/>
+                  <path d="M40 77v13m-4-4 4 4 4-4M120 77v13m-4-4 4 4 4-4M200 77v13m-4-4 4 4 4-4" opacity=".45"/>
+                  <ellipse cx="40" cy="116" rx="23" ry="18" fill="var(--accent-soft)"/><ellipse cx="120" cy="116" rx="23" ry="18" fill="var(--eosin-soft)"/><ellipse cx="200" cy="116" rx="23" ry="18" fill="var(--sunken)"/>
+                </g><g fill="var(--accent)"><circle cx="37" cy="113" r="6"/><circle cx="49" cy="120" r="2"/></g><g fill="var(--eosin)"><circle cx="118" cy="117" r="6"/><circle cx="131" cy="109" r="2"/></g><g fill="var(--ink-2)"><circle cx="200" cy="113" r="6"/><circle cx="189" cy="121" r="2"/></g>
+              </svg>
+              <h4>Researchers → cells</h4><p>Each researcher becomes one observation, identified by their Lattes ID.</p>
+            </div>
+            <div class="concept-step">
+              <svg viewBox="0 0 240 140" role="img" aria-label="Article topic tags become features in a researcher-by-MeSH count matrix">
+                <g fill="var(--surface)" stroke="currentColor" stroke-width="1.5"><rect x="7" y="10" width="64" height="33" rx="5"/><rect x="7" y="54" width="64" height="33" rx="5"/><rect x="7" y="98" width="64" height="33" rx="5"/></g>
+                <g fill="currentColor" font-family="sans-serif" font-size="10" text-anchor="middle"><text x="39" y="31">MeSH A</text><text x="39" y="75">MeSH B</text><text x="39" y="119">MeSH C</text></g>
+                <path d="M79 70h22m-5-5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/>
+                <g fill="var(--accent-soft)"><rect x="111" y="10" width="34" height="33" rx="3"/><rect x="193" y="54" width="34" height="33" rx="3"/></g>
+                <g fill="var(--eosin-soft)"><rect x="152" y="10" width="34" height="33" rx="3"/><rect x="152" y="98" width="34" height="33" rx="3"/></g>
+                <g fill="var(--sunken)"><rect x="193" y="10" width="34" height="33" rx="3"/><rect x="111" y="54" width="34" height="33" rx="3"/><rect x="152" y="54" width="34" height="33" rx="3"/><rect x="111" y="98" width="34" height="33" rx="3"/><rect x="193" y="98" width="34" height="33" rx="3"/></g>
+                <g fill="currentColor" font-family="monospace" font-size="14" text-anchor="middle"><text x="128" y="32">8</text><text x="169" y="32">3</text><text x="210" y="32">0</text><text x="128" y="76">0</text><text x="169" y="76">0</text><text x="210" y="76">6</text><text x="128" y="120">0</text><text x="169" y="120">5</text><text x="210" y="120">0</text></g>
+              </svg>
+              <h4>MeSH terms → genes</h4><p>Article counts become feature values: one topic profile for each researcher.</p>
+            </div>
+            <div class="concept-step">
+              <svg viewBox="0 0 240 140" role="img" aria-label="Researchers with related topic profiles form groups on a schematic map">
+                <path d="M16 10v118h212" fill="none" stroke="var(--rule-2)"/>
+                <g fill="var(--accent)"><circle cx="55" cy="44" r="5"/><circle cx="68" cy="39" r="4"/><circle cx="77" cy="51" r="5"/><circle cx="60" cy="59" r="5"/><circle cx="44" cy="58" r="4"/><circle cx="83" cy="36" r="3"/><circle cx="73" cy="68" r="4"/><circle cx="93" cy="53" r="3"/></g>
+                <g fill="var(--eosin)"><circle cx="153" cy="39" r="5"/><circle cx="168" cy="32" r="4"/><circle cx="179" cy="46" r="5"/><circle cx="158" cy="54" r="5"/><circle cx="193" cy="39" r="4"/><circle cx="181" cy="62" r="3"/><circle cx="147" cy="68" r="3"/></g>
+                <g fill="var(--c5)"><circle cx="112" cy="90" r="5"/><circle cx="127" cy="84" r="4"/><circle cx="138" cy="99" r="5"/><circle cx="118" cy="107" r="5"/><circle cx="96" cy="103" r="4"/><circle cx="149" cy="85" r="3"/></g>
+                <g fill="var(--muted)"><circle cx="106" cy="59" r="2"/><circle cx="124" cy="66" r="2"/><circle cx="98" cy="77" r="2"/></g>
+              </svg>
+              <h4>Profiles → research areas</h4><p>Cluster similar profiles and explore them on a UMAP, as in single-cell analysis.</p>
+            </div>
+          </div>
+          <figcaption>Concept by <strong>Helder Nakaya</strong>, Computational Systems Biology Laboratory. Illustrative schematic; counts and positions above are not study data.</figcaption>
+        </figure>
         <figure class="fig"><div class="fig-title">A real slice of the matrix</div><div class="fig-sub">12 MeSH terms × 12 researchers drawn from different clusters; blank cells are zeros</div><div class="mx" id="mx"></div>
         <figcaption>Columns are labelled by the last eight digits of the Lattes ID. Even this hand-picked slice is mostly empty; the full matrix is ${pct(T.nnz / (T.analyzed * T.meshRetained), 1)} non-zero.</figcaption></figure>` },
       { id: 'filter', t: 'Filtering the matrix', body: `
