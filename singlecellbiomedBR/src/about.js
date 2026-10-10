@@ -30,7 +30,7 @@ const About = {
       : ' No term reached the 90% prevalence ceiling in this run.';
     const steps = [
       { id: 'lattes', t: 'The Lattes CVs', body: `
-        <div class="prose"><p>The starting point is BaseD, a collection of Lattes CVs assembled by Prof. Jesus Mena-Chalco's group. Its journal-article table holds <strong>${fmt1(nRecords / 1e6, 2)} million article records</strong> from <strong>${fmt(T.researchers)}</strong> PhD holders. A record is one article as listed in one CV, so a paper with three Brazilian co-authors appears three times.</p>
+        <div class="prose"><p>The starting point is BaseD, a collection of Lattes CVs assembled by Prof. Jesus Mena-Chalco's group (August 2026 update). Its journal-article table holds <strong>${fmt1(nRecords / 1e6, 2)} million article records</strong> from <strong>${fmt(T.researchers)}</strong> PhD holders. A record is one article as listed in one CV, so a paper with three Brazilian co-authors appears three times.</p>
         <p>The chart shows how many of those records were published each year, how many have an English title, and how many could be linked to PubMed. The PubMed-linked share rises from about 7% of records in the 1990s to roughly 23% from 2015 onward.</p></div>
         <figure class="fig chart" id="chYears"><div class="fig-title">Lattes article records per year</div><div class="fig-sub">Layers overlap: every PubMed-linked record is also counted in the grey total</div></figure>` },
       { id: 'english', t: 'Finding the English titles', body: `

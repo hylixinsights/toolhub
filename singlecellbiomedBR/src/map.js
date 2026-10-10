@@ -19,7 +19,7 @@ class MapView {
     this._prepare();
     this.resize();
     this.fit(false);
-    this._ro = new ResizeObserver(() => { const ow = this.w, oh = this.h; this.resize(); if (ow && (Math.abs(ow - this.w) > 1 || Math.abs(oh - this.h) > 1)) { this._refit(ow, oh); } });
+    this._ro = new ResizeObserver(() => this.resize());
     this._ro.observe(root);
     if (this.opts.interactive) this._bind();
   }
@@ -45,12 +45,29 @@ class MapView {
   }
   resize() {
     const r = this.root.getBoundingClientRect();
-    this.w = Math.max(10, r.width); this.h = Math.max(10, r.height);
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
-    for (const c of [this.base, this.top]) { if (!c) continue; c.width = Math.round(this.w * this.dpr); c.height = Math.round(this.h * this.dpr); }
-    this.render(true);
+    // Hidden tabs report zero size. Preserve the last visible geometry and zoom.
+    if (r.width < 1 || r.height < 1) {
+      cancelAnimationFrame(this._fly); this._fly = 0;
+      cancelAnimationFrame(this._raf); this._raf = 0;
+      this.fade = null;
+      return false;
+    }
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (r.width === this.w && r.height === this.h && dpr === this.dpr) { this.render(); return false; }
+    const relativeZoom = this.kFit > 0 ? this.view.k / this.kFit : 1;
+    const hadSize = this.w > 0 && this.h > 0;
+    cancelAnimationFrame(this._fly); this._fly = 0;
+    this.w = r.width; this.h = r.height; this.dpr = dpr;
+    this.kFit = this.fitK(this.core);
+    if (hadSize) this.view.k = this.kFit * relativeZoom;
+    for (const c of [this.base, this.top]) {
+      if (!c) continue;
+      c.width = Math.round(this.w * this.dpr); c.height = Math.round(this.h * this.dpr);
+    }
+    this.fade = null;
+    this.render();
+    return true;
   }
-  _refit(ow, oh) { const f = Math.min(this.w / ow, this.h / oh); this.view.k *= f; this.kFit *= f; this.render(true); }
   fitK(b) { const pad = this.opts.mini ? 0.9 : 0.86; return Math.min(this.w / (b[1] - b[0]), this.h / (b[3] - b[2])) * pad; }
   fit(animate = true) {
     const b = this.core, k = this.fitK(b);
@@ -87,8 +104,8 @@ class MapView {
     this._ensureLoop();
   }
   /* ---------- drawing */
-  render(now = false) {
-    if (now) { this._draw(); return; }
+  render() {
+    // Coalesce wheel, drag, resize and colour updates into one draw per frame.
     if (this._raf) return;
     this._raf = requestAnimationFrame(() => { this._raf = 0; this._draw(); });
   }
@@ -96,15 +113,17 @@ class MapView {
     if (!idx.length) return;
     const { x, y } = this.C, k = this.view.k * this.dpr, W = this.base.width, H = this.base.height;
     const ox = W / 2 - this.view.cx * k, oy = H / 2 + this.view.cy * k, r = R * this.dpr, d = 2 * r;
-    ctx.globalAlpha = alpha; ctx.fillStyle = color; ctx.beginPath();
-    if (r < 1.7) {
-      for (let t = 0; t < idx.length; t++) { const i = idx[t]; const px = ox + x[i] * k, py = oy - y[i] * k; if (px < -d || py < -d || px > W + d || py > H + d) continue; ctx.rect(px - r, py - r, d, d); }
+    ctx.globalAlpha = alpha; ctx.fillStyle = color;
+    if (R <= 1.6) {
+      for (let t = 0; t < idx.length; t++) { const i = idx[t]; const px = ox + x[i] * k, py = oy - y[i] * k; if (px < -d || py < -d || px > W + d || py > H + d) continue; ctx.fillRect(Math.round(px - r), Math.round(py - r), Math.max(1, Math.round(d)), Math.max(1, Math.round(d))); }
     } else {
-      for (let t = 0; t < idx.length; t++) { const i = idx[t]; const px = ox + x[i] * k, py = oy - y[i] * k; if (px < -d || py < -d || px > W + d || py > H + d) continue; ctx.moveTo(px + r, py); ctx.arc(px, py, r, 0, TAU); }
+      let batch = 0; ctx.beginPath();
+      for (let t = 0; t < idx.length; t++) { const i = idx[t]; const px = ox + x[i] * k, py = oy - y[i] * k; if (px < -d || py < -d || px > W + d || py > H + d) continue; ctx.moveTo(px + r, py); ctx.arc(px, py, r, 0, TAU); if (++batch === 256) { ctx.fill(); ctx.beginPath(); batch = 0; } }
+      if (batch) ctx.fill();
     }
-    ctx.fill();
   }
   _draw() {
+    if (!this.root.getClientRects().length) return;
     const ctx = this.base.getContext('2d'); if (!ctx) return;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, this.base.width, this.base.height);
@@ -143,7 +162,7 @@ class MapView {
     const order = cl.map(c => c.id).sort((a, b) => cl[b].n - cl[a].n);
     for (const k of order) {
       const c = cl[k], ax = this.sx(c.anchor[0]), ay = this.sy(c.anchor[1]);
-      // At intermediate widths there is not enough room for 23 full labels.
+      // At intermediate widths there is not enough room for full labels.
       // Cluster names remain visible in the adjacent legend; IDs keep the map legible.
       const text = this.w < 900 ? String(k) : `${k}  ${c.label}`;
       const tw = ctx.measureText(text).width, th = fs + 4;
@@ -199,8 +218,6 @@ class MapView {
     // selection
     if (this.sel >= 0) {
       const px = this.sx(this.C.x[this.sel]), py = this.sy(this.C.y[this.sel]);
-      const t = ((performance.now() / 1600) % 1);
-      if (!reducedMotion()) { ctx.globalAlpha = (1 - t) * 0.7; ctx.strokeStyle = COL.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(px, py, 9 + t * 22, 0, TAU); ctx.stroke(); }
       ctx.globalAlpha = 1;
       ctx.strokeStyle = COL.surface; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(px, py, 9, 0, TAU); ctx.stroke();
       ctx.strokeStyle = COL.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px, py, 9, 0, TAU); ctx.stroke();
@@ -222,11 +239,12 @@ class MapView {
       const vis = this.root.offsetParent !== null;
       if (!vis) return;
       this.drawTop();
-      if (this.fade || (this.sel >= 0 && !reducedMotion())) this._loop = requestAnimationFrame(tick);
+      if (this.fade) this._loop = requestAnimationFrame(tick);
     };
     this._loop = requestAnimationFrame(tick);
   }
-  flyTo(tgt, dur = 750) {
+  flyTo(tgt, dur = 300) {
+    cancelAnimationFrame(this._fly); this._fly = 0;
     if (reducedMotion()) { this.view = tgt; this.render(); return; }
     const from = { ...this.view }, t0 = performance.now();
     cancelAnimationFrame(this._fly);
@@ -234,11 +252,13 @@ class MapView {
       const t = clamp((now - t0) / dur, 0, 1), e = easeIO(t);
       this.view = { cx: from.cx + (tgt.cx - from.cx) * e, cy: from.cy + (tgt.cy - from.cy) * e, k: Math.exp(Math.log(from.k) + (Math.log(tgt.k) - Math.log(from.k)) * e) };
       this._draw();
-      if (t < 1) this._fly = requestAnimationFrame(step);
+      if (t < 1) this._fly = requestAnimationFrame(step); else this._fly = 0;
     };
     this._fly = requestAnimationFrame(step);
   }
   zoomBy(f, sx = this.w / 2, sy = this.h / 2) {
+    cancelAnimationFrame(this._fly); this._fly = 0;
+    this.fade = null;
     const v = this.view, k2 = clamp(v.k * f, this.kFit * 0.5, this.kFit * 60);
     const dx = (sx - this.w / 2), dy = (sy - this.h / 2);
     const px = v.cx + dx / v.k, py = v.cy - dy / v.k;
