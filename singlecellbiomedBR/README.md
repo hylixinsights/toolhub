@@ -57,3 +57,7 @@ Normalized level = log1p(count ÷ researcher's MeSH total × 10,000), as in the 
 ## Credits
 
 Lattes CVs from the BaseD collection obtained by Prof. Jesus Mena-Chalco's lab; PubMed/MEDLINE from the U.S. National Library of Medicine. Analysis by Jeevan Giddaluru and Helder Nakaya (CSBL).
+
+## Data explorer
+
+The `#explorer` tab adapts the three panels in `figuras/make_quadros_pt.py`: first English-publication year versus PubMed-linked records (default minimum 100), the five PubMed-count bins, and the record-level language/linkage flow. It uses the existing researcher payload and metadata, independently of the MeSH matrix. Name search highlights a researcher and can open their profile; minimum count and vertical scale are adjustable. Zero-PubMed researchers are included in the distribution but not in the searchable scatter plot.

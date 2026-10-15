@@ -496,6 +496,24 @@ footer.site .wrap { padding-block: 18px 28px; display: flex; flex-wrap: wrap; ga
   .concept-step svg { max-height: 140px; }
 }
 
+/* Source-data explorer */
+.ex-context { line-height: 1.65; margin: 0 0 36px; max-width: 95ch; }
+.ex-section { padding: 28px 0 36px; border-top: 1px solid var(--rule); }
+.ex-section h2 { font-size: clamp(1.4rem, 3vw, 2rem); letter-spacing: -.025em; margin: 6px 0 10px; }
+.ex-section .sub { max-width: 85ch; }
+.ex-controls { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; margin:18px 0; }
+.ex-controls label { display:flex; align-items:center; gap:10px; font-size:var(--s-13); }
+.ex-plot { width:100%; background:var(--surface); border:1px solid var(--rule); border-radius:8px; padding:12px 0 0; }
+#exCanvas { display:block; width:100%; height:430px; }
+.ex-selection { padding:14px 18px; background:var(--accent-soft); border-radius:6px; margin:16px 0 0; }
+.ex-selection p { margin:0 0 8px; }
+.ex-bin { width:100%; display:grid; grid-template-columns:110px minmax(40px,1fr) 85px 65px; gap:16px; align-items:center; padding:16px 8px; background:none; border:0; border-bottom:1px solid var(--rule); color:var(--ink); text-align:left; cursor:pointer; font:inherit; }
+.ex-bin:hover { background:var(--accent-soft); }
+.ex-bin b,.ex-bin>span:last-child { text-align:right; font-family:var(--font-data); font-size:var(--s-13); }
+.ex-track { height:12px; background:var(--sunken); border-radius:3px; overflow:hidden; }
+.ex-track i { display:block; height:100%; min-width:2px; }
+@media(max-width:560px) { .ex-bin { grid-template-columns:92px minmax(20px,1fr) 70px 50px; gap:8px; font-size:12px; padding-inline:0; } .ex-bin b,.ex-bin>span:last-child { font-size:11px; } }
+
 </style>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}img{max-width:100%}</style>
 </head>
@@ -513,6 +531,7 @@ footer.site .wrap { padding-block: 18px 28px; display: flex; flex-wrap: wrap; ga
     </a>
     <nav class="tabs" aria-label="Sections">
       <a class="tab" href="#about" data-tab="about">About the analysis</a>
+      <a class="tab" href="#explorer" data-tab="explorer">Data explorer</a>
       <a class="tab" href="#researchers" data-tab="researchers">Researchers in PubMed</a>
       <a class="tab" href="#clustering" data-tab="clustering">Clustering</a>
       <a class="tab" href="#mesh" data-tab="mesh">MeSH Terms</a>
@@ -633,6 +652,32 @@ footer.site .wrap { padding-block: 18px 28px; display: flex; flex-wrap: wrap; ga
       <div id="meshView"></div>
     </div>
   </section>
+
+  <section class="view" id="view-explorer" data-view="explorer" hidden>
+    <div class="wrap">
+      <div class="page-head"><div class="label">Data explorer · August 2026</div><h1>From Lattes records to PubMed</h1>
+        <p>Explore the publication records behind this atlas, before the MeSH-based single-cell analysis.</p></div>
+      <div class="excluded-box ex-context"><strong>How the dataset was assembled.</strong> These descriptive analyses cover publication histories, PubMed coverage and title linkage. They do not use single-cell normalization, clusters or UMAP coordinates. The distribution includes all <span data-n="researchers">453,549</span> researchers; the scatter plot starts with those who have at least 100 PubMed-linked records. The map elsewhere uses a separate cohort of <span data-n="analyzed">48,676</span> researchers with usable MeSH profiles.</div>
+      <section class="ex-section" aria-labelledby="exTitle"><div class="label">01 · Publication histories</div><h2 id="exTitle">Who publishes in PubMed, and when did they start?</h2>
+        <p class="sub">First publication in English versus PubMed-linked record count. Search a name to highlight a researcher, or select a point for details.</p>
+        <div class="search big" id="exSearch"><input id="exSearchInput" type="search" autocomplete="off" placeholder="Find a researcher, e.g. Mayana Zatz" aria-label="Find a researcher in the publication plot" role="combobox" aria-expanded="false" aria-controls="exSearchList" aria-autocomplete="list"><ul class="listbox" id="exSearchList" role="listbox" hidden></ul></div>
+        <div class="ex-controls"><label>Minimum PubMed records <select class="sel" id="exMin"><option>1</option><option>10</option><option selected>100</option><option>200</option><option>500</option></select></label><label>Vertical scale <select class="sel" id="exScale"><option value="log">Logarithmic</option><option value="linear">Linear</option></select></label><button class="btn" type="button" id="exClear">Clear selection</button></div>
+        <div class="ex-plot"><canvas id="exCanvas" role="img" aria-label="Researchers by first English-publication year and PubMed-linked record count. Use the researcher search for accessible point details."></canvas></div>
+        <p class="note" id="exStatus" role="status">Loading researcher records…</p>
+        <div class="ex-selection"><p id="exSelection" aria-live="polite"></p><button class="btn" id="exProfile" hidden>Open researcher profile →</button></div>
+      </section>
+      <section class="ex-section" aria-labelledby="exDistribution"><div class="label">02 · PubMed coverage</div><h2 id="exDistribution">How many researchers have PubMed-linked records?</h2>
+        <p class="sub">All <span data-n="researchers">453,549</span> researchers in the source summary, including those with zero linked records. This chart is independent of the scatter plot filters.</p><div id="exBins"></div><p class="note" id="exBinDetail" aria-live="polite">Select a bar to inspect its count and share.</p>
+      </section>
+      <section class="ex-section" aria-labelledby="exLinkage"><div class="label">03 · Title linkage</div><h2 id="exLinkage">Where do the article records go?</h2>
+        <p class="sub">Follow all Lattes journal-article records through English-title detection and PubMed linkage. Hover over a flow for its count, or read the table below. Counts refer to CV records, so shared papers can appear under multiple researchers.</p>
+        <figure class="fig chart" id="exFlow"><div class="fig-title">Lattes → title language → PubMed</div></figure>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Title language</th><th>PubMed linkage</th><th class="r">Records</th><th class="r">Share of all records</th></tr></thead><tbody id="exFlowRows"></tbody></table></div>
+      </section>
+      <p class="note">Counts are linked CV records, not deduplicated papers or measures of research quality. First English-publication year refers to the records available in this dataset, not necessarily the beginning of a researcher's career. Source: BaseD, August 2026 update. <a href="#about">Read the methods and data credits →</a></p>
+    </div>
+  </section>
+
 </main>
 
 <footer class="site">
@@ -1357,7 +1402,7 @@ const About = {
       : ' No term reached the 90% prevalence ceiling in this run.';
     const steps = [
       { id: 'lattes', t: 'The Lattes CVs', body: `
-        <div class="prose"><p>The starting point is BaseD, a collection of Lattes CVs assembled by Prof. Jesus Mena-Chalco's group (August 2026 update). Its journal-article table holds <strong>${fmt1(nRecords / 1e6, 2)} million article records</strong> from <strong>${fmt(T.researchers)}</strong> PhD holders. A record is one article as listed in one CV, so a paper with three Brazilian co-authors appears three times.</p>
+        <div class="prose"><p>The analysis starts with Lattes CV records from the August 2026 update of BaseD. Its journal-article table holds <strong>${fmt1(nRecords / 1e6, 2)} million article records</strong> from <strong>${fmt(T.researchers)}</strong> PhD holders. A record is one article as listed in one CV, so a paper with three Brazilian co-authors appears three times.</p>
         <p>The chart shows how many of those records were published each year, how many have an English title, and how many could be linked to PubMed. The PubMed-linked share rises from about 7% of records in the 1990s to roughly 23% from 2015 onward.</p></div>
         <figure class="fig chart" id="chYears"><div class="fig-title">Lattes article records per year</div><div class="fig-sub">Layers overlap: every PubMed-linked record is also counted in the grey total</div></figure>` },
       { id: 'english', t: 'Finding the English titles', body: `
@@ -2174,9 +2219,88 @@ const MeshTab = {
   },
 };
 
+/* Descriptive source-data exploration, independent of the MeSH/UMAP analysis. */
+const Explorer = {
+  built: false, selected: -1, min: 100, log: true, points: [],
+  async enter() {
+    if (!this.built) { this.build(); this.built = true; }
+    try { await D.ready.R; this.paint(); }
+    catch (e) { $('#exStatus').textContent = 'Researcher data could not be loaded. Reload to try again.'; }
+  },
+  build() {
+    combobox({root: $('#exSearch'), pending: () => D.R ? null : 'Loading researcher names…',
+      search: q => searchResearchers(q, {limit: 12}),
+      render: r => ({html: `<span class="opt-main">${esc(D.R.name[r])}</span><span class="opt-val">${fmt(D.R.pm[r])} records</span>`}),
+      onPick: (r, input) => { input.value = D.R.name[r]; this.choose(r); },
+      emptyText: 'No researcher with a PubMed-linked record matches that name'});
+    $('#exMin').addEventListener('change', e => { this.min = +e.target.value; this.paint(); });
+    $('#exScale').addEventListener('change', e => { this.log = e.target.value === 'log'; this.paint(); });
+    $('#exClear').addEventListener('click', () => { this.selected = -1; $('#exSearchInput').value = ''; this.paint(); });
+    $('#exProfile').addEventListener('click', () => { if (this.selected >= 0) { go('researchers'); $('#rSearchInput').value = D.R.name[this.selected]; Researchers.show(this.selected); } });
+    const canvas = $('#exCanvas');
+    const nearest = e => {
+      const b = canvas.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
+      let hit = null, dist = 100;
+      for (const p of this.points) { const d = (p.x-x)**2+(p.y-y)**2; if (d < dist) { dist=d; hit=p; } }
+      return hit;
+    };
+    canvas.addEventListener('pointermove', e => { const p=nearest(e); canvas.style.cursor=p?'pointer':'default'; if(p) showTip(`<b>${esc(D.R.name[p.r])}</b><br>First English publication: ${D.R.fe[p.r]}<br>${fmt(D.R.pm[p.r])} PubMed-linked records`,e.clientX,e.clientY); else hideTip(); });
+    canvas.addEventListener('pointerleave', hideTip);
+    canvas.addEventListener('click', e => { const p=nearest(e); if(p) { $('#exSearchInput').value=D.R.name[p.r]; this.choose(p.r); } });
+    this.ro = new ResizeObserver(() => { if(D.R && canvas.clientWidth) this.paint(); }); this.ro.observe(canvas.parentElement);
+    onTheme(() => { if(D.R && canvas.clientWidth) this.paint(); });
+  },
+  choose(r) {
+    this.selected=r;
+    if(D.R.pm[r]<this.min) { this.min=1; $('#exMin').value='1'; }
+    this.paint();
+  },
+  paint() {
+    const canvas=$('#exCanvas'), w=canvas.clientWidth; if(!w || !D.R) return;
+    const R=D.R, T=D.meta.totals, h=w<600?360:430, dpr=Math.min(devicePixelRatio||1,2);
+    canvas.style.height=h+'px'; canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);
+    const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+    const css=getComputedStyle(document.body), color=n=>css.getPropertyValue(n).trim();
+    const rows=[];let missing=0;
+    for(let r=0;r<R.n;r++) if(R.pm[r]>=this.min) { if(R.fe[r]>0) rows.push(r); else missing++; }
+    const years=rows.map(r=>R.fe[r]), values=rows.map(r=>R.pm[r]);
+    let x0=years.length?Math.floor(years.reduce((a,b)=>Math.min(a,b),Infinity)/10)*10:1960, x1=years.length?Math.ceil(years.reduce((a,b)=>Math.max(a,b),-Infinity)/10)*10:2030;
+    if(x0===x1) x1=x0+10;
+    const ymax=values.reduce((a,b)=>Math.max(a,b),this.min+1)*1.1, ymin=this.log?this.min:0;
+    const left=62,right=w-18,top=20,bottom=h-55;
+    const x=v=>left+(v-x0)/(x1-x0)*(right-left);
+    const y=v=>bottom-(this.log?Math.log(v/ymin)/Math.log(ymax/ymin):(v-ymin)/(ymax-ymin))*(bottom-top);
+    ctx.font='11px sans-serif';ctx.strokeStyle=color('--rule');ctx.fillStyle=color('--ink-2');
+    const xtick=w<600?20:10;
+    for(let v=x0;v<=x1;v+=xtick) { const px=x(v);ctx.beginPath();ctx.moveTo(px,top);ctx.lineTo(px,bottom);ctx.stroke();ctx.textAlign='center';ctx.fillText(String(v),px,bottom+20); }
+    const ticks=this.log?[1,2,5,10,20,50,100,200,500,1000,2000,5000].filter(v=>v>=ymin&&v<=ymax):Array.from({length:5},(_,i)=>i*ymax/4);
+    for(const v of ticks) { const py=y(v);ctx.beginPath();ctx.moveTo(left,py);ctx.lineTo(right,py);ctx.stroke();ctx.textAlign='right';ctx.fillText(fmt(v),left-9,py+4); }
+    ctx.textAlign='center';ctx.fillText('Year of first publication in English',(left+right)/2,h-10);
+    ctx.save();ctx.translate(13,(top+bottom)/2);ctx.rotate(-Math.PI/2);ctx.fillText('PubMed-linked records',0,0);ctx.restore();
+    this.points=rows.map(r=>({r,x:x(R.fe[r]),y:y(R.pm[r])}));
+    ctx.fillStyle=color('--accent');ctx.globalAlpha=rows.length>10000?.25:.55;
+    for(const p of this.points) ctx.fillRect(p.x-2,p.y-2,4,4);
+    ctx.globalAlpha=1;
+    const selected=this.points.find(p=>p.r===this.selected);
+    if(selected) {ctx.fillStyle=color('--eosin');ctx.strokeStyle=color('--surface');ctx.lineWidth=2;ctx.beginPath();ctx.arc(selected.x,selected.y,7,0,TAU);ctx.fill();ctx.stroke();}
+    $('#exStatus').textContent=`${fmt(rows.length)} researchers shown · ${fmt(missing)} excluded because the first English-publication year is unavailable. ${this.log?'Logarithmic':'Linear'} vertical axis. Points at identical coordinates may overlap.`;
+    const r=this.selected; $('#exProfile').hidden=r<0;
+    $('#exSelection').textContent=r<0?'Search for a researcher or click a point to inspect their record.':`${R.name[r]} · ${fmt(R.pm[r])} PubMed-linked records · first English publication: ${R.fe[r]>0?R.fe[r]:'unavailable'}${!selected?' · No point can be displayed with the current filter.':''}`;
+    this.bins(); flowChart($('#exFlow'),D.meta.crosstab);
+    $('#exFlowRows').innerHTML=D.meta.crosstab.map(v=>`<tr><td>${v.english?'English':'Other / undetermined'}</td><td>${v.pubmed?'Linked':'Not linked'}</td><td class="r num">${fmt(v.records)}</td><td class="r num">${pct(v.records/T.records)}</td></tr>`).join('');
+  },
+  bins() {
+    const R=D.R,T=D.meta.totals,counts=[T.researchers-R.n,0,0,0,0], labels=['0 records','1 record','2–10 records','11–99 records','100+ records'];
+    for(const n of R.pm) counts[n===1?1:n<=10?2:n<=99?3:4]++;
+    const max=Math.max(...counts);
+    $('#exBins').innerHTML=counts.map((n,i)=>`<button class="ex-bin" type="button" aria-label="${labels[i]}: ${fmt(n)} researchers, ${pct(n/T.researchers)}"><span>${labels[i]}</span><span class="ex-track"><i style="width:${100*n/max}%;background:var(${i?'--accent':'--muted'})"></i></span><b>${fmt(n)}</b><span>${pct(n/T.researchers)}</span></button>`).join('');
+    $$('#exBins button').forEach((b,i)=>b.addEventListener('click',()=>{$('#exBinDetail').textContent=`${fmt(counts[i])} of ${fmt(T.researchers)} researchers have ${labels[i].toLowerCase()} linked to PubMed (${pct(counts[i]/T.researchers)}). These counts include all source researchers, regardless of MeSH availability.`;}));
+  }
+};
+
 /* ============================================================ boot + routing */
-const TABS = ['about', 'researchers', 'clustering', 'mesh'];
-const VIEWS = { about: About, researchers: Researchers, clustering: Clustering, mesh: MeshTab };
+const TABS = ['about', 'explorer', 'researchers', 'clustering', 'mesh'];
+const VIEWS = { about: About, explorer: Explorer, researchers: Researchers, clustering: Clustering, mesh: MeshTab };
 let currentTab = null;
 function go(tab) { if (location.hash.slice(1) !== tab) location.hash = tab; route(); }
 function route() {

@@ -10,7 +10,7 @@ root = Path(__file__).resolve().parent; src = root / "src"
 ap = argparse.ArgumentParser(description=__doc__); ap.add_argument("--fragment", action="store_true"); a = ap.parse_args()
 css = (src / "style.css").read_text()
 body = (src / "body.html").read_text()
-js = "\n".join((src / f).read_text() for f in ["core.js", "map.js", "about.js", "researchers.js", "clustering.js", "mesh.js", "main.js"])
+js = "\n".join((src / f).read_text() for f in ["core.js", "map.js", "about.js", "researchers.js", "clustering.js", "mesh.js", "explorer.js", "main.js"])
 fonts = ('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
          '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">')
 head = f'<title>Lattes × PubMed Atlas</title>\n{fonts}\n<link rel="icon" type="image/svg+xml" href="favicon.svg">\n<style>\n{css}\n</style>\n'

@@ -11,6 +11,7 @@
     </a>
     <nav class="tabs" aria-label="Sections">
       <a class="tab" href="#about" data-tab="about">About the analysis</a>
+      <a class="tab" href="#explorer" data-tab="explorer">Data explorer</a>
       <a class="tab" href="#researchers" data-tab="researchers">Researchers in PubMed</a>
       <a class="tab" href="#clustering" data-tab="clustering">Clustering</a>
       <a class="tab" href="#mesh" data-tab="mesh">MeSH Terms</a>
@@ -131,6 +132,32 @@
       <div id="meshView"></div>
     </div>
   </section>
+
+  <section class="view" id="view-explorer" data-view="explorer" hidden>
+    <div class="wrap">
+      <div class="page-head"><div class="label">Data explorer · August 2026</div><h1>From Lattes records to PubMed</h1>
+        <p>Explore the publication records behind this atlas, before the MeSH-based single-cell analysis.</p></div>
+      <div class="excluded-box ex-context"><strong>How the dataset was assembled.</strong> These descriptive analyses cover publication histories, PubMed coverage and title linkage. They do not use single-cell normalization, clusters or UMAP coordinates. The distribution includes all <span data-n="researchers">453,549</span> researchers; the scatter plot starts with those who have at least 100 PubMed-linked records. The map elsewhere uses a separate cohort of <span data-n="analyzed">48,676</span> researchers with usable MeSH profiles.</div>
+      <section class="ex-section" aria-labelledby="exTitle"><div class="label">01 · Publication histories</div><h2 id="exTitle">Who publishes in PubMed, and when did they start?</h2>
+        <p class="sub">First publication in English versus PubMed-linked record count. Search a name to highlight a researcher, or select a point for details.</p>
+        <div class="search big" id="exSearch"><input id="exSearchInput" type="search" autocomplete="off" placeholder="Find a researcher, e.g. Mayana Zatz" aria-label="Find a researcher in the publication plot" role="combobox" aria-expanded="false" aria-controls="exSearchList" aria-autocomplete="list"><ul class="listbox" id="exSearchList" role="listbox" hidden></ul></div>
+        <div class="ex-controls"><label>Minimum PubMed records <select class="sel" id="exMin"><option>1</option><option>10</option><option selected>100</option><option>200</option><option>500</option></select></label><label>Vertical scale <select class="sel" id="exScale"><option value="log">Logarithmic</option><option value="linear">Linear</option></select></label><button class="btn" type="button" id="exClear">Clear selection</button></div>
+        <div class="ex-plot"><canvas id="exCanvas" role="img" aria-label="Researchers by first English-publication year and PubMed-linked record count. Use the researcher search for accessible point details."></canvas></div>
+        <p class="note" id="exStatus" role="status">Loading researcher records…</p>
+        <div class="ex-selection"><p id="exSelection" aria-live="polite"></p><button class="btn" id="exProfile" hidden>Open researcher profile →</button></div>
+      </section>
+      <section class="ex-section" aria-labelledby="exDistribution"><div class="label">02 · PubMed coverage</div><h2 id="exDistribution">How many researchers have PubMed-linked records?</h2>
+        <p class="sub">All <span data-n="researchers">453,549</span> researchers in the source summary, including those with zero linked records. This chart is independent of the scatter plot filters.</p><div id="exBins"></div><p class="note" id="exBinDetail" aria-live="polite">Select a bar to inspect its count and share.</p>
+      </section>
+      <section class="ex-section" aria-labelledby="exLinkage"><div class="label">03 · Title linkage</div><h2 id="exLinkage">Where do the article records go?</h2>
+        <p class="sub">Follow all Lattes journal-article records through English-title detection and PubMed linkage. Hover over a flow for its count, or read the table below. Counts refer to CV records, so shared papers can appear under multiple researchers.</p>
+        <figure class="fig chart" id="exFlow"><div class="fig-title">Lattes → title language → PubMed</div></figure>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Title language</th><th>PubMed linkage</th><th class="r">Records</th><th class="r">Share of all records</th></tr></thead><tbody id="exFlowRows"></tbody></table></div>
+      </section>
+      <p class="note">Counts are linked CV records, not deduplicated papers or measures of research quality. First English-publication year refers to the records available in this dataset, not necessarily the beginning of a researcher's career. Source: BaseD, August 2026 update. <a href="#about">Read the methods and data credits →</a></p>
+    </div>
+  </section>
+
 </main>
 
 <footer class="site">

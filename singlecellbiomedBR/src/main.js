@@ -1,6 +1,6 @@
 /* ============================================================ boot + routing */
-const TABS = ['about', 'researchers', 'clustering', 'mesh'];
-const VIEWS = { about: About, researchers: Researchers, clustering: Clustering, mesh: MeshTab };
+const TABS = ['about', 'explorer', 'researchers', 'clustering', 'mesh'];
+const VIEWS = { about: About, explorer: Explorer, researchers: Researchers, clustering: Clustering, mesh: MeshTab };
 let currentTab = null;
 function go(tab) { if (location.hash.slice(1) !== tab) location.hash = tab; route(); }
 function route() {
