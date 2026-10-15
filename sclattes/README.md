@@ -1,6 +1,6 @@
-# Lattes × PubMed Atlas (website)
+# scLattes (website)
 
-A static, four-tab website for the Lattes × PubMed analysis. Everything is in English.
+A static, five-tab website for the Lattes × PubMed analysis. Everything is in English.
 
 - **About the analysis**: the pipeline from 453,549 Lattes CV researchers to the 24-cluster UMAP, with charts drawn from the run outputs.
 - **Researchers in PubMed**: name search over the 184,714 researchers with at least one PubMed-linked record. A profile shows counts, first/last years, a per-year timeline (all / English / PubMed-linked records), national rank, rank inside the cluster, position on the map and the most characteristic MeSH terms. The default view is a ranking that can be filtered by cluster.
@@ -61,3 +61,5 @@ Lattes CVs from the BaseD collection obtained by Prof. Jesus Mena-Chalco's lab; 
 ## Data explorer
 
 The `#explorer` tab adapts the three panels in `figuras/make_quadros_pt.py`: first English-publication year versus PubMed-linked records (default minimum 100), the five PubMed-count bins, and the record-level language/linkage flow. It uses the existing researcher payload and metadata, independently of the MeSH matrix. Name search highlights a researcher and can open their profile; minimum count and vertical scale are adjustable. Zero-PubMed researchers are included in the distribution but not in the searchable scatter plot.
+
+Public URL: https://toolhub.hylix.app/sclattes/ . The former `/singlecellbiomedBR/` address redirects here, preserving the selected tab.

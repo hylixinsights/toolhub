@@ -15,7 +15,7 @@ window.addEventListener('hashchange', route);
 
 async function boot() {
   if (location.protocol === 'file:') {
-    $('main').insertAdjacentHTML('afterbegin', '<div class="wrap"><div class="excluded-box" style="margin-top:24px">Interactive data require a web connection. <a href="https://toolhub.hylix.app/singlecellbiomedBR/">Open the online atlas</a>, or serve this folder with a local HTTP server.</div></div>');
+    $('main').insertAdjacentHTML('afterbegin', '<div class="wrap"><div class="excluded-box" style="margin-top:24px">Interactive data require a web connection. <a href="https://toolhub.hylix.app/sclattes/">Open scLattes online</a>, or serve this folder with a local HTTP server.</div></div>');
     return;
   }
   readColors();

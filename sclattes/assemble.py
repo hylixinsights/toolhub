@@ -13,7 +13,7 @@ body = (src / "body.html").read_text()
 js = "\n".join((src / f).read_text() for f in ["core.js", "map.js", "about.js", "researchers.js", "clustering.js", "mesh.js", "explorer.js", "main.js"])
 fonts = ('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
          '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">')
-head = f'<title>Lattes × PubMed Atlas</title>\n{fonts}\n<link rel="icon" type="image/svg+xml" href="favicon.svg">\n<style>\n{css}\n</style>\n'
+head = f'<title>scLattes</title>\n{fonts}\n<link rel="icon" type="image/svg+xml" href="favicon.svg">\n<style>\n{css}\n</style>\n'
 desc = "Lattes CVs of Brazilian PhD holders linked to PubMed: researcher lookup, MeSH-based clustering map and topic rankings."
 full = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
