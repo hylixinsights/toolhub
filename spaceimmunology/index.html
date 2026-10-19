@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<style>[hidden]{display:none!important}html,body{margin:0}img{max-width:100%}</style>
+<title>Space Immunology Atlas</title>
+<meta name="description" content="Explore persistent spaceflight-associated transcriptional changes across bone marrow, blood and spleen by gene, cell type, age and pathway.">
+<link rel="canonical" href="https://toolhub.hylix.app/spaceimmunology/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap">
+<style>
+/* Layout: mission header + sticky view bar; each view is a column of plain panels on a cool paper ground.
+   Soil-brown = higher on Earth (ground control), sky-blue = higher after flight. */
+:root{
+  --bg:#EEF1F4; --panel:#FFFFFF; --sunk:#F5F7F9;
+  --ink:#121C26; --ink-2:#46535F; --ink-3:#77838E; --rule:#D8DEE4; --rule-2:#E7EBEF;
+  --ground:#A86A1F; --flight:#2B63B5; --young:#008C7C; --older:#9248A0;
+  --div-g2:#6E430E; --div-g1:#D3A86E; --div-0:#E9ECEF; --div-f1:#8FB0E0; --div-f2:#173F7D;
+  --age-y2:#005E53; --age-y1:#7FC8BD; --age-o1:#CFA6D6; --age-o2:#5E2468;
+  --seq-0:#E4E8F0; --seq-1:#26306E;
+  --focus:#2B63B5; --sel:#121C26;
+  --f-ui:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E141A; --panel:#151D25; --sunk:#111820;
+  --ink:#E4EAF0; --ink-2:#AAB6C1; --ink-3:#7D8A96; --rule:#2A3541; --rule-2:#202A34;
+  --ground:#B9823A; --flight:#5B8DDB; --young:#2AA595; --older:#B072C2;
+  --div-g2:#E0AE6C; --div-g1:#8A6431; --div-0:#26303A; --div-f1:#3E5F92; --div-f2:#9CC0F5;
+  --age-y2:#7FD6CA; --age-y1:#2C6E66; --age-o1:#6E4579; --age-o2:#DDB0E6;
+  --seq-0:#1E2731; --seq-1:#B9C6FF;
+  --focus:#7FA8EA; --sel:#E4EAF0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E141A; --panel:#151D25; --sunk:#111820;
+  --ink:#E4EAF0; --ink-2:#AAB6C1; --ink-3:#7D8A96; --rule:#2A3541; --rule-2:#202A34;
+  --ground:#B9823A; --flight:#5B8DDB; --young:#2AA595; --older:#B072C2;
+  --div-g2:#E0AE6C; --div-g1:#8A6431; --div-0:#26303A; --div-f1:#3E5F92; --div-f2:#9CC0F5;
+  --age-y2:#7FD6CA; --age-y1:#2C6E66; --age-o1:#6E4579; --age-o2:#DDB0E6;
+  --seq-0:#1E2731; --seq-1:#B9C6FF;
+  --focus:#7FA8EA; --sel:#E4EAF0; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+.gm *{box-sizing:border-box}
+.gm{min-height:100%}
+.wrap{max-width:1280px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+a{color:inherit}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.mono,.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+i.g, .gene{font-style:italic}
+
+/* masthead */
+.mast{background:var(--panel);border-bottom:1px solid var(--rule)}
+.mast .wrap{display:flex;flex-wrap:wrap;gap:12px 32px;align-items:flex-end;justify-content:space-between;padding-block:22px 18px}
+.brand{display:flex;gap:14px;align-items:center;min-width:0}
+.brand svg{flex:none}
+.brand h1{margin:0;font-size:22px;line-height:1.1;font-weight:800;letter-spacing:-.02em}
+.brand h1 span{font-weight:400;color:var(--ink-2)}
+.brand p{margin:3px 0 0;color:var(--ink-2);font-size:13.5px;max-width:58ch}
+.mission{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12px;color:var(--ink-2)}
+.mission div{display:flex;flex-direction:column}
+.mission b{font-family:var(--f-mono);font-weight:500;color:var(--ink);font-size:12.5px}
+.mission span{text-transform:uppercase;letter-spacing:.08em;font-size:10px;color:var(--ink-3)}
+
+/* view bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--panel);border-bottom:1px solid var(--rule)}
+.bar .wrap{display:flex;align-items:center;gap:16px;justify-content:space-between}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;min-width:0}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{border:0;background:none;padding:12px 11px 10px;font-size:13.5px;font-weight:600;color:var(--ink-2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tabs button:hover{color:var(--ink)}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.key{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink-2);white-space:nowrap}
+.key .ramp{width:84px;height:8px;border-radius:2px}
+@media (max-width:860px){.bar .key{display:none}}
+
+main{padding-block:22px 64px}
+.view{display:flex;flex-direction:column;gap:18px}
+.view[hidden]{display:none!important}
+.vhead{display:flex;flex-wrap:wrap;gap:10px 28px;align-items:flex-end;justify-content:space-between}
+.vhead h2{margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.15;text-wrap:balance}
+.vhead p{margin:6px 0 0;color:var(--ink-2);max-width:72ch}
+.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-3);font-weight:600}
+
+.grid{display:grid;gap:18px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g-2-1{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)}
+.g-1-2{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr)}
+@media (max-width:980px){.g2,.g3,.g-2-1,.g-1-2{grid-template-columns:minmax(0,1fr)}}
+
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:18px 18px 16px;min-width:0}
+.panel h3{margin:0;font-size:15.5px;font-weight:700;letter-spacing:-.005em}
+.panel .sub{margin:3px 0 12px;font-size:13px;color:var(--ink-2);max-width:80ch}
+.ph{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:flex-start;justify-content:space-between}
+.fig{font-family:var(--f-mono);font-size:11px;color:var(--ink-3);border:1px solid var(--rule);border-radius:3px;padding:1px 6px;white-space:nowrap}
+.note{font-size:12.5px;color:var(--ink-2);margin:10px 0 0}
+.empty{color:var(--ink-3);font-size:13px;padding:18px 0}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;background:var(--panel);border:1px solid var(--rule);border-radius:6px}
+.stat{padding:14px 16px;border-right:1px solid var(--rule-2)}
+.stat:last-child{border-right:0}
+.stat b{display:block;font-size:26px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stat span{font-size:12.5px;color:var(--ink-2)}
+
+.findings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;border-top:1px solid var(--rule)}
+@media (max-width:760px){.findings{grid-template-columns:minmax(0,1fr)}}
+.finding{padding:14px 18px 14px 0;border-bottom:1px solid var(--rule-2)}
+.finding h4{margin:0 0 4px;font-size:14.5px}
+.finding p{margin:0 0 6px;font-size:13.5px;color:var(--ink-2)}
+.lnk{border:0;background:none;padding:0;color:var(--flight);font-weight:600;font-size:13px;cursor:pointer}
+.lnk:hover{text-decoration:underline}
+
+/* controls */
+.ctrls{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:5px;overflow:hidden;background:var(--sunk)}
+.seg button{border:0;background:none;padding:6px 12px;font-size:13px;font-weight:600;color:var(--ink-2);cursor:pointer}
+.seg button+button{border-left:1px solid var(--rule)}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:inset 0 -2px 0 var(--ink)}
+select.sel{border:1px solid var(--rule);border-radius:5px;background:var(--panel);padding:6px 8px;font-size:13px;max-width:100%}
+label.lab{font-size:12px;color:var(--ink-3);display:flex;gap:6px;align-items:center}
+.search{position:relative;flex:1 1 280px;max-width:440px}
+.search input{width:100%;border:1px solid var(--rule);border-radius:5px;background:var(--panel);padding:9px 12px;font-size:15px}
+.search ul{position:absolute;left:0;right:0;top:calc(100% + 4px);margin:0;padding:4px;list-style:none;background:var(--panel);border:1px solid var(--rule);border-radius:5px;z-index:20;max-height:300px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.search li{padding:6px 8px;border-radius:3px;cursor:pointer;font-size:13.5px}
+.search li[aria-selected="true"],.search li:hover{background:var(--sunk)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--rule);background:var(--panel);border-radius:999px;padding:3px 10px;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
+.chip:hover{border-color:var(--ink-3);color:var(--ink)}
+.chip.on{border-color:var(--ink);color:var(--ink)}
+.chiplabel{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin-right:4px;align-self:center}
+
+.big{font-size:34px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.kv{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:13px;color:var(--ink-2)}
+.kv b{color:var(--ink);font-weight:600}
+
+/* tables */
+.tw{overflow-x:auto}
+table.t{border-collapse:collapse;width:100%;font-size:13px}
+table.t th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:600;text-align:left;padding:6px 8px;border-bottom:1px solid var(--rule);white-space:nowrap}
+table.t td{padding:6px 8px;border-bottom:1px solid var(--rule-2);vertical-align:middle}
+table.t td.r,table.t th.r{text-align:right}
+table.t td.num,table.t td.nw{white-space:nowrap}
+table.t tbody tr.click{cursor:pointer}
+table.t tbody tr.click:hover{background:var(--sunk)}
+table.t tbody tr.on{background:var(--sunk);box-shadow:inset 3px 0 0 var(--ink)}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:999px;border:1px solid currentColor}
+.pill.G{color:var(--flight)} .pill.L{color:var(--ground)} .pill.S{color:var(--ink-3)}
+.up{color:var(--flight)} .dn{color:var(--ground)}
+
+/* charts */
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart canvas{display:block;width:100%}
+svg text{fill:var(--ink-2);font-family:var(--f-ui);font-size:11px}
+svg .ax text{fill:var(--ink-3);font-family:var(--f-mono);font-size:10.5px}
+svg .ax path,svg .ax line{stroke:var(--rule)}
+svg .grid line{stroke:var(--rule-2)}
+svg .zero{stroke:var(--ink-3);stroke-width:1}
+svg .hit{fill:transparent;cursor:pointer}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--ink-2);align-items:center;margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.legend .bar8{display:inline-block;width:90px;height:8px;border-radius:2px;vertical-align:-1px;margin:0 6px}
+.umapwrap{position:relative;overflow:hidden}
+.umapwrap canvas{aspect-ratio:1/1;max-width:100%;height:auto}
+.ulabels{position:absolute;left:0;top:0;pointer-events:none}
+.ulabels span{position:absolute;transform:translate(-50%,-50%);font-size:11px;font-weight:700;color:var(--ink);text-shadow:0 0 3px var(--panel),0 0 3px var(--panel),0 0 2px var(--panel);white-space:nowrap}
+.small-mult{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.mini{border:1px solid var(--rule-2);border-radius:5px;padding:10px 10px 8px;min-width:0}
+.mini h5{margin:0 0 2px;font-size:12.5px;font-weight:700}
+.mini .m{font-size:11px;color:var(--ink-3);font-family:var(--f-mono)}
+.cards4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+@media (max-width:980px){.cards4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.cards4{grid-template-columns:minmax(0,1fr)}}
+.cards4 h5{margin:0 0 6px;font-size:12.5px;font-weight:700}
+.callout{border-left:3px solid var(--ink-3);padding:4px 0 4px 12px;font-size:13px;color:var(--ink-2);max-width:90ch}
+
+:root{--warn:#B4372F}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--warn:#F0877C}}
+:root[data-theme="dark"]{--warn:#F0877C}
+.ins{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr);gap:24px;align-items:start}
+@media (max-width:980px){.ins{grid-template-columns:minmax(0,1fr)}}
+.ins h3{font-size:19px;letter-spacing:-.01em;line-height:1.25;text-wrap:balance;margin:6px 0 8px}
+.ins p{margin:0 0 10px;font-size:14px;color:var(--ink-2);max-width:62ch}
+.ins p b{color:var(--ink);font-weight:600}
+.ins .next{font-size:13px;color:var(--ink);border-top:1px solid var(--rule-2);padding-top:10px;margin-top:4px}
+.ins .next span{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);display:block;margin-bottom:2px}
+.tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tag{font-size:11px;font-weight:600;letter-spacing:.02em;border:1px solid var(--rule);border-radius:3px;padding:1px 7px;color:var(--ink-2);white-space:nowrap}
+.tag.rep{border-color:var(--ink-2);color:var(--ink)}
+.tag.chk{border-color:var(--warn);color:var(--warn)}
+.tag.num{font-family:var(--f-mono);border:0;padding:0;color:var(--ink-3)}
+.minihead{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);margin:0 0 6px;font-weight:600}
+.split2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:560px){.split2{grid-template-columns:minmax(0,1fr)}}
+#tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:var(--panel);font-size:12px;line-height:1.45;padding:8px 10px;border-radius:4px;max-width:300px;opacity:0;transition:opacity .08s}
+#tip b{font-weight:700}
+#tip .mono{font-size:11.5px}
+.foot{margin-top:28px;padding-top:16px;border-top:1px solid var(--rule);font-size:12px;color:var(--ink-3);display:flex;flex-wrap:wrap;gap:6px 24px}
+.loading{color:var(--ink-3);font-size:13px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head><body>
+
+<div class="gm">
+<header class="mast">
+  <div class="wrap">
+    <div class="brand">
+      <svg class="logo" width="46" height="46" viewBox="0 0 64 64" role="img" aria-label="Space Immunology Atlas logo">
+        <g transform="translate(31 35) rotate(-24)"><path d="M-28 0 A28 8.5 0 0 1 28 0" fill="none" stroke="var(--flight)" stroke-width="2.4" stroke-linecap="round"/></g>
+        <circle cx="31" cy="35" r="15.5" fill="var(--ink)"/>
+        <circle cx="35.5" cy="30.5" r="6.2" fill="var(--ground)"/>
+        <g transform="translate(31 35) rotate(-24)"><path d="M-28 0 A28 8.5 0 0 0 28 0" fill="none" stroke="var(--panel)" stroke-width="5.5"/><path d="M-28 0 A28 8.5 0 0 0 28 0" fill="none" stroke="var(--flight)" stroke-width="2.4" stroke-linecap="round"/></g>
+        <g transform="translate(55.3 22.6) rotate(-24)"><path d="M0 6.5 V1 M0 1 L-4.6 -4 M0 1 L4.6 -4" stroke="var(--panel)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M0 6.5 V1 M0 1 L-4.6 -4 M0 1 L4.6 -4" stroke="var(--flight)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+      </svg>
+      <div>
+        <h1>Space Immunology <span>Atlas</span></h1>
+        <p>Single-cell atlas of bone marrow, blood and spleen from young and older mice after 32 days on the ISS</p>
+      </div>
+    </div>
+    <div class="mission" aria-label="Study design">
+      <div><span>Mission</span><b>RRRM-2 · LAR</b></div>
+      <div><span>Exposure</span><b>32 d ISS + 24 d Earth</b></div>
+      <div><span>Mice</span><b>C57BL/6NTac ♀ · n = 4/group</b></div>
+      <div><span>Ages at launch</span><b>12 wk · 29 wk</b></div>
+      <div><span>Data</span><b>OSD-402 to 405</b></div>
+    </div>
+  </div>
+</header>
+
+<nav class="bar" aria-label="Views">
+  <div class="wrap">
+    <div class="tabs" role="tablist" id="tabs">
+      <button role="tab" data-v="overview">Overview</button>
+      <button role="tab" data-v="insights">Insights</button>
+      <button role="tab" data-v="gene">Gene</button>
+      <button role="tab" data-v="tissue">Tissue &amp; cell type</button>
+      <button role="tab" data-v="age">Age</button>
+      <button role="tab" data-v="pathway">Pathway</button>
+      <button role="tab" data-v="composition">Composition</button>
+      <button role="tab" data-v="communication">Communication</button>
+      <button role="tab" data-v="preb">Pre-B cells</button>
+    </div>
+    <div class="key" aria-hidden="true">higher on ground <span class="ramp" id="keyramp"></span> higher in flight</div>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- OVERVIEW -->
+<section class="view" id="v-overview" hidden>
+  <div class="vhead">
+    <div>
+      <div class="eyebrow">Flight vs ground, always within one age</div>
+      <h2>Explore how spaceflight reshapes bone marrow and immune programs</h2>
+      <p>Mice flown for 32 days and returned to Earth for 24 days were compared with hardware ground controls of the same age. Pick a gene, a tissue, an age or a GO pathway in the bar above to see how flight moved it.</p>
+    </div>
+  </div>
+  <div class="stats" id="ov-stats"></div>
+  <div class="panel" style="display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;justify-content:space-between">
+    <div><div class="eyebrow">Evidence &amp; hypotheses</div><div style="font-weight:700;font-size:15.5px">Explore pre-B, platelet-associated and bone-niche programs, with the evidence and limitations behind each finding</div></div>
+    <button type="button" class="lnk" id="ov-ins">Open Insights →</button>
+  </div>
+  <div class="panel">
+    <div class="ph"><h3>What the data say</h3></div>
+    <div class="findings" id="ov-find"></div>
+  </div>
+  <div class="panel">
+    <div class="ph"><div><h3>Where flight changes genes</h3><p class="sub">Each dot is one flight-vs-ground comparison. Size counts genes at nominal p &lt; 0.05 and |log2FC| &gt; 1; color shows whether they went mostly up or mostly down after flight. No within-cell-type gene result passes FDR &lt; 0.05; 11 whole-tissue results do. Effective n is 3–4 mice per condition. Click a dot to open that cell type.</p></div><span class="fig">Fig. 2B</span></div>
+    <div class="tw"><div class="chart" id="ov-matrix"></div></div>
+    <div class="legend" id="ov-matrix-leg"></div>
+  </div>
+  <div class="grid g-1-2">
+    <div class="panel">
+      <div class="ph"><div><h3>Do tissues respond alike?</h3><p class="sub">Spearman ρ between whole-tissue flight log2FC of two tissues (union of each tissue's top 500 genes).</p></div><span class="fig">Fig. 2A</span></div>
+      <div class="grid g2" id="ov-conc"></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><div><h3>Mice behind every comparison</h3><p class="sub">Cells per mouse after quality control. ID letters: ground/flight, young/older, then the animal number.</p></div></div>
+      <div class="tw" id="ov-roster"></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- INSIGHTS -->
+<section class="view" id="v-insights" hidden>
+  <div class="vhead">
+    <div><div class="eyebrow">Beyond the manuscript</div><h2>What else these tables say</h2>
+    <p>Patterns from the result tables, separated into transcriptional evidence, hypotheses and technical checks. Comparisons are flight versus ground within age, 24 days after return to Earth.</p></div>
+  </div>
+  <div id="ins-list" class="view"></div>
+</section>
+
+<!-- GENE -->
+<section class="view" id="v-gene" hidden>
+  <div class="vhead">
+    <div><div class="eyebrow">By gene</div><h2>How did flight move one gene?</h2>
+    <p>Pseudobulk DESeq2 per mouse, run separately in every tissue, cell type and age. Bars are approximate 95% Wald intervals of log2FC, displayed within the axis limits; filled marks have nominal p &lt; 0.05. Intervals may extend beyond the displayed range.</p></div>
+  </div>
+  <div class="ctrls">
+    <div class="search" id="g-search"><input id="g-input" type="search" placeholder="Search a gene, e.g. Bub1" autocomplete="off" spellcheck="false" aria-label="Gene symbol"><ul hidden></ul></div>
+    <div class="chips" id="g-sugg"></div>
+  </div>
+  <div class="panel">
+    <div class="ph"><div><div class="big gene" id="g-name">—</div><div class="kv" id="g-kv" style="margin-top:8px"></div></div></div>
+  </div>
+  <div class="panel">
+    <div class="ph"><div><h3>Flight effect in every cell type</h3><p class="sub">Click a row to see each mouse.</p></div></div>
+    <div class="grid g2" id="g-forest"></div>
+    <div class="legend" id="g-forest-leg"></div>
+  </div>
+  <div class="grid g-1-2">
+    <div class="panel">
+      <div class="ph"><div><h3 id="g-pm-title">Each mouse</h3><p class="sub" id="g-pm-sub">log2 CPM of summed counts per mouse.</p></div></div>
+      <div class="chart" id="g-pm"></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><div><h3>GO terms that carry this gene</h3><p class="sub">Comparisons where the gene appears in the exported leading edge of a term at FDR &lt; 0.05. Lists are truncated to 20 genes; absence here does not establish absence from the full leading edge.</p></div></div>
+      <div id="g-le"></div>
+    </div>
+  </div>
+</section>
+
+<!-- TISSUE -->
+<section class="view" id="v-tissue" hidden>
+  <div class="vhead">
+    <div><div class="eyebrow">By tissue and cell type</div><h2 id="t-title">Femur bone marrow</h2>
+    <p>Cells on the tissue's own UMAP. Pick a cell type to see its flight response in young and older mice.</p></div>
+  </div>
+  <div class="ctrls"><div class="seg" id="t-tis"></div></div>
+  <div class="grid g-1-2">
+    <div class="panel">
+      <div class="ph"><h3>Cells</h3><label class="lab">Color by <select class="sel" id="t-color"><option value="ct">Cell type</option><option value="cond">Flight / ground</option><option value="age">Age</option></select></label></div>
+      <div class="umapwrap chart" id="t-umap"></div>
+      <div class="legend" id="t-umap-leg"></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><div><h3>Cell types</h3><p class="sub">Genes at p &lt; 0.05 and |log2FC| &gt; 1 (<span class="up">up</span> / <span class="dn">down</span> in flight) and GO terms at FDR &lt; 0.05.</p></div></div>
+      <div class="tw" id="t-table"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph"><div><div class="eyebrow" id="t-sel-eyebrow"></div><h3 id="t-sel-title" style="font-size:19px">—</h3><div class="kv" id="t-sel-kv" style="margin-top:4px"></div></div><div class="seg" id="t-age"></div></div>
+  </div>
+  <div class="grid g-2-1">
+    <div class="panel">
+      <div class="ph"><div><h3>Volcano</h3><p class="sub">Each dot is a gene. Hover for values; click to open the gene.</p></div><span class="fig">Fig. 2D</span></div>
+      <div class="chart" id="t-volcano"></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><h3>Top genes</h3><div class="seg" id="t-dir"></div></div>
+      <div class="tw" id="t-genes"></div>
+    </div>
+  </div>
+  <div class="grid g-2-1">
+    <div class="panel">
+      <div class="ph"><div><h3>GO programs</h3><p class="sub">GSEA on the DESeq2 statistic, ribosomal and mitochondrial genes removed. Strongest terms in each direction; * FDR &lt; 0.05.</p></div><span class="fig">Fig. 2C</span></div>
+      <div class="chart" id="t-gsea"></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><div><h3>Markers</h3><p class="sub">Top markers of this cell type against the rest of the tissue.</p></div></div>
+      <div class="tw" id="t-markers"></div>
+    </div>
+  </div>
+</section>
+
+<!-- AGE -->
+<section class="view" id="v-age" hidden>
+  <div class="vhead">
+    <div><div class="eyebrow">By age</div><h2>Compare flight responses between age groups</h2>
+    <p>Each age has its own ground controls. These panels set the young (12 weeks at launch) and older (29 weeks) flight responses side by side. Differences in significance do not establish an age interaction; these are adult age groups, not a geriatric cohort.</p></div>
+  </div>
+  <div class="panel">
+    <div class="ph"><div><h3>Genes changed by flight, young vs older</h3><p class="sub">Nominal p &lt; 0.05 and |log2FC| &gt; 1, per cell type tested in both ages.</p></div></div>
+    <div class="chart" id="a-dumb"></div>
+    <div class="legend"><span><i style="background:var(--young)"></i>Young</span><span><i style="background:var(--older)"></i>Older</span></div>
+  </div>
+  <div class="grid g2">
+    <div class="panel">
+      <div class="ph"><div><h3>Cell–cell signals lost and gained</h3><p class="sub">LIANA interactions significant only on ground (lost) or only after flight (gained).</p></div><span class="fig">Fig. 3</span></div>
+      <div class="chart" id="a-liana"></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><div><h3>Does flight look like aging?</h3><p class="sub">Femur pre-B cells: correlation between the flight shift and the aging shift on the same embedding, with different ground mice in each map (6 overlapping splits, not independent experiments).</p></div><span class="fig">Fig. 4A</span></div>
+      <div id="a-split"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph"><div><h3>Same cell type, two ages</h3><p class="sub">Each point is a gene (left) or a GO term (right): flight effect in young mice against the effect in older mice.</p></div>
+      <div class="ctrls"><select class="sel" id="a-tis" aria-label="Tissue"></select><select class="sel" id="a-ct" aria-label="Cell type"></select></div></div>
+    <div class="grid g2">
+      <div><div class="chart" id="a-sc-gene"></div></div>
+      <div><div class="chart" id="a-sc-path"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- PATHWAY -->
+<section class="view" id="v-pathway" hidden>
+  <div class="vhead">
+    <div><div class="eyebrow">By pathway</div><h2>Which programs did flight shift?</h2>
+    <p>GO Biological Process GSEA (fgsea, 15–500 genes) per comparison. NES above zero means the program is higher after flight.</p></div>
+  </div>
+  <div class="ctrls">
+    <div class="search" id="p-search"><input id="p-input" type="search" placeholder="Search a GO term, e.g. dna replication" autocomplete="off" spellcheck="false" aria-label="GO term"><ul hidden></ul></div>
+  </div>
+  <div class="chips" id="p-sugg"></div>
+  <div class="panel">
+    <div class="ph"><div><div class="eyebrow">GO Biological Process</div><h3 id="p-name" style="font-size:20px">—</h3><div class="kv" id="p-kv" style="margin-top:6px"></div></div></div>
+    <div class="tw" style="margin-top:12px"><div class="chart" id="p-heat"></div></div>
+    <div class="legend" id="p-heat-leg"></div>
+  </div>
+  <div class="panel" id="p-le-panel">
+    <div class="ph"><div><h3 id="p-le-title">Leading edge</h3><p class="sub" id="p-le-sub">Click a cell in the map above to list the genes driving the enrichment.</p></div></div>
+    <div class="chips" id="p-le"></div>
+  </div>
+  <div class="panel">
+    <div class="ph"><div><h3>Three recurring programs</h3><p class="sub">Selected terms for comparisons with at least two of them at FDR &lt; 0.05. * FDR &lt; 0.05.</p></div><span class="fig">Fig. 2C</span></div>
+    <div class="tw"><div class="chart" id="p-prog"></div></div>
+  </div>
+</section>
+
+<!-- COMPOSITION -->
+<section class="view" id="v-composition" hidden>
+  <div class="vhead">
+    <div><div class="eyebrow">Cell-type frequencies</div><h2>No composition differences detected at FDR below 0.05</h2>
+    <p>Share of each cell type per mouse. propeller (logit) tests flight vs ground within tissue and age; none of the 110 tests reaches FDR &lt; 0.05.</p></div>
+  </div>
+  <div class="ctrls"><div class="seg" id="c-tis"></div></div>
+  <div class="panel">
+    <div class="ph"><div><h3 id="c-title">Proportions per mouse</h3><p class="sub">Dots are mice; lines are group means. Below each panel: log2 fold change of the mean share (flight / ground), p and FDR. Sorted by smallest p.</p></div><span class="fig">Fig. 1</span></div>
+    <div class="small-mult" id="c-grid"></div>
+    <div class="legend"><span><i style="background:var(--ground)"></i>Ground control</span><span><i style="background:var(--flight)"></i>Flight</span></div>
+  </div>
+</section>
+
+<!-- COMMUNICATION -->
+<section class="view" id="v-communication" hidden>
+  <div class="vhead">
+    <div><div class="eyebrow">Ligand–receptor signals</div><h2>Explore inferred within-tissue communication</h2>
+    <p>LIANA (CellPhoneDB method) run per tissue, age and condition. An interaction is gained if significant only after flight and lost if significant only on ground.</p></div>
+  </div>
+  <p class="callout">These p-values come from permuting cells, not mice, so groups with more cells have more power. Read gains and losses together with the totals. Significance in only one condition is not a test of a difference between conditions; these categories do not demonstrate functional signaling gain or loss.</p>
+  <div class="panel">
+    <div class="ph"><div><h3>Lost, shared and gained</h3><p class="sub">Click a row to open that tissue and age.</p></div><span class="fig">Fig. 3</span></div>
+    <div class="chart" id="m-sum"></div>
+  </div>
+  <div class="ctrls"><div class="seg" id="m-tis"></div><div class="seg" id="m-age"></div></div>
+  <div class="grid g-2-1">
+    <div class="panel">
+      <div class="ph"><div><h3>Sender → receiver balance</h3><p class="sub">Gained minus lost interactions for each pair of cell types.</p></div></div>
+      <div class="tw"><div class="chart" id="m-heat"></div></div>
+      <div class="legend" id="m-heat-leg"></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><div><h3>Ligands with the largest shift</h3><p class="sub">Gained minus lost interactions per ligand.</p></div></div>
+      <div class="chart" id="m-lig"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="ph"><h3>Interactions</h3>
+      <div class="ctrls"><div class="search" style="flex:1 1 200px"><input id="m-q" type="search" placeholder="Filter by cell type or gene" aria-label="Filter interactions"></div><div class="seg" id="m-st"></div></div></div>
+    <div class="tw" id="m-table" style="margin-top:10px"></div>
+  </div>
+</section>
+
+<!-- PRE-B -->
+<section class="view" id="v-preb" hidden>
+  <div class="vhead">
+    <div><div class="eyebrow">Zoom on femur pre-B cells</div><h2>Pre-B proliferation programs and the measured age contrast</h2>
+    <p>Pre-B cells carried the largest flight response. On their own embedding, cell-cycle activity forms a gradient that peaks in a mitotic arm.</p></div>
+  </div>
+  <div class="panel">
+    <div class="ph"><div><h3>Femur pre-B cells</h3><p class="sub">Local enrichment is the log2 odds of case vs control among each cell's 150 nearest neighbours, every mouse weighted equally.</p></div><span class="fig">Fig. 4A–B</span></div>
+    <div class="cards4" id="b-maps"></div>
+  </div>
+  <div class="grid g2">
+    <div class="panel">
+      <div class="ph"><div><h3>Pre-B cells in the mitotic cluster</h3><p class="sub">Femur, per mouse; t-test flight vs ground within age.</p></div><span class="fig">Fig. 4C</span></div>
+      <div class="chart" id="b-mit"></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><div><h3>Cycling pre-B cells (S or G2/M)</h3><p class="sub">Per mouse, by Seurat phase.</p></div><div class="seg" id="b-cyc-tis"></div></div>
+      <div class="chart" id="b-cyc"></div>
+    </div>
+  </div>
+  <div class="grid g2">
+    <div class="panel">
+      <div class="ph"><div><h3>Cell-cycle programs in pre-B cells</h3><p class="sub">NES flight vs ground; * FDR &lt; 0.05. The effect is confined to the marrow.</p></div><span class="fig">Fig. 4D</span></div>
+      <div class="tw"><div class="chart" id="b-nes"></div></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><div><h3>Flight shift vs aging shift</h3><p class="sub">Correlation of the flight map with the aging map, ground mice split between maps.</p></div></div>
+      <div id="b-split"></div>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <span>Space Immunology Atlas · Mamede, Ishihara, Rojas-Celis, Nakaya (manuscript in preparation)</span>
+  <span>Raw data: NASA OSDR OSD-402 (femur), OSD-403 (humerus), OSD-404 (PBMC), OSD-405 (spleen)</span>
+  <span>Reviewed 19 October 2026 · <a href="https://github.com/hylixinsights/toolhub/tree/main/spaceimmunology">Source &amp; methods</a> · <a href="../">Hylix Tool Hub</a></span>
+  <span>Sign convention: log2FC or NES &gt; 0 means higher after flight</span>
+</footer>
+</main>
+</div>
+<div id="tip" role="tooltip"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="app.js"></script>
+</body></html>
