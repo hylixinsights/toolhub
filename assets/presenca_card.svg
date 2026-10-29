@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+<defs><radialGradient id="g"><stop stop-color="#23463e"/><stop offset="1" stop-color="#0c131a"/></radialGradient></defs>
+<rect width="960" height="540" fill="url(#g)"/>
+<g fill="none" stroke="#9bf1cb" stroke-width="5" stroke-linecap="round">
+<path d="M360 110h-40v40m280 0v-40h-40M320 290v40h40m200 0h40v-40"/>
+<ellipse cx="460" cy="191" rx="49" ry="61"/><path d="M375 295c7-66 163-66 170 0"/>
+<circle cx="579" cy="284" r="30" fill="#15372a"/><path d="m565 284 10 10 18-22"/>
+</g><text x="480" y="405" fill="#edf3f7" font-family="Segoe UI,Arial,sans-serif" font-size="60" font-weight="600" text-anchor="middle">presença</text>
+<text x="480" y="450" fill="#9eafbf" font-family="Segoe UI,Arial,sans-serif" font-size="22" text-anchor="middle">Recognize. Open. All on your device.</text></svg>
