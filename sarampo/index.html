@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sarampo: o poder do R0</title>
+<meta name="description" content="Explore como o R0 e a imunidade alteram a transmissão do sarampo em uma simulação educativa interativa. Por Helder Nakaya.">
+<meta name="theme-color" content="#111113">
+<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
+<link rel="canonical" href="https://toolhub.hylix.app/sarampo/">
+<meta property="og:title" content="Sarampo: o poder do R0">
+<meta property="og:description" content="Uma pessoa. Muitas conexões. Explore o efeito da imunidade na transmissão.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://toolhub.hylix.app/sarampo/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0b0b0c;color:#f2f1ec;font-family:Inter,system-ui,sans-serif;overflow:hidden}
+body{display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#stage{position:relative;aspect-ratio:9/16;height:min(100dvh,calc(100vw*16/9));width:auto;max-width:100vw;background:#111113;display:flex;flex-direction:column;overflow:hidden;container-type:size}
+@media (max-aspect-ratio:9/16){#stage{width:100vw;height:auto}}
+@media (max-width:600px) and (max-aspect-ratio:3/4){#stage{width:100vw;height:100dvh;aspect-ratio:auto}}
+.top{display:flex;align-items:center;gap:3cqw;justify-content:space-between;padding:3cqh 5cqw 0}
+.kicker{font-size:2.5cqw;letter-spacing:.12em;text-transform:uppercase;color:#F0997B;font-weight:500;display:flex;align-items:center;gap:1.6cqw}
+.tools{display:flex;gap:2cqw;align-items:center;flex:none}.kicker{flex:1;min-width:0}
+.ib{flex:none;height:auto;white-space:nowrap;display:flex;align-items:center;gap:1.4cqw;background:#1b1b1e;border:1px solid #333336;border-radius:5cqw;padding:.8cqh 2.6cqw;color:#f2f1ec;font:inherit;font-size:2.6cqw;font-weight:500;cursor:pointer}
+.ib svg{width:4.2cqw;height:auto;display:block}
+.ib .flag{width:5cqw;border-radius:2px}
+header{padding:1.4cqh 5cqw .8cqh;display:flex;align-items:center;gap:3cqw}
+header .vi{width:10cqw;flex:none;color:#FF5A4E}
+h1{font-size:5.6cqw;line-height:1.12;font-weight:700}
+h1 em{font-style:normal;color:#FF5A4E}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:2.2cqw;padding:.8cqh 5cqw}
+.stat{background:#1b1b1e;border-radius:2.4cqw;padding:1cqh 3cqw}
+.stat .l{font-size:2.4cqw;color:#a3a29b}
+.stat .v{font-size:5.4cqw;font-weight:700;font-variant-numeric:tabular-nums;margin-top:.2cqh}
+#wrap{flex:1;position:relative;margin:.4cqh 4cqw 0;min-height:0}
+#cv,#ch{position:absolute;inset:0;width:100%;height:100%;display:block}
+#msg{position:absolute;left:0;right:0;bottom:1.5cqh;text-align:center;font-size:3.4cqw;font-weight:500;pointer-events:none;transition:opacity .4s;text-shadow:0 0 12px #000,0 0 4px #000}
+.chartbox{position:relative;height:14cqh;margin:1cqh 4cqw 0;background:#17171a;border-radius:2.4cqw}
+.legend{display:flex;justify-content:center;gap:3.4cqw;flex-wrap:wrap;font-size:2.4cqw;color:#a3a29b;padding:1cqh 5cqw 0}
+.legend span{display:flex;align-items:center;gap:1cqw}
+.legend i{display:inline-block;width:2cqw;height:2cqw;border-radius:50%}
+.legend svg{width:3.2cqw;height:auto}
+.controls{padding:1.2cqh 5cqw 2.4cqh}
+.row{display:flex;align-items:center;gap:2.6cqw;margin-bottom:.9cqh}
+.row label{font-size:2.9cqw;color:#a3a29b;min-width:22cqw;display:flex;align-items:center;gap:1.4cqw}
+.row label svg{width:4cqw;height:auto}
+.row output{font-size:3.2cqw;font-weight:700;min-width:10cqw;text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{flex:1;accent-color:#FF5A4E;height:4cqw}
+.btns{display:flex;gap:2.2cqw;margin-top:1cqh}
+button.b{flex:1;font:inherit;font-size:3.1cqw;font-weight:500;color:#f2f1ec;background:#1b1b1e;border:1px solid #333336;border-radius:2.4cqw;padding:1.3cqh 0;cursor:pointer}
+button.primary{background:#E24B4A;border-color:#E24B4A}
+button.b:active,.ib:active{transform:scale(.98)}
+.links{display:flex;gap:2.2cqw;margin-top:1cqh}
+.links button{flex:1;background:none;border:none;color:#a3a29b;font:inherit;font-size:2.7cqw;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:.6cqh 0}
+.page{position:absolute;inset:0;background:#111113;overflow-y:auto;padding:3cqh 6cqw 4cqh;display:none;z-index:5}
+.page.on{display:block}
+.back{background:#1b1b1e;border:1px solid #333336;color:#f2f1ec;font:inherit;font-size:3cqw;border-radius:5cqw;padding:1cqh 3.6cqw;cursor:pointer}
+.page h2{font-size:6.4cqw;font-weight:700;margin:3cqh 0 1cqh;line-height:1.15}
+.page p{font-size:3.3cqw;line-height:1.55;color:#c9c8c1;margin-bottom:1.6cqh}
+.vrow{margin:1.5cqh 0}
+.vrow .n{display:flex;justify-content:space-between;font-size:3.1cqw;margin-bottom:.6cqh}
+.vrow .n b{font-weight:500}
+.vrow .n span{color:#a3a29b;font-variant-numeric:tabular-nums}
+.track{position:relative;height:2.6cqw;background:#1f1f22;border-radius:2cqw}
+.track .bar{position:absolute;top:0;bottom:0;border-radius:2cqw}
+.track .one{position:absolute;top:-.6cqw;bottom:-.6cqw;width:0;border-left:1px dashed #a3a29b}
+.scale{display:flex;justify-content:space-between;font-size:2.4cqw;color:#6b6a65;margin-top:1cqh}
+.note{font-size:2.6cqw!important;color:#8a8983!important;margin-top:2cqh}
+.credit{display:flex;flex-direction:column;align-items:center;text-align:center;margin-top:8cqh}
+.avatar{width:26cqw;height:26cqw;border-radius:50%;background:#1b1b1e;display:flex;align-items:center;justify-content:center;color:#FF5A4E}
+.avatar svg{width:15cqw}
+.credit h2{margin-top:3cqh}
+.credit .role{font-size:3.2cqw;color:#a3a29b;margin-bottom:4cqh}
+.lk{display:flex;align-items:center;gap:3cqw;width:100%;background:#1b1b1e;border:1px solid #333336;border-radius:3cqw;padding:2cqh 4cqw;color:#f2f1ec;text-decoration:none;font-size:3.4cqw;margin-bottom:1.6cqh;text-align:left}
+.lk svg{width:6cqw;flex:none;color:#F0997B}
+.lk small{display:block;font-size:2.6cqw;color:#a3a29b;margin-top:.3cqh}
+/* Keep controls readable on desktops, short screens and zoomed layouts. */
+html,body{height:auto;min-height:100%;overflow:auto}
+body{align-items:flex-start}
+#stage{width:min(100%,480px);max-width:100%;height:max(940px,100dvh);max-height:1100px;aspect-ratio:auto}
+.ib,button.b,.back,.links button{min-height:44px}
+:focus-visible{outline:3px solid #5DCAA5;outline-offset:3px}
+.hub{display:block;color:#c9c8c1;text-decoration:none;font-size:13px;padding:12px 5cqw 0}
+.top{padding-top:1cqh}.stat .l,.legend{font-size:max(12px,2.4cqw)}
+.model-hint{font-size:12px;line-height:1.45;color:#b7b6af;margin:10px 0 0}
+.page a{color:#5DCAA5}.page p{font-size:max(14px,3.3cqw)}
+.page h3{font-size:18px;margin:24px 0 12px}.page .note{font-size:13px!important}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.presets{display:flex;gap:8px;margin-top:8px}.presets button{flex:1;background:#17171a;border:1px solid #444;color:#d0d0ca;border-radius:8px;min-height:40px;font:inherit;font-size:12px;cursor:pointer}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-virus" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="24" cy="24" r="11"/><path d="M24 13V5M24 35v8M13 24H5M35 24h8M16.2 16.2l-5.6-5.6M31.8 31.8l5.6 5.6M16.2 31.8l-5.6 5.6M31.8 16.2l5.6-5.6"/></g><g fill="currentColor"><circle cx="24" cy="4.5" r="3"/><circle cx="24" cy="43.5" r="3"/><circle cx="4.5" cy="24" r="3"/><circle cx="43.5" cy="24" r="3"/><circle cx="10.2" cy="10.2" r="3"/><circle cx="37.8" cy="37.8" r="3"/><circle cx="10.2" cy="37.8" r="3"/><circle cx="37.8" cy="10.2" r="3"/><circle cx="20" cy="21" r="2.2"/><circle cx="27.5" cy="26.5" r="2.2"/><circle cx="21.5" cy="28.5" r="1.6"/></g></symbol>
+    <symbol id="i-vax" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M38 4l6 6M41 7l-6 6M32 10l6 6"/><path d="M35 13L16 32l-6-6 19-19z"/><path d="M13 29l-9 9M22 20l3 3M18 24l3 3"/><path d="M10 26l6 6"/></g></symbol>
+    <symbol id="i-on" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11"/></g></symbol>
+    <symbol id="i-off" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 10l4 4M21 10l-4 4"/></g></symbol>
+    <symbol id="f-br" viewBox="0 0 20 14"><rect width="20" height="14" fill="#009C3B"/><path d="M10 1.6L18.2 7 10 12.4 1.8 7z" fill="#FFDF00"/><circle cx="10" cy="7" r="3.1" fill="#002776"/><path d="M7 6.3c2-.6 4.2-.3 6 .9" stroke="#fff" stroke-width=".6" fill="none"/></symbol>
+    <symbol id="f-us" viewBox="0 0 20 14"><rect width="20" height="14" fill="#fff"/><g fill="#B22234"><rect y="0" width="20" height="1.08"/><rect y="2.15" width="20" height="1.08"/><rect y="4.3" width="20" height="1.08"/><rect y="6.46" width="20" height="1.08"/><rect y="8.6" width="20" height="1.08"/><rect y="10.77" width="20" height="1.08"/><rect y="12.92" width="20" height="1.08"/></g><rect width="8.6" height="7.54" fill="#3C3B6E"/><g fill="#fff"><circle cx="1.5" cy="1.3" r=".4"/><circle cx="3.6" cy="1.3" r=".4"/><circle cx="5.7" cy="1.3" r=".4"/><circle cx="7.6" cy="1.3" r=".4"/><circle cx="2.5" cy="2.8" r=".4"/><circle cx="4.6" cy="2.8" r=".4"/><circle cx="6.7" cy="2.8" r=".4"/><circle cx="1.5" cy="4.3" r=".4"/><circle cx="3.6" cy="4.3" r=".4"/><circle cx="5.7" cy="4.3" r=".4"/><circle cx="7.6" cy="4.3" r=".4"/><circle cx="2.5" cy="5.8" r=".4"/><circle cx="4.6" cy="5.8" r=".4"/><circle cx="6.7" cy="5.8" r=".4"/></g></symbol>
+    <symbol id="i-ig" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/></g><circle cx="17.3" cy="6.7" r="1.2" fill="currentColor"/></symbol>
+    <symbol id="i-lab" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6L4.5 18.5A1.7 1.7 0 006 21h12a1.7 1.7 0 001.5-2.5L14 9V3"/><path d="M7 15h10"/></g></symbol>
+  </defs>
+</svg>
+
+<main id="stage">
+  <a class="hub" href="../">← ToolHub</a>
+  <div class="top">
+    <div class="kicker" data-i="kicker">Sarampo · número básico de reprodução</div>
+    <div class="tools">
+      <button class="ib" id="sound" aria-label="Ativar som" aria-pressed="false"><svg viewBox="0 0 24 24"><use href="#i-off"/></svg></button>
+      <button class="ib" id="lang" aria-label="Mudar idioma"><svg class="flag" viewBox="0 0 20 14"><use id="flagUse" href="#f-us"/></svg><span id="langTxt">EN</span></button>
+    </div>
+  </div>
+  <header>
+    <svg class="vi" viewBox="0 0 48 48"><use href="#i-virus"/></svg>
+    <h1 data-i="title" data-html>Sem imunidade, um caso de sarampo pode gerar <em>12–18</em> novos casos</h1>
+  </header>
+  <div class="stats">
+    <div class="stat"><div class="l" data-i="re">R estimado</div><div class="v" id="re">15,0</div></div>
+    <div class="stat"><div class="l" data-i="tot">Casos acumulados</div><div class="v" id="tot">1</div></div>
+    <div class="stat"><div class="l" data-i="day">Geração</div><div class="v" id="gen">0</div></div>
+  </div>
+  <div id="wrap"><canvas id="cv" role="img" aria-label="População simulada" aria-describedby="simSummary"></canvas><div id="msg" role="status"></div></div>
+  <div class="chartbox"><canvas id="ch" role="img" aria-label="Novos casos por geração" aria-describedby="simSummary"></canvas><p id="simSummary" class="sr-only"></p></div>
+  <div class="legend">
+    <span><i style="background:#3a3a3d"></i><b data-i="lgS" style="font-weight:400">Suscetível</b></span>
+    <span><svg viewBox="0 0 48 48" style="color:#1D9E75"><use href="#i-vax"/></svg><b data-i="lgV" style="font-weight:400">Imune</b></span>
+    <span><svg viewBox="0 0 48 48" style="color:#FF5A4E"><use href="#i-virus"/></svg><b data-i="lgI" style="font-weight:400">Transmitindo</b></span>
+    <span><i style="background:#7a2a1a"></i><b data-i="lgR" style="font-weight:400">Já infectado</b></span>
+  </div>
+  <div class="controls">
+    <div class="row"><label for="r0"><svg viewBox="0 0 48 48" style="color:#FF5A4E"><use href="#i-virus"/></svg>R0</label><input type="range" id="r0" min="1" max="18" step="1" value="15"><output id="r0o">15</output></div>
+    <div class="row"><label for="cov"><svg viewBox="0 0 48 48" style="color:#1D9E75"><use href="#i-vax"/></svg><span data-i="vax">Imunidade</span></label><input type="range" id="cov" min="0" max="100" step="1" value="0"><output id="covo">0%</output></div>
+    <div class="btns">
+      <button class="b primary" id="play" data-i="start">Iniciar</button>
+      <button class="b" id="reset" data-i="reset">Reiniciar</button>
+    </div>
+    <div class="presets" aria-label="Cenários"><button data-cov="0">0%</button><button data-cov="80">80%</button><button data-cov="95">95%</button></div>
+    <p class="model-hint" data-i="hint"></p>
+    <div class="links">
+      <button id="goVirus" data-i="linkV">R0 e o modelo →</button>
+      <button id="goCred" data-i="linkC">Créditos →</button>
+    </div>
+  </div>
+
+  <section class="page" id="pVirus">
+    <button class="back" data-i="back">← Voltar</button>
+    <h2 data-i="vTitle">Como comparar o R0?</h2>
+    <p data-i="vText">R0 é o número médio de pessoas que um caso infecta numa população sem nenhuma imunidade. A linha tracejada marca R0 = 1: acima dela, há potencial de crescimento em uma população suscetível.</p>
+    <div id="vlist"></div>
+    <div class="scale"><span>0</span><span>5</span><span>10</span><span>15</span><span>20</span></div>
+    <p class="note" data-i="vNote">Faixas aproximadas do Immunisation Handbook (Tabela 1.1). Não são constantes universais: variam com população, contatos e método de estimativa. Coqueluche e difteria são bacterianas. As faixas não definem a gravidade das doenças.</p>
+    <h3 data-i="modelTitle"></h3>
+    <p data-i="modelText"></p>
+    <p data-i="vaccineText"></p>
+    <h3 data-i="sources"></h3>
+    <p><a href="https://www.healthnz.govt.nz/health-professionals/guidance-standards/topic/immunisation/immunisation-handbook/general-immunisation-principles" target="_blank" rel="noopener">Health New Zealand — Immunisation Handbook, Table 1.1</a></p>
+    <p><a href="https://www.cdc.gov/measles/hcp/vaccine-considerations/index.html" target="_blank" rel="noopener">CDC — Measles Vaccine Recommendations</a></p>
+    <p><a href="https://wwwnc.cdc.gov/eid/article/30/9/24-0150_article" target="_blank" rel="noopener">CDC — Measles transmission and R0 (2024)</a></p>
+  </section>
+
+  <section class="page" id="pCred">
+    <button class="back" data-i="back">← Voltar</button>
+    <div class="credit">
+      <div class="avatar"><svg viewBox="0 0 48 48"><use href="#i-virus"/></svg></div>
+      <h2>Helder Nakaya</h2>
+      <div class="role" data-i="cRole">Criação e conteúdo científico</div>
+      <a class="lk" href="https://www.instagram.com/helder_nakaya/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><use href="#i-ig"/></svg><div>@helder_nakaya<small>instagram.com/helder_nakaya</small></div></a>
+      <a class="lk" href="https://csbiology.org" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><use href="#i-lab"/></svg><div><span data-i="cLab">Laboratório CSBL</span><small>csbiology.org</small></div></a>
+    </div>
+  </section>
+</main>
+<noscript>Ative JavaScript para usar a simulação. Enable JavaScript to run the simulation.</noscript>
+<script>
+const T={
+pt:{kicker:"Sarampo · número básico de reprodução",title:"Sem imunidade, um caso de sarampo pode gerar <em>12–18</em> novos casos",re:"R estimado",tot:"Casos acumulados",day:"Geração",lgS:"Suscetível",lgV:"Imune",lgI:"Transmitindo",lgR:"Já infectado",vax:"Imunidade",start:"Iniciar",pause:"Pausar",cont:"Continuar",reset:"Reiniciar",linkV:"R0 e o modelo →",linkC:"Créditos →",back:"← Voltar",
+vTitle:"Como comparar o R0?",vText:"R0 é o número médio de pessoas que um caso infecta numa população sem nenhuma imunidade. A linha tracejada marca R0 = 1: acima dela, há potencial de crescimento em uma população suscetível.",vNote:"Faixas aproximadas do Immunisation Handbook (Tabela 1.1). Não são constantes universais: variam com população, contatos e método de estimativa. Coqueluche e difteria são bacterianas. As faixas não definem a gravidade das doenças.",
+cRole:"Criação e conteúdo científico",cLab:"Laboratório CSBL",yLab:"Novos casos",xLab:"gerações",
+contained:"A transmissão terminou nesta simulação",reached:p=>p+"% dos inicialmente suscetíveis foram infectados",dec:","},
+en:{kicker:"Measles · basic reproduction number",title:"Without immunity, one measles case can generate <em>12–18</em> new cases",re:"Estimated R",tot:"Total cases",day:"Generation",lgS:"Susceptible",lgV:"Immune",lgI:"Transmitting",lgR:"Already infected",vax:"Immunity",start:"Start",pause:"Pause",cont:"Resume",reset:"Reset",linkV:"R0 & the model →",linkC:"Credits →",back:"← Back",
+vTitle:"How does R0 compare?",vText:"R0 is the average number of people one case infects in a population with no immunity. The dashed line marks R0 = 1: above it, spread can grow in a susceptible population.",vNote:"Approximate ranges from the Immunisation Handbook (Table 1.1). These are not universal constants: estimates depend on population, contacts and methods. Pertussis and diphtheria are bacterial. These ranges do not measure disease severity.",
+cRole:"Creator and scientific content",cLab:"CSBL Lab",yLab:"New cases",xLab:"generations",
+contained:"Transmission ended in this simulation",reached:p=>p+"% of initially susceptible people were infected",dec:"."}};
+Object.assign(T.pt,{
+hint:"Modelo educativo · 900 pessoas. Ajustar um controle reinicia o cenário. Cada ponto verde representa imunidade completa; não equivale à cobertura vacinal real.",
+modelTitle:"O que esta simulação representa?",sources:"Fontes",
+modelText:"População fechada de 900 pessoas, contatos aleatórios entre todos, imunidade completa e permanente e transmissão em gerações discretas — não em dias. Cada caso tenta transmitir a R0 pessoas distintas por geração. Pessoas infectadas deixam de ser suscetíveis. O R estimado é R0 × fração ainda suscetível; não é uma medição dos casos secundários observados. A posição dos pontos é apenas visual. O acaso faz cada execução variar; isto não prevê um surto real. O controle de R0 permite cenários genéricos de 1 a 18; a faixa de referência do sarampo é 12–18.",
+vaccineText:"Imunidade não é o mesmo que cobertura vacinal. Aqui, o controle define a proporção completamente protegida. Na realidade, duas doses da vacina contra sarampo têm efetividade estimada de 97% (CDC). O limiar teórico de imunidade 1 − 1/R0 depende de hipóteses ideais e não garante ausência de casos.",
+allImmune:"Todos estão imunes neste cenário idealizado.",
+summary:(n,i,g)=>n+" pessoas; "+i+" casos acumulados; geração "+g+"."
+});
+Object.assign(T.en,{
+hint:"Educational model · 900 people. Changing a control resets the scenario. Each green dot represents complete immunity, not real vaccination coverage.",
+modelTitle:"What does this simulation represent?",sources:"Sources",
+modelText:"A closed population of 900 people, random mixing, complete permanent immunity and discrete transmission generations — not days. Each case attempts transmission to R0 distinct people per generation. Infected people are no longer susceptible. Estimated R is R0 × the remaining susceptible fraction; it does not measure observed secondary cases. Dot positions are only visual. Chance makes each run different; this is not an outbreak forecast. The R0 slider supports generic scenarios from 1 to 18; the reference range for measles is 12–18.",
+vaccineText:"Immunity is not vaccination coverage. Here, the slider sets the completely protected proportion. In real life, two measles vaccine doses are estimated to be 97% effective (CDC). The theoretical immunity threshold 1 − 1/R0 relies on ideal assumptions and does not guarantee zero cases.",
+allImmune:"Everyone is immune in this idealized scenario.",
+summary:(n,i,g)=>n+" people; "+i+" total cases; generation "+g+"."
+});
+const VIR=[
+["Sarampo","Measles",12,18],["Coqueluche","Pertussis",5,17],
+["Catapora","Chickenpox",8,10],["Caxumba","Mumps",4,7],
+["Rubéola","Rubella",6,7],["Difteria","Diphtheria",6,7],
+["Pólio","Polio",2,20],["Influenza","Influenza",1.4,4]];
+let L='pt';try{L=localStorage.getItem('r0lang')==='en'?'en':'pt';}catch(e){}
+const $=id=>document.getElementById(id);
+const fmt=(n,d)=>n.toFixed(d).replace('.',T[L].dec);
+
+function applyLang(){
+  document.documentElement.lang=L==='pt'?'pt-BR':'en';
+  document.title=L==='pt'?'Sarampo: o poder do R0':'Measles: the power of R0';
+  document.querySelectorAll('[data-i]').forEach(el=>{const v=T[L][el.dataset.i];if(typeof v!=='string')return;if(el.hasAttribute('data-html'))el.innerHTML=v;else el.textContent=v;});
+  $('flagUse').setAttribute('href',L==='pt'?'#f-us':'#f-br');$('langTxt').textContent=L==='pt'?'EN':'PT';
+  $('play').textContent=running?T[L].pause:(gen>0&&cur.length?T[L].cont:T[L].start);
+  if($('msg').dataset.k)showMsg($('msg').dataset.k,$('msg').dataset.p);
+  $('lang').setAttribute('aria-label',L==='pt'?'Switch to English':'Mudar para português');
+  updateSoundLabel();
+  $('cv').setAttribute('aria-label',L==='pt'?'População simulada':'Simulated population');
+  $('ch').setAttribute('aria-label',L==='pt'?'Novos casos por geração':'New cases per generation');
+  document.querySelector('.presets').setAttribute('aria-label',L==='pt'?'Cenários de imunidade':'Immunity scenarios');
+  buildVirus();upd();drawChart();
+}
+$('lang').onclick=()=>{L=L==='pt'?'en':'pt';try{localStorage.setItem('r0lang',L);}catch(e){}applyLang();};
+
+function buildVirus(){
+  const max=20;$('vlist').innerHTML=VIR.map(([pt,en,a,b])=>{
+    const c=b>=10?'#FF5A4E':b>=5?'#F0997B':b>=1?'#EF9F27':'#5DCAA5';
+    const r=a===b?fmt(a,1):(Number.isInteger(a)?a:fmt(a,1))+'–'+(Number.isInteger(b)?b:fmt(b,1));
+    return `<div class="vrow"><div class="n"><b>${L==='pt'?pt:en}</b><span>${r}</span></div><div class="track"><div class="bar" style="left:${a/max*100}%;width:${Math.max(1.2,(b-a)/max*100)}%;background:${c}"></div><div class="one" style="left:${100/max}%"></div></div></div>`;}).join('');
+}
+
+let returnFocus=null;
+function route(){
+  const h=location.hash.slice(1),active=h==='virus'?$('pVirus'):h==='creditos'?$('pCred'):null;
+  if(active){if(!returnFocus)returnFocus=document.activeElement;running=false;last=0;$('play').textContent=gen>0?T[L].cont:T[L].start;}
+  for(const el of $('stage').children){if(!el.classList.contains('page'))el.inert=!!active;}
+  $('pVirus').classList.toggle('on',h==='virus');$('pCred').classList.toggle('on',h==='creditos');
+  if(active){active.querySelector('.back').focus();}else if(returnFocus){returnFocus.focus();returnFocus=null;}
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&location.hash)location.hash='';});
+$('goVirus').onclick=()=>{location.hash='virus';};
+$('goCred').onclick=()=>{location.hash='creditos';};
+document.querySelectorAll('.back').forEach(b=>b.onclick=()=>{location.hash='';route();});
+window.addEventListener('hashchange',route);
+
+/* ---------- simulation ---------- */
+const cv=$('cv'),ctx=cv.getContext('2d'),wrap=$('wrap');
+const ch=$('ch'),cx2=ch.getContext('2d');
+let COLS=30,ROWS=30,P=900,S,cur=[],links=[],gen=0,total=1,running=false,phase=0,last=0,W=0,H=0,cell=0,ox=0,oy=0,dpr=1,series=[1];
+const GEN_MS=1700,SERIAL=1;
+const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function layout(){
+  dpr=Math.min(window.devicePixelRatio||1,2);
+  W=wrap.clientWidth;H=wrap.clientHeight;if(!W||!H)return;
+  cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+  cell=Math.min(W/COLS,H/ROWS);
+  ox=(W-COLS*cell)/2;oy=(H-ROWS*cell)/2;
+  if(!S)reset();else draw(1);
+}
+function layoutChart(){const w=ch.clientWidth,h=ch.clientHeight;ch.width=w*dpr;ch.height=h*dpr;cx2.setTransform(dpr,0,0,dpr,0,0);drawChart();}
+function xy(i){return[(i%COLS+.5)*W/COLS,(Math.floor(i/COLS)+.5)*H/ROWS];}
+function reset(){
+  running=false;last=0;
+  const cov=+$('cov').value/100;S=new Uint8Array(P);
+  const seed=Math.floor(ROWS/2)*COLS+Math.floor(COLS/2);
+  const idx=[...Array(P).keys()];for(let i=P-1;i>0;i--){const j=Math.random()*(i+1)|0;[idx[i],idx[j]]=[idx[j],idx[i]];}
+  const nv=Math.round(cov*P);let k=0;for(const i of idx){if(k>=nv)break;if(i===seed)continue;S[i]=1;k++;}
+  if(cov===1){S.fill(1);cur=[];total=0;}else{S[seed]=2;cur=[seed];total=1;}
+  links=[];gen=0;phase=1;series=[total];
+  $('play').textContent=T[L].start;
+  showMsg(cov===1?'allImmune':'');upd();draw(1);drawChart();
+}
+function contacts(a,count){
+  const targets=new Set();
+  while(targets.size<Math.min(count,P-1)){const b=Math.floor(Math.random()*P);if(b!==a)targets.add(b);}
+  return targets;
+}
+function nextGen(){
+  const R0=+$('r0').value,nxt=[];links=[];
+  for(const a of cur){S[a]=3;for(const b of contacts(a,R0)){const ok=S[b]===0;if(ok||S[b]===1)links.push([a,b,ok]);if(ok){S[b]=4;nxt.push(b);}}}
+  cur=nxt;gen++;total+=nxt.length;phase=0;series.push(nxt.length);
+  if(!nxt.length)finish();
+}
+function finish(){
+  running=false;$('play').textContent=T[L].start;
+  let nv=0;for(let i=0;i<P;i++)if(S[i]===1)nv++;
+  const pct=Math.round(total/(P-nv)*100);
+  if(total<=3)showMsg('contained');else showMsg('reached',pct);
+  upd();drawChart();
+  links=[];draw(1);
+}
+function showMsg(k,p){const m=$('msg');m.dataset.k=k||'';m.dataset.p=p||'';if(!k){m.textContent='';m.style.opacity=0;return;}const v=T[L][k];m.textContent=typeof v==='function'?v(p):v;m.style.opacity=1;}
+function upd(){
+  const R0=+$('r0').value,cov=+$('cov').value;
+  $('r0o').textContent=R0;$('covo').textContent=cov+'%';
+  const susceptible=S?S.reduce((n,s)=>n+(s===0),0):P;
+  const re=R0*susceptible/P;$('re').textContent=fmt(re,1);
+  $('re').style.color=re>=1?'#FF5A4E':'#5DCAA5';
+  $('tot').textContent=total.toLocaleString(L==='pt'?'pt-BR':'en-US');$('gen').textContent=gen*SERIAL;
+  $('simSummary').textContent=T[L].summary(P,total,gen);
+}
+function draw(p){
+  if(!S)return;
+  if(reducedMotion)p=1;
+  ctx.clearRect(0,0,W,H);
+  const e=p<.6?p/.6:1;
+  ctx.lineWidth=Math.max(.6,cell*.08);
+  for(const[a,b,ok]of links){
+    const[x1,y1]=xy(a),[x2,y2]=xy(b);
+    ctx.strokeStyle=ok?'rgba(255,90,78,'+(0.55*(1-Math.max(0,p-.7)/.3*.6))+')':'rgba(93,202,165,0.18)';
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x1+(x2-x1)*e,y1+(y2-y1)*e);ctx.stroke();
+  }
+  const r=cell*.3;
+  for(let i=0;i<P;i++){
+    let s=S[i];if(s===4&&p<.6)s=0;
+    const[x,y]=xy(i);
+    ctx.fillStyle=s===0?'#3a3a3d':s===1?'#1D9E75':s===3?'#7a2a1a':'#FF5A4E';
+    let rr=r;
+    if(s===2||s===4){const pulse=s===4?Math.min(1,(p-.6)/.4):1;rr=r*(1+.5*(1-pulse)+.25);
+      ctx.globalAlpha=.25;ctx.beginPath();ctx.arc(x,y,rr*2.2,0,7);ctx.fill();ctx.globalAlpha=1;}
+    ctx.beginPath();ctx.arc(x,y,rr,0,7);ctx.fill();
+  }
+}
+function niceMax(v){if(v<=5)return 5;const p=Math.pow(10,Math.floor(Math.log10(v)));const n=v/p;return (n<=2?2:n<=5?5:10)*p;}
+function drawChart(){
+  const w=ch.clientWidth,h=ch.clientHeight;if(!w)return;
+  cx2.clearRect(0,0,w,h);
+  const fs=Math.max(9,w*.026);cx2.font=fs+'px Inter,system-ui,sans-serif';
+  const padL=fs*3.2,padR=fs*.8,padT=fs*1.5,padB=fs*1.7;
+  const pw=w-padL-padR,ph=h-padT-padB;
+  const n=Math.max(8,series.length-1);const ymax=niceMax(Math.max(...series));
+  cx2.fillStyle='#a3a29b';cx2.textBaseline='middle';cx2.textAlign='left';
+  cx2.fillText(T[L].yLab,padL,padT*.5);
+  cx2.strokeStyle='#2a2a2d';cx2.lineWidth=1;cx2.textAlign='right';
+  for(const t of [0,.5,1]){const y=padT+ph*(1-t);cx2.beginPath();cx2.moveTo(padL,y);cx2.lineTo(padL+pw,y);cx2.stroke();cx2.fillStyle='#6b6a65';cx2.fillText(Math.round(ymax*t).toLocaleString(L==='pt'?'pt-BR':'en-US'),padL-fs*.4,y);}
+  cx2.textAlign='center';cx2.textBaseline='top';
+  const step=n>16?4:2;
+  for(let g=0;g<=n;g+=step){cx2.fillText(g*SERIAL,padL+pw*g/n,padT+ph+fs*.4);}
+  cx2.textAlign='right';cx2.textBaseline='middle';cx2.fillStyle='#6b6a65';cx2.fillText(T[L].xLab+' →',padL+pw,padT*.5);
+  const X=g=>padL+pw*g/n,Y=v=>padT+ph*(1-v/ymax);
+  if(series.length>1){
+    cx2.beginPath();cx2.moveTo(X(0),Y(0));series.forEach((v,g)=>cx2.lineTo(X(g),Y(v)));cx2.lineTo(X(series.length-1),Y(0));cx2.closePath();
+    cx2.fillStyle='rgba(255,90,78,0.18)';cx2.fill();
+    cx2.beginPath();series.forEach((v,g)=>g?cx2.lineTo(X(g),Y(v)):cx2.moveTo(X(g),Y(v)));
+    cx2.strokeStyle='#FF5A4E';cx2.lineWidth=2;cx2.stroke();
+  }
+  const g=series.length-1;cx2.fillStyle='#FF5A4E';cx2.beginPath();cx2.arc(X(g),Y(series[g]),3,0,7);cx2.fill();
+}
+function loop(t){
+  if(running){
+    if(!last)last=t;phase+=(t-last)/GEN_MS;last=t;
+    if(phase>=1){for(let i=0;i<P;i++)if(S[i]===4)S[i]=2;nextGen();upd();drawChart();if(!running){requestAnimationFrame(loop);return;}}
+    draw(Math.min(phase,1));
+  }else last=0;
+  requestAnimationFrame(loop);
+}
+$('play').onclick=()=>{
+  if(running){running=false;$('play').textContent=T[L].cont;return;}
+  if(!cur.length)reset();
+  if(!cur.length)return;
+  showMsg('');running=true;phase=Math.max(phase,gen===0?1:phase);$('play').textContent=T[L].pause;
+};
+$('reset').onclick=reset;
+$('r0').oninput=reset;
+document.querySelectorAll('[data-cov]').forEach(b=>b.onclick=()=>{$('cov').value=b.dataset.cov;reset();});
+$('cov').oninput=reset;
+
+/* ---------- suspense music (Web Audio, generated live) ---------- */
+let AC=null,master=null,soundOn=false,beatTimer=null,pingTimer=null;
+function initAudio(){
+  AC=new (window.AudioContext||window.webkitAudioContext)();
+  master=AC.createGain();master.gain.value=0;master.connect(AC.destination);
+  const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=320;lp.Q.value=6;lp.connect(master);
+  const lfo=AC.createOscillator(),lg=AC.createGain();lfo.frequency.value=.07;lg.gain.value=180;lfo.connect(lg);lg.connect(lp.frequency);lfo.start();
+  [[55,'sawtooth',.16],[55.5,'sawtooth',.16],[58.27,'triangle',.12],[27.5,'sine',.3]].forEach(([f,tp,v])=>{const o=AC.createOscillator(),g=AC.createGain();o.type=tp;o.frequency.value=f;g.gain.value=v;o.connect(g);g.connect(lp);o.start();});
+  const dl=AC.createDelay(2),fb=AC.createGain(),wet=AC.createGain();dl.delayTime.value=.55;fb.gain.value=.45;wet.gain.value=.5;dl.connect(fb);fb.connect(dl);dl.connect(wet);wet.connect(master);
+  AC._delay=dl;
+}
+function beat(){
+  if(!soundOn)return;
+  const t=AC.currentTime;
+  [0,.24].forEach((o,k)=>{const os=AC.createOscillator(),g=AC.createGain();os.type='sine';os.frequency.setValueAtTime(70,t+o);os.frequency.exponentialRampToValueAtTime(38,t+o+.18);
+    g.gain.setValueAtTime(0,t+o);g.gain.linearRampToValueAtTime(k?.55:.8,t+o+.01);g.gain.exponentialRampToValueAtTime(.001,t+o+.3);os.connect(g);g.connect(master);os.start(t+o);os.stop(t+o+.35);});
+  const intensity=running?Math.min(1,cur.length/150):0;
+  beatTimer=setTimeout(beat,1300-650*intensity);
+}
+function ping(){
+  if(!soundOn)return;
+  const t=AC.currentTime,notes=[440,622.25,466.16,329.63];
+  const f=notes[Math.random()*notes.length|0];
+  const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=f;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.07,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+2.5);
+  o.connect(g);g.connect(master);g.connect(AC._delay);o.start(t);o.stop(t+2.6);
+  pingTimer=setTimeout(ping,3500+Math.random()*4000);
+}
+$('sound').onclick=async()=>{
+  try{
+    if(!AC)initAudio();
+    soundOn=!soundOn;
+    if(soundOn){await AC.resume();master.gain.cancelScheduledValues(AC.currentTime);master.gain.setTargetAtTime(.5,AC.currentTime,.6);beat();pingTimer=setTimeout(ping,1500);}
+    else{master.gain.setTargetAtTime(0,AC.currentTime,.25);clearTimeout(beatTimer);clearTimeout(pingTimer);}
+    updateSoundLabel();
+  }catch(e){soundOn=false;}
+};
+
+function updateSoundLabel(){
+  $('sound').querySelector('use').setAttribute('href',soundOn?'#i-on':'#i-off');
+  $('sound').setAttribute('aria-pressed',String(soundOn));
+  $('sound').setAttribute('aria-label',L==='pt'?(soundOn?'Desativar som':'Ativar som'):(soundOn?'Mute sound':'Enable sound'));
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){running=false;last=0;$('play').textContent=gen>0?T[L].cont:T[L].start;
+    if(soundOn){soundOn=false;master.gain.setTargetAtTime(0,AC.currentTime,.1);clearTimeout(beatTimer);clearTimeout(pingTimer);updateSoundLabel();}
+  }
+});
+new ResizeObserver(layout).observe(wrap);
+new ResizeObserver(()=>{layoutChart();}).observe(ch);
+applyLang();route();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
